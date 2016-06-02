@@ -37,11 +37,12 @@ void Usage(FILE *out) {
           "   -m --mix_txn           :  run read/write mix txn \n"
           "   -e --exp_backoff       :  enable exponential backoff \n"
           "   -p --protocol          :  choose protocol, default OCC\n"
-          "                             protocol could be occ, pcc, ssi, sread, ewrite, occrb, and to\n"
+          "                             protocol could be occ, pcc, ssi, "
+          "sread, ewrite, occrb, and to\n"
           "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
-          "                             gc protocol could be off, co, va"
-
-  );
+          "                             gc protocol could be off, co, va\n"
+          "   -q --queue_scheduler       :  queue scheduler, default OFF\n"
+          "                             # of request thread");
   exit(EXIT_FAILURE);
 }
 
@@ -57,6 +58,7 @@ static struct option opts[] = {
     {"mix_txn", no_argument, NULL, 'm'},
     {"protocol", optional_argument, NULL, 'p'},
     {"gc_protocol", optional_argument, NULL, 'g'},
+    {"queue_scheduler", optional_argument, NULL, 'q'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -114,12 +116,21 @@ void ValidateSnapshotDuration(const configuration &state) {
 }
 
 void ValidateZipfTheta(const configuration &state) {
-  if (state.zipf_theta < 0 || state.zipf_theta > 1.0) {
+  if (state.zipf_theta < 0 || state.zipf_theta > 3.0) {
     LOG_ERROR("Invalid zipf_theta :: %lf", state.zipf_theta);
     exit(EXIT_FAILURE);
   }
 
   LOG_INFO("%s : %lf", "zipf_theta", state.zipf_theta);
+}
+
+void ValidateQueueScheduler(const configuration &state) {
+  if (state.queue_scheduler < 0) {
+    LOG_ERROR("Invalid queue_scheduler :: %d", state.queue_scheduler);
+    exit(EXIT_FAILURE);
+  }
+
+  LOG_INFO("%s : %d", "queue_scheduler", state.queue_scheduler);
 }
 
 void ParseArguments(int argc, char *argv[], configuration &state) {
@@ -131,6 +142,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.update_ratio = 0.5;
   state.backend_count = 2;
   state.zipf_theta = 0.0;
+  state.queue_scheduler = 0;  // 0 means no query thread. only prepared queries
   state.run_mix = false;
   state.run_backoff = false;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
@@ -170,6 +182,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'e':
         state.run_backoff = true;
         break;
+      case 'q':
+        state.queue_scheduler = atoi(optarg);
+        break;
       case 'p': {
         char *protocol = optarg;
         if (strcmp(protocol, "occ") == 0) {
@@ -196,11 +211,11 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         char *gc_protocol = optarg;
         if (strcmp(gc_protocol, "off") == 0) {
           state.gc_protocol = GC_TYPE_OFF;
-        }else if (strcmp(gc_protocol, "va") == 0) {
+        } else if (strcmp(gc_protocol, "va") == 0) {
           state.gc_protocol = GC_TYPE_VACUUM;
-        }else if (strcmp(gc_protocol, "co") == 0) {
+        } else if (strcmp(gc_protocol, "co") == 0) {
           state.gc_protocol = GC_TYPE_CO;
-        }else {
+        } else {
           fprintf(stderr, "\nUnknown gc protocol: %s\n", gc_protocol);
           exit(EXIT_FAILURE);
         }
@@ -225,6 +240,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateDuration(state);
   ValidateSnapshotDuration(state);
   ValidateZipfTheta(state);
+  ValidateQueueScheduler(state);
 
   LOG_INFO("%s : %d", "Run mix query", state.run_mix);
   LOG_INFO("%s : %d", "Run exponential backoff", state.run_backoff);
