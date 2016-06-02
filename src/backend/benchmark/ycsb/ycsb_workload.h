@@ -19,6 +19,7 @@
 #include "backend/executor/update_executor.h"
 #include "backend/executor/index_scan_executor.h"
 #include "backend/executor/insert_executor.h"
+#include "backend/concurrency/transaction_scheduler.h"
 
 namespace peloton {
 
@@ -42,12 +43,10 @@ void RunWorkload();
 /////////////////////////////////////////////////////////
 
 struct ReadPlans {
-  
+
   executor::IndexScanExecutor* index_scan_executor_;
 
-  void ResetState() {
-    index_scan_executor_->ResetState();
-  }
+  void ResetState() { index_scan_executor_->ResetState(); }
 
   void Cleanup() {
     delete index_scan_executor_;
@@ -57,7 +56,7 @@ struct ReadPlans {
 
 ReadPlans PrepareReadPlan();
 
-bool RunRead(ReadPlans &read_plans, ZipfDistribution &zipf);
+bool RunRead(ReadPlans& read_plans, ZipfDistribution& zipf);
 
 /////////////////////////////////////////////////////////
 
@@ -71,9 +70,7 @@ struct UpdatePlans {
     update_executor_->SetContext(context);
   }
 
-  void ResetState() {
-    index_scan_executor_->ResetState();
-  }
+  void ResetState() { index_scan_executor_->ResetState(); }
 
   void Cleanup() {
     delete index_scan_executor_;
@@ -84,10 +81,70 @@ struct UpdatePlans {
   }
 };
 
+class UpdateQuery : public concurrency::TransactionQuery {
+ public:
+  UpdateQuery(executor::IndexScanExecutor* index_scan_executor,
+              executor::UpdateExecutor* update_executor,
+              planner::UpdatePlan* update_plan)
+      : index_scan_executor_(index_scan_executor),
+        update_executor_(update_executor),
+        update_plan_(update_plan),
+        context_(nullptr) {}
+
+  void SetContext(executor::ExecutorContext* context) {
+    index_scan_executor_->SetContext(context);
+    update_executor_->SetContext(context);
+    context_ = context;
+  }
+  ~UpdateQuery() {}
+
+  void ResetState() { index_scan_executor_->ResetState(); }
+
+  void Cleanup() {
+    delete context_;
+    context_ = nullptr;
+
+    delete index_scan_executor_;
+    index_scan_executor_ = nullptr;
+
+    delete update_executor_;
+    update_executor_ = nullptr;
+
+    delete update_plan_;
+    update_plan_ = nullptr;
+  }
+
+  executor::IndexScanExecutor* GetIndexScanExecutor() {
+    return index_scan_executor_;
+  }
+  executor::UpdateExecutor* GetUpdateExecutor() { return update_executor_; }
+  void SetIndexScanExecutor(executor::IndexScanExecutor* index_scan_executor) {
+    index_scan_executor_ = index_scan_executor;
+  }
+  void SetUpdateExecutor(executor::UpdateExecutor* update_executor) {
+    update_executor_ = update_executor;
+  }
+
+  virtual peloton::PlanNodeType GetPlanType() {
+    return peloton::PLAN_NODE_TYPE_UPDATE;
+  };
+
+ private:
+  executor::IndexScanExecutor* index_scan_executor_;
+  executor::UpdateExecutor* update_executor_;
+  planner::UpdatePlan* update_plan_;
+  executor::ExecutorContext* context_;
+};
+
 UpdatePlans PrepareUpdatePlan();
-
-bool RunUpdate(UpdatePlans &update_plans, ZipfDistribution &zipf);
-
+bool RunUpdate(UpdatePlans& update_plans, ZipfDistribution& zipf);
+void GenerateAndQueueUpdate(ZipfDistribution& zipf);
+UpdateQuery* GenerateUpdate(ZipfDistribution& zipf);
+bool PopAndExecuteQuery();
+bool PopAndExecuteUpdate(UpdateQuery*& ret_query);
+bool ExecuteQuery(concurrency::TransactionQuery* query);
+bool ExecuteUpdate(UpdateQuery* query);
+void DestroyUpdateQuery(concurrency::TransactionQuery* query);
 
 /////////////////////////////////////////////////////////
 
@@ -97,7 +154,6 @@ struct MixedPlans {
 
   executor::IndexScanExecutor* update_index_scan_executor_;
   executor::UpdateExecutor* update_executor_;
-
 
   void SetContext(executor::ExecutorContext* context) {
     index_scan_executor_->SetContext(context);
@@ -123,14 +179,13 @@ struct MixedPlans {
 
 MixedPlans PrepareMixedPlan();
 
-bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, int read_count, int write_count);
-
+bool RunMixed(MixedPlans& mixed_plans, ZipfDistribution& zipf, int read_count,
+              int write_count);
 
 /////////////////////////////////////////////////////////
 
-
-std::vector<std::vector<Value>>
-ExecuteReadTest(executor::AbstractExecutor* executor);
+std::vector<std::vector<Value>> ExecuteReadTest(
+    executor::AbstractExecutor* executor);
 
 void ExecuteUpdateTest(executor::AbstractExecutor* executor);
 

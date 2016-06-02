@@ -36,7 +36,6 @@
       ::abort();                                                          \
     }                                                                     \
   } while (0)
-  
 
 #define CHECK_M(x, message, args...)                                           \
   do {                                                                         \
@@ -47,7 +46,6 @@
       ::abort();                                                               \
     }                                                                          \
   } while (0)
-
 
 namespace peloton {
 namespace benchmark {
@@ -60,8 +58,9 @@ std::ofstream out("outputfile.summary", std::ofstream::out);
 
 static void WriteOutput() {
   LOG_INFO("----------------------------------------------------------");
-  LOG_INFO("%lf %d %d :: %lf tps, %lf", state.update_ratio, state.scale_factor,
-           state.column_count, state.throughput, state.abort_rate);
+  LOG_INFO("%lf %d %d :: %lf tps, %lf abort, %lf generate/s",
+           state.update_ratio, state.scale_factor, state.column_count,
+           state.throughput, state.abort_rate, state.generate_rate);
 
   out << state.update_ratio << " ";
   out << state.scale_factor << " ";
@@ -107,7 +106,9 @@ static void ValidateMVCC() {
     for (oid_t tuple_slot = 0; tuple_slot < tuple_count; tuple_slot++) {
       txn_id_t txn_id = tile_group_header->GetTransactionId(tuple_slot);
       CHECK_M(txn_id == INVALID_TXN_ID || txn_id == INITIAL_TXN_ID,
-              "(%u,%u) Transaction id %lu(%lx) is not INVALID_TXNID or INITIAL_TXNID", tile_group->GetTileGroupId(), tuple_slot, txn_id, txn_id);
+              "(%u,%u) Transaction id %lu(%lx) is not INVALID_TXNID or "
+              "INITIAL_TXNID",
+              tile_group->GetTileGroupId(), tuple_slot, txn_id, txn_id);
     }
 
     LOG_TRACE("[OK] All tuples have valid txn id");
@@ -152,10 +153,10 @@ static void ValidateMVCC() {
                 // of the chain. It is either because we have deleted a tuple
                 // (so append a invalid tuple),
                 // or because this new version is aborted.
-                CHECK_M(next_tile_group_header->GetNextItemPointer(
-                                                  next_location.offset)
-                            .IsNull(),
-                        "Invalid version in a version chain and is not delete");
+                CHECK_M(
+                    next_tile_group_header->GetNextItemPointer(
+                                                next_location.offset).IsNull(),
+                    "Invalid version in a version chain and is not delete");
               }
 
               cid_t next_begin_cid = next_tile_group_header->GetBeginCommitId(
@@ -164,7 +165,8 @@ static void ValidateMVCC() {
                   next_tile_group_header->GetEndCommitId(next_location.offset);
 
               // 3. Timestamp consistence
-              // It must be an aborted version, it shouldn't exist in version chain
+              // It must be an aborted version, it shouldn't exist in version
+              // chain
               CHECK_M(next_begin_cid != MAX_CID,
                       "Aborted version shouldn't be at version chain");
 
@@ -174,7 +176,6 @@ static void ValidateMVCC() {
               ItemPointer next_prev_location =
                   next_tile_group_header->GetPrevItemPointer(
                       next_location.offset);
-
 
               CHECK_M(next_prev_location.offset == prev_location.offset &&
                           next_prev_location.block == prev_location.block,
@@ -195,10 +196,9 @@ static void ValidateMVCC() {
             // last_tile_group_header->GetTransactionId(last_location.offset);
             cid_t last_end_cid =
                 last_tile_group_header->GetEndCommitId(last_location.offset);
-            CHECK_M(
-                last_tile_group_header->GetNextItemPointer(last_location.offset)
-                    .IsNull(),
-                "Last version has a next pointer");
+            CHECK_M(last_tile_group_header->GetNextItemPointer(
+                                                last_location.offset).IsNull(),
+                    "Last version has a next pointer");
 
             CHECK_M(last_end_cid == MAX_CID,
                     "Last version doesn't end with MAX_CID");
@@ -215,6 +215,17 @@ static void ValidateMVCC() {
   gc_manager.StartGC();
 }
 
+void LoadQuery(int count) {
+  ZipfDistribution zipf(state.scale_factor * 1000 - 1, state.zipf_theta);
+  for (int i = 0; i < count; i++) {
+    GenerateAndQueueUpdate(zipf);
+  }
+
+  std::cout << "LOAD QUERY Count: " << count << std::endl;
+}
+
+#define PREQUERY 1000000  // 2000,000
+
 // Main Entry Point
 void RunBenchmark() {
   gc::GCManagerFactory::Configure(state.gc_protocol);
@@ -223,6 +234,8 @@ void RunBenchmark() {
   CreateYCSBDatabase();
 
   LoadYCSBDatabase();
+
+  LoadQuery(PREQUERY);
 
   // Validate MVCC storage
   ValidateMVCC();
