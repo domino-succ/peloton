@@ -224,7 +224,7 @@ void LoadQuery(int count) {
   std::cout << "LOAD QUERY Count: " << count << std::endl;
 }
 
-#define PREQUERY 1000000  // 2000,000
+#define PREQUERY 100000  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {

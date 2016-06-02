@@ -31,6 +31,7 @@ void Usage(FILE *out) {
           "   -d --duration          :  execution duration \n"
           "   -s --snapshot_duration :  snapshot duration \n"
           "   -b --backend_count     :  # of backends \n"
+          "   -w --generate_count :  # of workload generate thread\n"
           "   -c --column_count      :  # of columns \n"
           "   -u --write_ratio       :  Fraction of updates \n"
           "   -z --zipf_theta        :  theta to control skewness \n"
@@ -41,8 +42,8 @@ void Usage(FILE *out) {
           "sread, ewrite, occrb, and to\n"
           "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
           "                             gc protocol could be off, co, va\n"
-          "   -q --queue_scheduler       :  queue scheduler, default OFF\n"
-          "                             # of request thread");
+          "   -q --scheduler         :  scheduler, default OFF\n"
+          "                             control, queue, detect, ml");
   exit(EXIT_FAILURE);
 }
 
@@ -58,7 +59,8 @@ static struct option opts[] = {
     {"mix_txn", no_argument, NULL, 'm'},
     {"protocol", optional_argument, NULL, 'p'},
     {"gc_protocol", optional_argument, NULL, 'g'},
-    {"queue_scheduler", optional_argument, NULL, 'q'},
+    {"scheduler", optional_argument, NULL, 'q'},
+    {"generate_count", optional_argument, NULL, 'w'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -124,13 +126,13 @@ void ValidateZipfTheta(const configuration &state) {
   LOG_INFO("%s : %lf", "zipf_theta", state.zipf_theta);
 }
 
-void ValidateQueueScheduler(const configuration &state) {
-  if (state.queue_scheduler < 0) {
-    LOG_ERROR("Invalid queue_scheduler :: %d", state.queue_scheduler);
+void ValidateGenerateCount(const configuration &state) {
+  if (state.generate_count < 0) {
+    LOG_ERROR("Invalid generate_count :: %d", state.generate_count);
     exit(EXIT_FAILURE);
   }
 
-  LOG_INFO("%s : %d", "queue_scheduler", state.queue_scheduler);
+  LOG_INFO("%s : %d", "generate_count", state.generate_count);
 }
 
 void ParseArguments(int argc, char *argv[], configuration &state) {
@@ -142,15 +144,16 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.update_ratio = 0.5;
   state.backend_count = 2;
   state.zipf_theta = 0.0;
-  state.queue_scheduler = 0;  // 0 means no query thread. only prepared queries
+  state.generate_count = 0;  // 0 means no query thread. only prepared queries
   state.run_mix = false;
   state.run_backoff = false;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
+  state.scheduler = SCHEDULER_TYPE_NONE;
   state.gc_protocol = GC_TYPE_OFF;
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "ahmek:d:s:q:c:u:b:z:p:g:", opts, &idx);
+    int c = getopt_long(argc, argv, "ahmek:d:s:q:c:u:b:w:z:p:g:", opts, &idx);
 
     if (c == -1) break;
 
@@ -182,9 +185,27 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'e':
         state.run_backoff = true;
         break;
-      case 'q':
-        state.queue_scheduler = atoi(optarg);
+      case 'w':
+        state.generate_count = atoi(optarg);
         break;
+      case 'q': {
+        char *scheduler = optarg;
+        if (strcmp(scheduler, "none") == 0) {
+          state.scheduler = SCHEDULER_TYPE_NONE;
+        } else if (strcmp(scheduler, "control") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONTROL;
+        } else if (strcmp(scheduler, "queue") == 0) {
+          state.scheduler = SCHEDULER_TYPE_ABORT_QUEUE;
+        } else if (strcmp(scheduler, "detect") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_DETECT;
+        } else if (strcmp(scheduler, "ml") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_LEANING;
+        } else {
+          fprintf(stderr, "\nUnknown scheduler: %s\n", scheduler);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
       case 'p': {
         char *protocol = optarg;
         if (strcmp(protocol, "occ") == 0) {
@@ -240,7 +261,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateDuration(state);
   ValidateSnapshotDuration(state);
   ValidateZipfTheta(state);
-  ValidateQueueScheduler(state);
+  ValidateGenerateCount(state);
 
   LOG_INFO("%s : %d", "Run mix query", state.run_mix);
   LOG_INFO("%s : %d", "Run exponential backoff", state.run_backoff);

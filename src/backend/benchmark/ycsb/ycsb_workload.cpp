@@ -40,6 +40,7 @@
 
 #include "backend/concurrency/transaction.h"
 #include "backend/concurrency/transaction_manager_factory.h"
+#include "backend/concurrency/transaction_scheduler.h"
 
 #include "backend/executor/executor_context.h"
 #include "backend/executor/abstract_executor.h"
@@ -80,6 +81,7 @@ volatile bool is_running = true;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
+oid_t *generate_counts;
 
 // Helper function to pin current thread to a specific core
 static void PinToCore(size_t core) {
@@ -254,12 +256,14 @@ void RunBackend(oid_t thread_id) {
       //////////////////////////////////////////
       if (PopAndExecuteUpdate(ret_query) == false) {
         execution_count_ref++;
-        while (ExecuteUpdate(ret_query) == false) {
-          execution_count_ref++;
-          if (is_running == false) {
-            break;
+        if (state.scheduler == SCHEDULER_TYPE_CONTROL) {
+          while (ExecuteUpdate(ret_query) == false) {
+            execution_count_ref++;
+            if (is_running == false) {
+              break;
+            }
           }
-        }
+        }  // end if scheduler == control
         ret_query->Cleanup();
         delete ret_query;
         continue;
@@ -283,16 +287,40 @@ void RunBackend(oid_t thread_id) {
   }
 }
 
+void QueryBackend(oid_t thread_id) {
+  PinToCore(thread_id);
+
+  auto update_ratio = state.update_ratio;
+  oid_t &generate_count_ref = generate_counts[thread_id - state.backend_count];
+  ZipfDistribution zipf(state.scale_factor * 1000 - 1, state.zipf_theta);
+  fast_random rng(rand());
+
+  while (true) {
+    if (is_running == false) {
+      break;
+    }
+    auto rng_val = rng.next_uniform();
+    // Generate Update into queue
+    if (rng_val < update_ratio) {
+      GenerateAndQueueUpdate(zipf);
+    } else {
+      GenerateAndQueueUpdate(zipf);
+    }
+    generate_count_ref++;
+  }
+}
+
 void RunWorkload() {
   // Execute the workload to build the log
   std::vector<std::thread> thread_group;
   oid_t num_threads = state.backend_count;
-
+  oid_t num_generate = state.generate_count;
   abort_counts = new oid_t[num_threads];
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
-
   commit_counts = new oid_t[num_threads];
   memset(commit_counts, 0, sizeof(oid_t) * num_threads);
+  generate_counts = new oid_t[num_generate];
+  memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
   size_t snapshot_round = (size_t)(state.duration / state.snapshot_duration);
 
@@ -311,6 +339,12 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(RunBackend, thread_itr)));
   }
 
+  // Launch a bunch of threads to queue the query
+  for (oid_t thread_itr = num_threads; thread_itr < num_threads + num_generate;
+       ++thread_itr) {
+    thread_group.push_back(std::move(std::thread(QueryBackend, thread_itr)));
+  }
+
   for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
@@ -323,9 +357,17 @@ void RunWorkload() {
   is_running = false;
 
   // Join the threads with the main thread
-  for (oid_t thread_itr = 0; thread_itr < num_threads; ++thread_itr) {
+  for (oid_t thread_itr = 0; thread_itr < num_threads + num_generate;
+       ++thread_itr) {
     thread_group[thread_itr].join();
   }
+
+  // calculate the generate rate
+  oid_t total_generate_count = 0;
+  for (size_t i = 0; i < num_generate; ++i) {
+    total_generate_count += generate_counts[i];
+  }
+  state.generate_rate = total_generate_count * 1.0 / state.duration;
 
   // calculate the throughput and abort rate for the first round.
   oid_t total_commit_count = 0;
