@@ -155,9 +155,10 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   // Set context
   /////////////////////////////////////////////////////////
   // SetUpdate(query, zipf);
-  executor::ExecutorContext *context = new executor::ExecutorContext(nullptr);
-  query->SetContext(context);
-  query->ResetState();
+  //  executor::ExecutorContext *context = new
+  // executor::ExecutorContext(nullptr);
+  //  query->SetContext(context);
+  //  query->ResetState();
 
   //  std::vector<Value> values2;
   //  auto lookup_key = zipf.GetNextNumber();
@@ -255,14 +256,6 @@ UpdateQuery *GenerateUpdate(ZipfDistribution &zipf) {
   UpdateQuery *query =
       new UpdateQuery(index_scan_executor, update_executor, update_node);
 
-  /////////////////////////////////////////////////////////
-  // Set context
-  /////////////////////////////////////////////////////////
-  // SetUpdate(query, zipf);
-  executor::ExecutorContext *context = new executor::ExecutorContext(nullptr);
-  query->SetContext(context);
-  query->ResetState();
-
   return query;
 }
 
@@ -270,6 +263,13 @@ bool ExecuteUpdate(UpdateQuery *query) {
   // Start a txn to execute the query
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   auto txn = txn_manager.BeginTransaction();
+
+  /////////////////////////////////////////////////////////
+  // Set context
+  /////////////////////////////////////////////////////////
+  executor::ExecutorContext *context = new executor::ExecutorContext(nullptr);
+  query->SetContext(context);
+  query->ResetState();
 
   ExecuteUpdateTest(query->GetUpdateExecutor());
 

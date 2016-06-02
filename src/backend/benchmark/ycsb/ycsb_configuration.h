@@ -54,6 +54,9 @@ class configuration {
   // number of backends
   int backend_count;
 
+  // number of query thread
+  int generate_count;
+
   std::vector<double> snapshot_throughput;
 
   std::vector<double> snapshot_abort_rate;
@@ -73,8 +76,8 @@ class configuration {
   // enable exponential backoff
   bool run_backoff;
 
-  // using Queue scheduler: # of queries into the queue per time
-  int queue_scheduler;
+  //
+  SchedulerType scheduler;
 
   // protocol type
   ConcurrencyType protocol;
@@ -99,7 +102,7 @@ void ValidateDuration(const configuration &state);
 
 void ValidateSnapshotDuration(const configuration &state);
 
-void ValidateQueueScheduler(const configuration &state);
+void ValidateGenerateCount(const configuration &state);
 
 void ParseArguments(int argc, char *argv[], configuration &state);
 
