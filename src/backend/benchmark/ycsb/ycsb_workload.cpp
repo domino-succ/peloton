@@ -256,35 +256,70 @@ void RunBackend(oid_t thread_id) {
       //////////////////////////////////////////
       if (PopAndExecuteUpdate(ret_query) == false) {
         execution_count_ref++;
-        if (state.scheduler == SCHEDULER_TYPE_CONTROL) {
-          while (ExecuteUpdate(ret_query) == false) {
-            execution_count_ref++;
-            if (is_running == false) {
-              break;
-            }
+
+        switch (state.scheduler) {
+
+          case SCHEDULER_TYPE_NONE: {
+            // We do nothing in this case.Just delete the query
+            // LOG_INFO("Before");
+            ret_query->Cleanup();
+            delete ret_query;
+            // LOG_INFO("After");
+            break;
           }
-        }  // end if scheduler == control
-        ret_query->Cleanup();
-        delete ret_query;
-        continue;
-      }
+          case SCHEDULER_TYPE_CONTROL: {
+            // Control: The txn re-executed immediately
+            while (ExecuteUpdate(ret_query) == false) {
+              // If still fail, the counter increase, then enter loop again
+              execution_count_ref++;
+              if (is_running == false) {
+                break;
+              }
+            }
+
+            // If execute successfully, we should delete the query
+            ret_query->Cleanup();
+            delete ret_query;
+
+            // Increase the counter
+            transaction_count_ref++;
+            break;
+          }
+          case SCHEDULER_TYPE_ABORT_QUEUE: {
+            // Queue: put the txn at the end of the queue
+            concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(
+                ret_query);
+            break;
+          }
+          case SCHEDULER_TYPE_CONFLICT_DETECT: { break; }
+          case SCHEDULER_TYPE_CONFLICT_LEANING: { break; }
+
+          default: {
+            LOG_ERROR("plan_type :: Unsupported scheduler: %u ",
+                      state.scheduler);
+            break;
+          }
+        }  // end switch
+      }    // end execute fail
 
       /////////////////////////////////////////////////
       // Execute success: the memory should be deleted
       /////////////////////////////////////////////////
       else {  // execute == true
         if (ret_query != nullptr) {
+          // The query executes successfully
           ret_query->Cleanup();
           delete ret_query;
-          // transaction_count_ref++;
+
+          // Increase the counter
+          transaction_count_ref++;
         } else {  // queue is empty
           LOG_INFO("Queue is empty");
           continue;  // go to the while beginning
         }            // end else queue is empty
       }              // end else execute == true
-      transaction_count_ref++;
-    }
-  }
+    }                // end while do update or read
+  }                  // end if update or read
 }
 
 void QueryBackend(oid_t thread_id) {
