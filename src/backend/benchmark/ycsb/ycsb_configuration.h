@@ -17,6 +17,7 @@
 #include <vector>
 #include <sys/time.h>
 #include <iostream>
+#include <chrono>
 
 #include "backend/common/types.h"
 
@@ -66,6 +67,10 @@ class configuration {
   double abort_rate;
 
   double generate_rate;
+
+  double delay_ave;
+  double delay_max;
+  double delay_min;
 
   // Theta in zipf distribution to control skewness
   double zipf_theta;
