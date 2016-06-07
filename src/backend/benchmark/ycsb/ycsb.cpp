@@ -15,6 +15,11 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <chrono>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "backend/common/logger.h"
 #include "backend/catalog/manager.h"
@@ -54,13 +59,34 @@ namespace ycsb {
 configuration state;
 extern storage::DataTable *user_table;
 
-std::ofstream out("outputfile.summary", std::ofstream::out);
+// std::ofstream out("outputfile.summary", std::ofstream::out);
 
 static void WriteOutput() {
+  // Create output directory
+  struct stat st;
+  if (stat("./ycsb-output", &st) == -1) {
+    mkdir("./ycsb-output", 0700);
+  }
+
+  // Create file under output directory
+  time_t tt;
+  time(&tt);
+  struct tm *p;
+  p = localtime(&tt);
+  std::stringstream oss;
+  oss << "./ycsb-output/"
+      << "output" << p->tm_year + 1900 << p->tm_mon + 1 << p->tm_mday
+      << p->tm_hour << p->tm_min << p->tm_sec << ".summary";
+  std::ofstream out(oss.str(), std::ofstream::out);
+
   LOG_INFO("----------------------------------------------------------");
-  LOG_INFO("%lf %d %d :: %lf tps, %lf abort, %lf generate/s",
-           state.update_ratio, state.scale_factor, state.column_count,
-           state.throughput, state.abort_rate, state.generate_rate);
+  LOG_INFO(
+      "%lf %d %d :: %lf tps, %lf abort, %lf delay_ave, %lf delay_max, %lf "
+      "delay_min, "
+      "%lf generate/s",
+      state.update_ratio, state.scale_factor, state.column_count,
+      state.throughput, state.abort_rate, state.delay_ave, state.delay_max,
+      state.delay_min, state.generate_rate);
 
   out << state.update_ratio << " ";
   out << state.scale_factor << " ";
@@ -76,7 +102,15 @@ static void WriteOutput() {
   }
 
   out << state.throughput << " ";
-  out << state.abort_rate << "\n";
+  out << state.abort_rate << " ";
+  out << state.delay_ave << " ";
+  out << state.delay_max << " ";
+  out << state.delay_min << " ";
+  out << state.backend_count << " ";
+  out << state.generate_count << " ";
+  out << state.scheduler << " ";
+  out << state.zipf_theta << " ";
+  out << state.generate_rate << "\n";
   out.flush();
   out.close();
 }
@@ -218,13 +252,13 @@ static void ValidateMVCC() {
 void LoadQuery(int count) {
   ZipfDistribution zipf(state.scale_factor * 1000 - 1, state.zipf_theta);
   for (int i = 0; i < count; i++) {
-    GenerateAndQueueUpdate(zipf);
+    LoadQueue(zipf);
   }
 
   std::cout << "LOAD QUERY Count: " << count << std::endl;
 }
 
-#define PREQUERY 100000  // 2000,000
+#define PREQUERY 10000  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {
@@ -241,10 +275,10 @@ void RunBenchmark() {
   ValidateMVCC();
 
   // Run the workload
-  RunWorkload();
+  // RunWorkload();
 
   // Validate MVCC storage
-  ValidateMVCC();
+  // ValidateMVCC();
 
   WriteOutput();
 }
@@ -261,3 +295,13 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+
+// std::chrono::system_clock::time_point start =
+//    std::chrono::system_clock::now();
+// LoadQuery(PREQUERY);
+// std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+// auto delay = std::chrono::duration_cast<std::chrono::microseconds>(
+//    end - start).count();
+// float speed = (PREQUERY * 1.0 / delay) * 1000;
+// std::cout << "Time: " << delay * 1.0 / 1000 << "generate speed: " << speed
+//          << std::endl;

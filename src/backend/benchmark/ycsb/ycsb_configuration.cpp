@@ -145,6 +145,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.backend_count = 2;
   state.zipf_theta = 0.0;
   state.generate_count = 0;  // 0 means no query thread. only prepared queries
+  state.delay_ave = 0.0;
+  state.delay_max = 0.0;
+  state.delay_min = 0.0;
   state.run_mix = false;
   state.run_backoff = false;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
