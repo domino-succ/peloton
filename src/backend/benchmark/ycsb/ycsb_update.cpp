@@ -247,7 +247,7 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   // index_executor should be deleted, then query itself should be deleted
   // concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(query);
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
-    concurrency::TransactionScheduler::GetInstance().SimplePrepare(query);
+    concurrency::TransactionScheduler::GetInstance().Enqueue(query);
   } else {
     concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(query);
   }

@@ -95,7 +95,8 @@ class UpdateQuery : public concurrency::TransactionQuery {
         update_executor_(update_executor),
         update_plan_(update_plan),
         context_(nullptr),
-        start_time_(time) {}
+        start_time_(time),
+        primary_key_(0) {}
 
   void SetContext(executor::ExecutorContext* context) {
     index_scan_executor_->SetContext(context);
@@ -133,6 +134,8 @@ class UpdateQuery : public concurrency::TransactionQuery {
   void SetUpdateExecutor(executor::UpdateExecutor* update_executor) {
     update_executor_ = update_executor;
   }
+  void SetPrimaryKey(uint64_t key) { primary_key_ = key; }
+
   std::chrono::system_clock::time_point GetStartTime() {
     return start_time_;
   };
@@ -140,7 +143,7 @@ class UpdateQuery : public concurrency::TransactionQuery {
   virtual const std::vector<Value>& GetCompareKeys() const {
     return index_scan_executor_->GetValues();
   }
-
+  virtual uint64_t GetPrimaryKeyByint() { return primary_key_; }
   // Common method
   virtual peloton::PlanNodeType GetPlanType() {
     return peloton::PLAN_NODE_TYPE_UPDATE;
@@ -153,6 +156,8 @@ class UpdateQuery : public concurrency::TransactionQuery {
   planner::UpdatePlan* update_plan_;
   executor::ExecutorContext* context_;
   std::chrono::system_clock::time_point start_time_;
+
+  uint64_t primary_key_;
 };
 
 UpdatePlans PrepareUpdatePlan();
