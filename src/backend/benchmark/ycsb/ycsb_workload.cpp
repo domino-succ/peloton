@@ -236,11 +236,50 @@ void RunBackend(oid_t thread_id) {
       break;
     }
     // Pop a query from a queue and execute
-    UpdateQuery *ret_query;
+    concurrency::TransactionQuery *ret_query = nullptr;
+    bool ret_pop = false;
+
     //////////////////////////////////////////
-    // Execute fail : retry
+    // Pop a query
     //////////////////////////////////////////
-    if (PopAndExecuteUpdate(ret_query) == false) {
+    switch (state.scheduler) {
+      case SCHEDULER_TYPE_NONE:
+      case SCHEDULER_TYPE_CONTROL:
+      case SCHEDULER_TYPE_ABORT_QUEUE: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                ret_query);
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_DETECT: {
+        ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
+            ret_query, thread_id);
+        break;
+      }
+
+      case SCHEDULER_TYPE_CONFLICT_LEANING: { break; }
+
+      default: {
+        LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
+        break;
+      }
+    }  // end switch
+
+    // process the pop result
+    if (ret_pop == false) {
+      LOG_INFO("Queue is empty");
+      continue;
+    }
+
+    //////////////////////////////////////////
+    // Execute query
+    //////////////////////////////////////////
+    bool ret_exe = ExecuteUpdate(reinterpret_cast<UpdateQuery *>(ret_query));
+
+    //////////////////////////////////////////
+    // Execute result
+    //////////////////////////////////////////
+    if (ret_exe == false) {
       execution_count_ref++;
 
       switch (state.scheduler) {
@@ -248,13 +287,14 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, donot record the throughput and delay
-          ret_query->Cleanup();
+          reinterpret_cast<UpdateQuery *>(ret_query)->Cleanup();
           delete ret_query;
           break;
         }
         case SCHEDULER_TYPE_CONTROL: {
           // Control: The txn re-executed immediately
-          while (ExecuteUpdate(ret_query) == false) {
+          while (ExecuteUpdate(reinterpret_cast<UpdateQuery *>(ret_query)) ==
+                 false) {
             // If still fail, the counter increase, then enter loop again
             execution_count_ref++;
             if (is_running == false) {
@@ -264,7 +304,8 @@ void RunBackend(oid_t thread_id) {
 
           // If execute successfully, we should clean up the query
           // First compute the delay
-          RecordDelay(ret_query, delay_total_ref, delay_max_ref, delay_min_ref);
+          RecordDelay(reinterpret_cast<UpdateQuery *>(ret_query),
+                      delay_total_ref, delay_max_ref, delay_min_ref);
 
           // Second, clean up
           ret_query->Cleanup();
@@ -274,11 +315,15 @@ void RunBackend(oid_t thread_id) {
           transaction_count_ref++;
           break;
         }
-        case SCHEDULER_TYPE_ABORT_QUEUE:
-        case SCHEDULER_TYPE_CONFLICT_DETECT: {
+        case SCHEDULER_TYPE_ABORT_QUEUE: {
           // Queue: put the txn at the end of the queue
           concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(
               ret_query);
+          break;
+        }
+
+        case SCHEDULER_TYPE_CONFLICT_DETECT: {
+          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
           break;
         }
 

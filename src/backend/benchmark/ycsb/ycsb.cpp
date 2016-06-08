@@ -275,10 +275,10 @@ void RunBenchmark() {
   ValidateMVCC();
 
   // Run the workload
-  // RunWorkload();
+  RunWorkload();
 
   // Validate MVCC storage
-  // ValidateMVCC();
+  ValidateMVCC();
 
   WriteOutput();
 }
