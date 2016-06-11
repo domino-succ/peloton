@@ -89,14 +89,15 @@ class UpdateQuery : public concurrency::TransactionQuery {
               planner::IndexScanPlan* index_scan_plan,
               executor::UpdateExecutor* update_executor,
               planner::UpdatePlan* update_plan,
-              std::chrono::system_clock::time_point time)
+              std::vector<uint64_t>& primary_keys)
       : index_scan_executor_(index_scan_executor),
         index_scan_plan_(index_scan_plan),
         update_executor_(update_executor),
         update_plan_(update_plan),
         context_(nullptr),
-        start_time_(time),
-        primary_key_(0) {}
+        start_time_(std::chrono::system_clock::now()),
+        primary_keys_(std::move(primary_keys)),
+        first_pop_(true) {}
 
   void SetContext(executor::ExecutorContext* context) {
     index_scan_executor_->SetContext(context);
@@ -134,16 +135,24 @@ class UpdateQuery : public concurrency::TransactionQuery {
   void SetUpdateExecutor(executor::UpdateExecutor* update_executor) {
     update_executor_ = update_executor;
   }
-  void SetPrimaryKey(uint64_t key) { primary_key_ = key; }
+  // void SetPrimaryKey(uint64_t key) { primary_key_ = key; }
 
-  std::chrono::system_clock::time_point GetStartTime() {
+  void ReSetStartTime() {
+    if (first_pop_ == true) {
+      start_time_ = std::chrono::system_clock::now();
+      first_pop_ = false;
+    }
+  }
+  std::chrono::system_clock::time_point& GetStartTime() {
     return start_time_;
   };
 
   virtual const std::vector<Value>& GetCompareKeys() const {
     return index_scan_executor_->GetValues();
   }
-  virtual uint64_t GetPrimaryKeyByint() { return primary_key_; }
+  // virtual uint64_t GetPrimaryKeyByint() { return primary_key_; }
+
+  virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }
   // Common method
   virtual peloton::PlanNodeType GetPlanType() {
     return peloton::PLAN_NODE_TYPE_UPDATE;
@@ -157,19 +166,23 @@ class UpdateQuery : public concurrency::TransactionQuery {
   executor::ExecutorContext* context_;
   std::chrono::system_clock::time_point start_time_;
 
-  uint64_t primary_key_;
+  // uint64_t primary_key_;
+  std::vector<uint64_t> primary_keys_;
+
+  bool first_pop_;
 };
 
 UpdatePlans PrepareUpdatePlan();
 bool RunUpdate(UpdatePlans& update_plans, ZipfDistribution& zipf);
 void GenerateAndQueueUpdate(ZipfDistribution& zipf);
+void GenerateAndCacheUpdate(ZipfDistribution& zipf);
 UpdateQuery* GenerateUpdate(ZipfDistribution& zipf);
+void EnqueueCachedUpdate();
 bool PopAndExecuteQuery();
 bool PopAndExecuteUpdate(UpdateQuery*& ret_query);
 bool ExecuteQuery(concurrency::TransactionQuery* query);
 bool ExecuteUpdate(UpdateQuery* query);
 void DestroyUpdateQuery(concurrency::TransactionQuery* query);
-void LoadQueue(ZipfDistribution& zipf);
 
 /////////////////////////////////////////////////////////
 

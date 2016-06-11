@@ -24,9 +24,9 @@
 #include <cstddef>
 #include <limits>
 
-#include "backend/benchmark/ycsb/ycsb_workload.h"
 #include "backend/benchmark/ycsb/ycsb_configuration.h"
 #include "backend/benchmark/ycsb/ycsb_loader.h"
+#include "backend/benchmark/ycsb/ycsb_workload.h"
 
 #include "backend/catalog/manager.h"
 #include "backend/catalog/schema.h"
@@ -82,9 +82,9 @@ volatile bool is_running = true;
 oid_t *abort_counts;
 oid_t *commit_counts;
 oid_t *generate_counts;
-long *delay_totals;
-long *delay_maxs;
-long *delay_mins;
+uint64_t *delay_totals;
+uint64_t *delay_maxs;
+uint64_t *delay_mins;
 
 // Helper function to pin current thread to a specific core
 static void PinToCore(size_t core) {
@@ -108,7 +108,7 @@ bool PopAndExecuteQuery(concurrency::TransactionQuery *&ret_query) {
 
   // Get a query from a queue
   concurrency::TransactionQuery *query = nullptr;
-  concurrency::TransactionScheduler::GetInstance().SimpleDequeue(query);
+  concurrency::TransactionScheduler::GetInstance().SingleDequeue(query);
 
   // Return true
   if (query == nullptr) {
@@ -206,13 +206,14 @@ bool ExecuteQuery(concurrency::TransactionQuery *query) {
     return false;
   }
 }
-void RecordDelay(UpdateQuery *query, long &delay_total_ref, long &delay_max_ref,
-                 long &delay_min_ref) {
+void RecordDelay(UpdateQuery *query, uint64_t &delay_total_ref,
+                 uint64_t &delay_max_ref, uint64_t &delay_min_ref) {
   std::chrono::system_clock::time_point end_time =
       std::chrono::system_clock::now();
-  long delay = std::chrono::duration_cast<std::chrono::microseconds>(
+  uint64_t delay = std::chrono::duration_cast<std::chrono::milliseconds>(
       end_time - query->GetStartTime()).count();
   delay_total_ref = delay_total_ref + delay;
+
   if (delay > delay_max_ref) {
     delay_max_ref = delay;
   }
@@ -220,16 +221,15 @@ void RecordDelay(UpdateQuery *query, long &delay_total_ref, long &delay_max_ref,
     delay_min_ref = delay;
   }
 }
+
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
   // auto update_ratio = state.update_ratio;
   oid_t &execution_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
-  long &delay_total_ref = delay_totals[thread_id];
-  long &delay_max_ref = delay_maxs[thread_id];
-  long &delay_min_ref = delay_mins[thread_id];
-
-  ZipfDistribution zipf(state.scale_factor * 1000 - 1, state.zipf_theta);
+  uint64_t &delay_total_ref = delay_totals[thread_id];
+  uint64_t &delay_max_ref = delay_maxs[thread_id];
+  uint64_t &delay_min_ref = delay_mins[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -247,17 +247,17 @@ void RunBackend(oid_t thread_id) {
       case SCHEDULER_TYPE_CONTROL:
       case SCHEDULER_TYPE_ABORT_QUEUE: {
         ret_pop =
-            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+            concurrency::TransactionScheduler::GetInstance().SingleDequeue(
                 ret_query);
         break;
       }
-      case SCHEDULER_TYPE_CONFLICT_DETECT: {
+      case SCHEDULER_TYPE_CONFLICT_DETECT:
+      case SCHEDULER_TYPE_CONFLICT_LEANING:
+      case SCHEDULER_TYPE_CONFLICT_RANGE: {
         ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
             ret_query, thread_id);
         break;
       }
-
-      case SCHEDULER_TYPE_CONFLICT_LEANING: { break; }
 
       default: {
         LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
@@ -265,21 +265,22 @@ void RunBackend(oid_t thread_id) {
       }
     }  // end switch
 
-    // process the pop result
+    // process the pop result. If queue is empty, continue loop
     if (ret_pop == false) {
       LOG_INFO("Queue is empty");
       continue;
     }
 
+    PL_ASSERT(ret_query != nullptr);
+
+    // Before execute query, we should set the start time
+    (reinterpret_cast<UpdateQuery *>(ret_query))->ReSetStartTime();
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
-    bool ret_exe = ExecuteUpdate(reinterpret_cast<UpdateQuery *>(ret_query));
+    if (ExecuteUpdate(reinterpret_cast<UpdateQuery *>(ret_query)) == false) {
 
-    //////////////////////////////////////////
-    // Execute result
-    //////////////////////////////////////////
-    if (ret_exe == false) {
+      // When fail, some conflict occurs. Increase the fail counter
       execution_count_ref++;
 
       switch (state.scheduler) {
@@ -308,7 +309,7 @@ void RunBackend(oid_t thread_id) {
                       delay_total_ref, delay_max_ref, delay_min_ref);
 
           // Second, clean up
-          ret_query->Cleanup();
+          reinterpret_cast<UpdateQuery *>(ret_query)->Cleanup();
           delete ret_query;
 
           // Increase the counter
@@ -317,7 +318,7 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_ABORT_QUEUE: {
           // Queue: put the txn at the end of the queue
-          concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(
+          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
               ret_query);
           break;
         }
@@ -327,7 +328,17 @@ void RunBackend(oid_t thread_id) {
           break;
         }
 
-        case SCHEDULER_TYPE_CONFLICT_LEANING: { break; }
+        case SCHEDULER_TYPE_CONFLICT_LEANING: {
+          concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
+              ret_query);
+          break;
+        }
+
+        case SCHEDULER_TYPE_CONFLICT_RANGE: {
+          concurrency::TransactionScheduler::GetInstance().RangeEnqueue(
+              ret_query);
+          break;
+        }
 
         default: {
           LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
@@ -339,24 +350,19 @@ void RunBackend(oid_t thread_id) {
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
     /////////////////////////////////////////////////
-    else {  // execute == true
-      if (ret_query != nullptr) {
-        // The query executes successfully
-        // First compute the delay
-        RecordDelay(ret_query, delay_total_ref, delay_max_ref, delay_min_ref);
+    else {
+      // First compute the delay
+      RecordDelay(reinterpret_cast<UpdateQuery *>(ret_query), delay_total_ref,
+                  delay_max_ref, delay_min_ref);
 
-        // Second, clean up
-        ret_query->Cleanup();
-        delete ret_query;
+      // Second, clean up
+      reinterpret_cast<UpdateQuery *>(ret_query)->Cleanup();
+      delete ret_query;
 
-        // Increase the counter
-        transaction_count_ref++;
-      } else {  // queue is empty
-        LOG_INFO("Queue is empty");
-        continue;  // go to the while beginning
-      }            // end else queue is empty
-    }              // end else execute == true
-  }                // end while do update or read
+      // Increase the counter
+      transaction_count_ref++;
+    }  // end else execute == true
+  }    // end while do update or read
 }
 
 void QueryBackend(oid_t thread_id) {
@@ -364,7 +370,7 @@ void QueryBackend(oid_t thread_id) {
 
   auto update_ratio = state.update_ratio;
   oid_t &generate_count_ref = generate_counts[thread_id - state.backend_count];
-  ZipfDistribution zipf(state.scale_factor * 1000 - 1, state.zipf_theta);
+  ZipfDistribution zipf(state.scale_factor * FACTOR - 1, state.zipf_theta);
   fast_random rng(rand());
 
   while (true) {
@@ -395,11 +401,11 @@ void RunWorkload() {
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
   // Initiate Delay
-  delay_totals = new long[num_threads];
-  memset(delay_totals, 0, sizeof(long) * num_threads);
-  delay_maxs = new long[num_threads];
-  memset(delay_maxs, 0, sizeof(long) * num_threads);
-  delay_mins = new long[num_threads];
+  delay_totals = new uint64_t[num_threads];
+  memset(delay_totals, 0, sizeof(uint64_t) * num_threads);
+  delay_maxs = new uint64_t[num_threads];
+  memset(delay_maxs, 0, sizeof(uint64_t) * num_threads);
+  delay_mins = new uint64_t[num_threads];
   std::fill_n(delay_mins, num_threads, 1000000);
 
   size_t snapshot_round = (size_t)(state.duration / state.snapshot_duration);
@@ -500,29 +506,29 @@ void RunWorkload() {
   state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
   // calculate the average delay
-  long total_delay = 0;
+  uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_delay += delay_totals[i];
   }
-  state.delay_ave = (total_delay * 1.0) / (total_commit_count * 1000);
+  state.delay_ave = (total_delay * 1.0) / (total_commit_count);
 
   // calculate the max delay
-  long max_delay = 0;
+  uint64_t max_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     if (max_delay < delay_maxs[i]) {
       max_delay = delay_maxs[i];
     }
   }
-  state.delay_max = max_delay * 1.0 / 1000;
+  state.delay_max = max_delay;
 
   // calculate the min delay
-  long min_delay = delay_mins[0];
+  uint64_t min_delay = delay_mins[0];
   for (size_t i = 1; i < num_threads; ++i) {
     if (min_delay > delay_mins[i]) {
       min_delay = delay_mins[i];
     }
   }
-  state.delay_min = min_delay * 1.0 / 1000;
+  state.delay_min = min_delay;
 
   // cleanup everything.
   for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {

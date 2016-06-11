@@ -113,5 +113,23 @@ class ZipfDistribution {
   fast_random rand_generator;
 };
 
+class DistributionAnalysis {
+ public:
+  void Insert(uint64_t number) { distribution_number_.push_back(number); }
+  void Sort() {
+    std::sort(distribution_number_.begin(), distribution_number_.end());
+  }
+
+  // Does not check the bounder! Check the bounder before using this method
+  uint64_t GetValue(uint64_t idx) { return distribution_number_[idx]; }
+
+  uint64_t Size() { return distribution_number_.size(); }
+
+  std::vector<uint64_t> &GetDistribution() { return distribution_number_; }
+
+ private:
+  std::vector<uint64_t> distribution_number_;
+};
+
 }  // namespace benchmark
 }  // namespace peloton

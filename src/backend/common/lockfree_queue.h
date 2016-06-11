@@ -27,7 +27,8 @@ class LockfreeQueue {
   LockfreeQueue(const size_t& size) : queue_(size) {}
   LockfreeQueue() {}
 
-  // LockfreeQueue(const LockfreeQueue&) = delete;  // disable copying
+  // LockfreeQueue(const LockfreeQueue&) = delete;             // disable
+  // copying
   // LockfreeQueue& operator=(const LockfreeQueue&) = delete;  // disable
   // assignment
 
