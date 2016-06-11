@@ -113,7 +113,7 @@ void CreateYCSBDatabase() {
 
 void LoadYCSBDatabase() {
   const oid_t col_count = state.column_count + 1;
-  const int tuple_count = state.scale_factor * 1000;
+  const int tuple_count = state.scale_factor * FACTOR;
 
   // Pick the user table
   auto table_schema = user_table->GetSchema();

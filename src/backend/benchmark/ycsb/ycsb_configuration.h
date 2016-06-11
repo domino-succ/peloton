@@ -25,6 +25,8 @@ namespace peloton {
 namespace benchmark {
 namespace ycsb {
 
+#define FACTOR 1000
+
 static const oid_t ycsb_database_oid = 100;
 
 static const oid_t user_table_oid = 1001;
@@ -40,6 +42,9 @@ class configuration {
 
   // column count
   int column_count;
+
+  // operations per txn
+  int operation_count;
 
   // update ratio
   double update_ratio;

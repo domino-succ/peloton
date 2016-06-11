@@ -386,11 +386,12 @@ enum BackendType {
 //===--------------------------------------------------------------------===//
 
 enum SchedulerType {
-  SCHEDULER_TYPE_NONE = 0,             // on abort just abandon the txn
-  SCHEDULER_TYPE_CONTROL = 1,          // on abort txn re-executes immediately
-  SCHEDULER_TYPE_ABORT_QUEUE = 2,      // on abort txn go back the queue
-  SCHEDULER_TYPE_CONFLICT_DETECT = 3,  // new txn detects conflict
-  SCHEDULER_TYPE_CONFLICT_LEANING = 4  // new txn detects conflict using ml
+  SCHEDULER_TYPE_NONE = 0,              // on abort just abandon the txn
+  SCHEDULER_TYPE_CONTROL = 1,           // on abort txn re-executes immediately
+  SCHEDULER_TYPE_ABORT_QUEUE = 2,       // on abort txn go back the queue
+  SCHEDULER_TYPE_CONFLICT_DETECT = 3,   // new txn detects conflict
+  SCHEDULER_TYPE_CONFLICT_LEANING = 4,  // new txn detects conflict using ml
+  SCHEDULER_TYPE_CONFLICT_RANGE = 5
 };
 
 //===--------------------------------------------------------------------===//

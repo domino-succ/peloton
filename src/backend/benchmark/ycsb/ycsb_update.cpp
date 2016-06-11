@@ -24,9 +24,9 @@
 #include <cstddef>
 #include <limits>
 
-#include "backend/benchmark/ycsb/ycsb_workload.h"
 #include "backend/benchmark/ycsb/ycsb_configuration.h"
 #include "backend/benchmark/ycsb/ycsb_loader.h"
+#include "backend/benchmark/ycsb/ycsb_workload.h"
 
 #include "backend/catalog/manager.h"
 #include "backend/catalog/schema.h"
@@ -73,11 +73,14 @@
 namespace peloton {
 namespace benchmark {
 namespace ycsb {
+
+extern DistributionAnalysis analysis;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // Queue Based YCSB methods
 /////////////////////////////////////////////////////////////////////////////////////////
 
-void LoadQueue(ZipfDistribution &zipf) {
+void GenerateAndCacheUpdate(ZipfDistribution &zipf) {
 
   /////////////////////////////////////////////////////////
   // Generate INDEX SCAN + PREDICATE
@@ -88,9 +91,9 @@ void LoadQueue(ZipfDistribution &zipf) {
   std::vector<ExpressionType> expr_types;
   expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  auto lookup_key = zipf.GetNextNumber();
+  //  auto lookup_key = zipf.GetNextNumber();
   std::vector<Value> values;
-  values.push_back(ValueFactory::GetBigIntValue(lookup_key));
+  //  values.push_back(ValueFactory::GetBigIntValue(lookup_key));
 
   std::vector<expression::AbstractExpression *> runtime_keys;
   auto ycsb_pkey_index = user_table->GetIndexWithOid(user_table_pkey_index_oid);
@@ -121,9 +124,9 @@ void LoadQueue(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
 
   TargetList target_list;
-  Value update_val = ValueFactory::GetIntegerValue(2);
-  target_list.emplace_back(
-      1, expression::ExpressionUtil::ConstantValueFactory(update_val));
+  // Value update_val = ValueFactory::GetIntegerValue(2);
+  //  target_list.emplace_back(
+  //      1, expression::ExpressionUtil::ConstantValueFactory(update_val));
 
   DirectMapList direct_map_list;
   // Update the second attribute
@@ -148,19 +151,64 @@ void LoadQueue(ZipfDistribution &zipf) {
   update_executor->Init();
 
   // Generate update query
+  std::vector<uint64_t> lookup_key_s;
+
+  std::cout << "Begin a txn: " << std::endl;
+  // Generate lookup_keys
+  for (int i = 0; i < state.operation_count; i++) {
+    uint64_t key = zipf.GetNextNumber();
+    lookup_key_s.push_back(key);
+
+    std::cout << key << " ";
+    // TODO: replace this using more elegant way
+    analysis.Insert(key);
+  }
+  std::cout << std::endl;
+
+  // Generate query
   UpdateQuery *query =
       new UpdateQuery(index_scan_executor, index_scan_node, update_executor,
-                      update_node, std::chrono::system_clock::now());
+                      update_node, lookup_key_s);
 
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
   /////////////////////////////////////////////////////////
+  concurrency::TransactionScheduler::GetInstance().CacheQuery(query);
+}
 
-  // Push the query into the queue
-  // Note: when poping the query and after executing it, the update_executor and
-  // index_executor should be deleted, then query itself should be deleted
-  // concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(query);
-  concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(query);
+/////////////////////////////////////////////////////////
+// Call txn scheduler to queue this executor
+/////////////////////////////////////////////////////////
+
+void EnqueueCachedUpdate() {
+  uint64_t size = concurrency::TransactionScheduler::GetInstance().CacheSize();
+  concurrency::TransactionQuery *query = nullptr;
+
+  for (uint64_t i = 0; i < size; i++) {
+
+    bool ret =
+        concurrency::TransactionScheduler::GetInstance().DequeueCache(query);
+
+    if (ret == false) {
+      LOG_INFO("Error when dequeue cache: is the cache empty??");
+      continue;
+    }
+
+    // Push the query into the queue
+    // Note: when poping the query and after executing it, the update_executor
+    // and
+    // index_executor should be deleted, then query itself should be deleted
+    if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
+      concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+    } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
+      concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
+          query);
+    } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
+      concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
+    } else {
+      concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+    }
+  }
 }
 
 void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
@@ -174,9 +222,9 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   std::vector<ExpressionType> expr_types;
   expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  auto lookup_key = zipf.GetNextNumber();
+  //  auto lookup_key = zipf.GetNextNumber();
   std::vector<Value> values;
-  values.push_back(ValueFactory::GetBigIntValue(lookup_key));
+  //  values.push_back(ValueFactory::GetBigIntValue(lookup_key));
 
   std::vector<expression::AbstractExpression *> runtime_keys;
   auto ycsb_pkey_index = user_table->GetIndexWithOid(user_table_pkey_index_oid);
@@ -207,9 +255,9 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
 
   TargetList target_list;
-  Value update_val = ValueFactory::GetIntegerValue(2);
-  target_list.emplace_back(
-      1, expression::ExpressionUtil::ConstantValueFactory(update_val));
+  // Value update_val = ValueFactory::GetIntegerValue(2);
+  //  target_list.emplace_back(
+  //      1, expression::ExpressionUtil::ConstantValueFactory(update_val));
 
   DirectMapList direct_map_list;
   // Update the second attribute
@@ -234,9 +282,21 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   update_executor->Init();
 
   // Generate update query
+  std::vector<uint64_t> lookup_key_s;
+
+  // Generate lookup_keys
+  for (int i = 0; i < state.operation_count; i++) {
+    uint64_t key = zipf.GetNextNumber();
+    lookup_key_s.push_back(key);
+
+    // TODO: replace this using more elegant way
+    analysis.Insert(key);
+  }
+
+  // Generate query
   UpdateQuery *query =
       new UpdateQuery(index_scan_executor, index_scan_node, update_executor,
-                      update_node, std::chrono::system_clock::now());
+                      update_node, lookup_key_s);
 
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
@@ -245,11 +305,14 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   // Push the query into the queue
   // Note: when poping the query and after executing it, the update_executor and
   // index_executor should be deleted, then query itself should be deleted
-  // concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(query);
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
     concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+  } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
+    concurrency::TransactionScheduler::GetInstance().ModRangeEnqueue(query);
+  } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
+    concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
   } else {
-    concurrency::TransactionScheduler::GetInstance().SimpleEnqueue(query);
+    concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
   }
 }
 
@@ -264,9 +327,9 @@ UpdateQuery *GenerateUpdate(ZipfDistribution &zipf) {
   std::vector<ExpressionType> expr_types;
   expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  auto lookup_key = zipf.GetNextNumber();
+  // auto lookup_key = zipf.GetNextNumber();
   std::vector<Value> values;
-  values.push_back(ValueFactory::GetIntegerValue(lookup_key));
+  // values.push_back(ValueFactory::GetIntegerValue(lookup_key));
 
   std::vector<expression::AbstractExpression *> runtime_keys;
   auto ycsb_pkey_index = user_table->GetIndexWithOid(user_table_pkey_index_oid);
@@ -297,9 +360,9 @@ UpdateQuery *GenerateUpdate(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
 
   TargetList target_list;
-  Value update_val = ValueFactory::GetIntegerValue(2);
-  target_list.emplace_back(
-      1, expression::ExpressionUtil::ConstantValueFactory(update_val));
+  // Value update_val = ValueFactory::GetIntegerValue(2);
+  // target_list.emplace_back(
+  //    1, expression::ExpressionUtil::ConstantValueFactory(update_val));
 
   DirectMapList direct_map_list;
   // Update the second attribute
@@ -323,10 +386,17 @@ UpdateQuery *GenerateUpdate(ZipfDistribution &zipf) {
   update_executor->AddChild(index_scan_executor);
   update_executor->Init();
 
-  // Generate update query
+  // Generate lookup_keys
+  std::vector<uint64_t> lookup_key_s;
+  for (int i = 0; i < state.operation_count; i++) {
+    uint64_t key = zipf.GetNextNumber();
+    lookup_key_s.push_back(key);
+  }
+
+  // Generate query
   UpdateQuery *query =
       new UpdateQuery(index_scan_executor, index_scan_node, update_executor,
-                      update_node, std::chrono::system_clock::now());
+                      update_node, lookup_key_s);
 
   return query;
 }
@@ -341,16 +411,51 @@ bool ExecuteUpdate(UpdateQuery *query) {
   /////////////////////////////////////////////////////////
   executor::ExecutorContext *context = new executor::ExecutorContext(nullptr);
   query->SetContext(context);
-  query->ResetState();
-
-  ExecuteUpdateTest(query->GetUpdateExecutor());
 
   /////////////////////////////////////////////////////////
-  // Transaction fail
+  // INDEX SCAN + PREDICATE
   /////////////////////////////////////////////////////////
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    txn_manager.AbortTransaction();
-    return false;
+
+  for (int idx = 0; idx < state.operation_count; idx++) {
+
+    // Must reset before execute a query
+    query->ResetState();
+
+    // Set up parameter values
+    std::vector<Value> values;
+
+    // Get the lookup key
+    auto lookup_key = query->GetPrimaryKeysByint().at(idx);
+    values.push_back(ValueFactory::GetBigIntValue(lookup_key));
+
+    // Set the lookup key for index scan executor
+    query->GetIndexScanExecutor()->SetValues(values);
+
+    // Create target list
+    TargetList target_list;
+    // std::string update_raw_value(ycsb_field_length - 1, 'u');
+    int update_raw_value = 2;
+
+    Value update_val = ValueFactory::GetIntegerValue(update_raw_value);
+
+    target_list.emplace_back(
+        1, expression::ExpressionUtil::ConstantValueFactory(update_val));
+
+    // Set the target list for update executor
+    query->GetUpdateExecutor()->SetTargetList(target_list);
+
+    /////////////////////////////////////////////////////////
+    // EXECUTE
+    /////////////////////////////////////////////////////////
+    ExecuteUpdateTest(query->GetUpdateExecutor());
+
+    /////////////////////////////////////////////////////////
+    // Transaction fail
+    /////////////////////////////////////////////////////////
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      txn_manager.AbortTransaction();
+      return false;
+    }
   }
 
   /////////////////////////////////////////////////////////
@@ -375,7 +480,7 @@ bool ExecuteUpdate(UpdateQuery *query) {
 bool PopAndExecuteUpdate(UpdateQuery *&ret_query) {
   // Get a query from a queue
   concurrency::TransactionQuery *query = nullptr;
-  concurrency::TransactionScheduler::GetInstance().SimpleDequeue(query);
+  concurrency::TransactionScheduler::GetInstance().SingleDequeue(query);
 
   // Queue is empty, set return query with null and return true
   if (query == nullptr) {

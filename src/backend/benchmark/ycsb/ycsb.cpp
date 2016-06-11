@@ -59,6 +59,8 @@ namespace ycsb {
 configuration state;
 extern storage::DataTable *user_table;
 
+DistributionAnalysis analysis;
+
 // std::ofstream out("outputfile.summary", std::ofstream::out);
 
 static void WriteOutput() {
@@ -110,6 +112,7 @@ static void WriteOutput() {
   out << state.generate_count << " ";
   out << state.scheduler << " ";
   out << state.zipf_theta << " ";
+  out << state.operation_count << " ";
   out << state.generate_rate << "\n";
   out.flush();
   out.close();
@@ -249,16 +252,32 @@ static void ValidateMVCC() {
   gc_manager.StartGC();
 }
 
-void LoadQuery(int count) {
-  ZipfDistribution zipf(state.scale_factor * 1000 - 1, state.zipf_theta);
-  for (int i = 0; i < count; i++) {
-    LoadQueue(zipf);
+void LoadQuery(uint64_t count) {
+  concurrency::TransactionScheduler::GetInstance().Resize(
+      state.backend_count, (state.scale_factor * FACTOR) - 1);
+
+  ZipfDistribution zipf((state.scale_factor * FACTOR) - 1, state.zipf_theta);
+  for (uint64_t i = 0; i < count; i++) {
+    GenerateAndCacheUpdate(zipf);
   }
 
-  std::cout << "LOAD QUERY Count: " << count << std::endl;
+  uint64_t size = analysis.Size();
+  std::cout << "LOAD QUERY Count: " << count << "vector size: " << size
+            << std::endl;
+
+  std::vector<uint64_t> dist = analysis.GetDistribution();
+
+  analysis.Sort();
+
+  concurrency::TransactionScheduler::GetInstance().InitRouter(
+      analysis.GetDistribution());
+
+  EnqueueCachedUpdate();
+
+  concurrency::TransactionScheduler::GetInstance().DebugPrint();
 }
 
-#define PREQUERY 10000  // 2000,000
+#define PREQUERY 500000  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {
@@ -295,13 +314,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
-// std::chrono::system_clock::time_point start =
-//    std::chrono::system_clock::now();
-// LoadQuery(PREQUERY);
-// std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-// auto delay = std::chrono::duration_cast<std::chrono::microseconds>(
-//    end - start).count();
-// float speed = (PREQUERY * 1.0 / delay) * 1000;
-// std::cout << "Time: " << delay * 1.0 / 1000 << "generate speed: " << speed
-//          << std::endl;

@@ -99,6 +99,15 @@ void ValidateBackendCount(const configuration &state) {
   LOG_INFO("%s : %d", "backend_count", state.backend_count);
 }
 
+void ValidateOperationCount(const configuration &state) {
+  if (state.operation_count <= 0) {
+    LOG_ERROR("Invalid operation_count :: %d", state.operation_count);
+    exit(EXIT_FAILURE);
+  }
+
+  LOG_INFO("%s : %d", "operation_count", state.operation_count);
+}
+
 void ValidateDuration(const configuration &state) {
   if (state.duration <= 0) {
     LOG_ERROR("Invalid duration :: %lf", state.duration);
@@ -143,6 +152,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.column_count = 10;
   state.update_ratio = 0.5;
   state.backend_count = 2;
+  state.operation_count = 1;  // default operation count is one
   state.zipf_theta = 0.0;
   state.generate_count = 0;  // 0 means no query thread. only prepared queries
   state.delay_ave = 0.0;
@@ -156,7 +166,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "ahmek:d:s:q:c:u:b:w:z:p:g:", opts, &idx);
+    int c = getopt_long(argc, argv, "ahmek:d:s:q:c:u:b:o:w:z:p:g:", opts, &idx);
 
     if (c == -1) break;
 
@@ -178,6 +188,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'b':
         state.backend_count = atoi(optarg);
+        break;
+      case 'o':
+        state.operation_count = atoi(optarg);
         break;
       case 'z':
         state.zipf_theta = atof(optarg);
@@ -203,6 +216,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.scheduler = SCHEDULER_TYPE_CONFLICT_DETECT;
         } else if (strcmp(scheduler, "ml") == 0) {
           state.scheduler = SCHEDULER_TYPE_CONFLICT_LEANING;
+        } else if (strcmp(scheduler, "range") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_RANGE;
         } else {
           fprintf(stderr, "\nUnknown scheduler: %s\n", scheduler);
           exit(EXIT_FAILURE);
@@ -261,6 +276,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateColumnCount(state);
   ValidateUpdateRatio(state);
   ValidateBackendCount(state);
+  ValidateOperationCount(state);
   ValidateDuration(state);
   ValidateSnapshotDuration(state);
   ValidateZipfTheta(state);
