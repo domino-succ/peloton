@@ -153,17 +153,15 @@ void GenerateAndCacheUpdate(ZipfDistribution &zipf) {
   // Generate update query
   std::vector<uint64_t> lookup_key_s;
 
-  std::cout << "Begin a txn: " << std::endl;
   // Generate lookup_keys
+  uint64_t key = zipf.GetNextNumber();
   for (int i = 0; i < state.operation_count; i++) {
-    uint64_t key = zipf.GetNextNumber();
+    // uint64_t key = zipf.GetNextNumber();
     lookup_key_s.push_back(key);
 
-    std::cout << key << " ";
     // TODO: replace this using more elegant way
     analysis.Insert(key);
   }
-  std::cout << std::endl;
 
   // Generate query
   UpdateQuery *query =

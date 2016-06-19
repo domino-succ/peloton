@@ -81,6 +81,7 @@ volatile bool is_running = true;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
+oid_t *total_counts;
 oid_t *generate_counts;
 uint64_t *delay_totals;
 uint64_t *delay_maxs;
@@ -227,6 +228,7 @@ void RunBackend(oid_t thread_id) {
   // auto update_ratio = state.update_ratio;
   oid_t &execution_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
+  oid_t &total_count_ref = total_counts[thread_id];
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
@@ -272,6 +274,7 @@ void RunBackend(oid_t thread_id) {
     }
 
     PL_ASSERT(ret_query != nullptr);
+    total_count_ref++;
 
     // Before execute query, we should set the start time
     (reinterpret_cast<UpdateQuery *>(ret_query))->ReSetStartTime();
@@ -282,6 +285,9 @@ void RunBackend(oid_t thread_id) {
 
       // When fail, some conflict occurs. Increase the fail counter
       execution_count_ref++;
+
+      // LOG_INFO("Execution fail:%d---thread:%d", execution_count_ref,
+      // thread_id);
 
       switch (state.scheduler) {
 
@@ -314,6 +320,8 @@ void RunBackend(oid_t thread_id) {
 
           // Increase the counter
           transaction_count_ref++;
+          LOG_INFO("In Control Fail,transaction_count_ref:%d",
+                   transaction_count_ref);
           break;
         }
         case SCHEDULER_TYPE_ABORT_QUEUE: {
@@ -341,7 +349,7 @@ void RunBackend(oid_t thread_id) {
         }
 
         default: {
-          LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
+          LOG_INFO("plan_type :: Unsupported scheduler: %u ", state.scheduler);
           break;
         }
       }  // end switch
@@ -361,6 +369,8 @@ void RunBackend(oid_t thread_id) {
 
       // Increase the counter
       transaction_count_ref++;
+      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
+      //         execution_count_ref, thread_id);
     }  // end else execute == true
   }    // end while do update or read
 }
@@ -397,6 +407,8 @@ void RunWorkload() {
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
   commit_counts = new oid_t[num_threads];
   memset(commit_counts, 0, sizeof(oid_t) * num_threads);
+  total_counts = new oid_t[num_threads];
+  memset(total_counts, 0, sizeof(oid_t) * num_threads);
   generate_counts = new oid_t[num_generate];
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
@@ -455,6 +467,12 @@ void RunWorkload() {
   }
   state.generate_rate = total_generate_count * 1.0 / state.duration;
 
+  // calculate the generate rate
+  oid_t total_exe_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_exe_count += total_counts[i];
+  }
+
   // calculate the throughput and abort rate for the first round.
   oid_t total_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -504,6 +522,10 @@ void RunWorkload() {
 
   state.throughput = total_commit_count * 1.0 / state.duration;
   state.abort_rate = total_abort_count * 1.0 / total_commit_count;
+
+  LOG_INFO("Total_cout:%d, commit:%d, abort:%d, c+a:%d", total_exe_count,
+           total_commit_count, total_abort_count,
+           total_commit_count + total_abort_count);
 
   // calculate the average delay
   uint64_t total_delay = 0;
