@@ -32,6 +32,7 @@ void Usage(FILE *out) {
           "   -d --duration          :  execution duration \n"
           "   -s --snapshot_duration :  snapshot duration \n"
           "   -b --backend_count     :  # of backends \n"
+          "   -w --generate_count :  :  # of generate threads\n"
           "   -c --column_count      :  # of columns \n"
           "   -l --update_col_count  :  # of updated columns \n"
           "   -r --read_col_count    :  # of read columns \n"
@@ -46,7 +47,9 @@ void Usage(FILE *out) {
           "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
           "                             gc protocol could be off, co, va, and n2o\n"
           "   -t --gc_thread         :  number of thread used in gc, only used for gc type n2o/va\n"
+          "   -q --scheduler         :  control, queue, detect, ml\n"
   );
+
   exit(EXIT_FAILURE);
 }
 
@@ -68,6 +71,8 @@ static struct option opts[] = {
     {"protocol", optional_argument, NULL, 'p'},
     {"gc_protocol", optional_argument, NULL, 'g'},
     {"gc_thread", optional_argument, NULL, 't'},
+    {"scheduler", optional_argument, NULL, 'q'},
+    {"generate_count", optional_argument, NULL, 'w'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -189,22 +194,27 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.column_count = 10;
   state.update_column_count = 1;
   state.read_column_count = 1;
-  state.operation_count = 10;
+  state.operation_count = 1;
   state.update_ratio = 0.5;
   state.backend_count = 2;
   state.zipf_theta = 0.0;
+  state.generate_count = 0;  // 0 means no query thread. only prepared queries
+  state.delay_ave = 0.0;
+  state.delay_max = 0.0;
+  state.delay_min = 0.0;
   state.run_mix = false;
   state.run_backoff = false;
   state.blind_write = false;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
+  state.scheduler = SCHEDULER_TYPE_NONE;
   state.index = INDEX_TYPE_BTREE;
   state.gc_thread_count = 1;
 
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "ahmexk:d:s:c:l:r:o:u:b:z:p:g:i:t:", opts, &idx);
+    int c = getopt_long(argc, argv, "ahmexk:d:s:q:c:l:r:o:u:b:w:z:p:g:i:t:", opts, &idx);
 
     if (c == -1) break;
 
@@ -251,6 +261,29 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'x':
         state.blind_write = true;
         break;
+      case 'w':
+        state.generate_count = atoi(optarg);
+        break;
+      case 'q': {
+        char *scheduler = optarg;
+        if (strcmp(scheduler, "none") == 0) {
+          state.scheduler = SCHEDULER_TYPE_NONE;
+        } else if (strcmp(scheduler, "control") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONTROL;
+        } else if (strcmp(scheduler, "queue") == 0) {
+          state.scheduler = SCHEDULER_TYPE_ABORT_QUEUE;
+        } else if (strcmp(scheduler, "detect") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_DETECT;
+        } else if (strcmp(scheduler, "ml") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_LEANING;
+        } else if (strcmp(scheduler, "range") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_RANGE;
+        } else {
+          fprintf(stderr, "\nUnknown scheduler: %s\n", scheduler);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
       case 'p': {
         char *protocol = optarg;
         if (strcmp(protocol, "occ") == 0) {
@@ -332,11 +365,13 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateOperationCount(state);
   ValidateUpdateRatio(state);
   ValidateBackendCount(state);
+  ValidateOperationCount(state);
   ValidateDuration(state);
   ValidateSnapshotDuration(state);
   ValidateZipfTheta(state);
   ValidateProtocol(state);
   ValidateIndex(state);
+  ValidateGenerateCount(state);
 
   LOG_TRACE("%s : %d", "Run mix query", state.run_mix);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);

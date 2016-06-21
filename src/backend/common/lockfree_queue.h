@@ -24,36 +24,30 @@ namespace peloton {
 template <typename T>
 class LockfreeQueue {
  public:
-  LockfreeQueue(const size_t &size) : queue_(size) {}
+  LockfreeQueue(const size_t& size) : queue_(size) {}
+  LockfreeQueue() {}
 
-  LockfreeQueue(const LockfreeQueue&) = delete;             // disable copying
-  LockfreeQueue& operator=(const LockfreeQueue&) = delete;  // disable assignment
+  // LockfreeQueue(const LockfreeQueue&) = delete;             // disable
+  // copying
+  // LockfreeQueue& operator=(const LockfreeQueue&) = delete;  // disable
+  // assignment
 
   // Enqueues one item, allocating extra space if necessary
-  void Enqueue(T& item) {
-    queue_.enqueue(item);
-  }
+  void Enqueue(T& item) { queue_.enqueue(item); }
 
-  void Enqueue(const T& item) {
-    queue_.enqueue(item);
-  }
+  void Enqueue(const T& item) { queue_.enqueue(item); }
 
   // Dequeues one item, returning true if an item was found
   // or false if the queue appeared empty
-  bool Dequeue(T& item) {
-    return queue_.try_dequeue(item);
-  }
+  bool Dequeue(T& item) { return queue_.try_dequeue(item); }
 
-  bool Dequeue(const T& item) {
-    return queue_.try_dequeue(item);
-  }
+  bool Dequeue(const T& item) { return queue_.try_dequeue(item); }
 
-  bool IsEmpty() {
-    return queue_.size_approx() == 0;
-  }
+  bool IsEmpty() { return queue_.size_approx() == 0; }
+
+  int Size() { return queue_.size_approx(); }
 
  private:
-
   // Underlying moodycamel's concurrent queue
   moodycamel::ConcurrentQueue<T> queue_;
 };

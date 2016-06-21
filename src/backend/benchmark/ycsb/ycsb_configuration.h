@@ -17,12 +17,15 @@
 #include <vector>
 #include <sys/time.h>
 #include <iostream>
+#include <chrono>
 
 #include "backend/common/types.h"
 
 namespace peloton {
 namespace benchmark {
 namespace ycsb {
+
+#define FACTOR 1000
 
 static const oid_t ycsb_database_oid = 100;
 
@@ -58,8 +61,13 @@ class configuration {
   // snapshot duration
   double snapshot_duration;
 
+  unsigned long transaction_count;
+
   // number of backends
   int backend_count;
+
+  // number of query thread
+  int generate_count;
 
   std::vector<double> snapshot_throughput;
 
@@ -70,6 +78,12 @@ class configuration {
   double throughput;
 
   double abort_rate;
+
+  double generate_rate;
+
+  double delay_ave;
+  double delay_max;
+  double delay_min;
 
   // Theta in zipf distribution to control skewness
   double zipf_theta;
@@ -83,6 +97,9 @@ class configuration {
   // enable blind write
   bool blind_write;
 
+  //
+  SchedulerType scheduler;
+  
   // protocol type
   ConcurrencyType protocol;
 
@@ -123,6 +140,8 @@ void ValidateSnapshotDuration(const configuration &state);
 void ValidateProtocol(const configuration &state);
 
 void ValidateIndex(const configuration &state);
+
+void ValidateGenerateCount(const configuration &state);
 
 void ParseArguments(int argc, char *argv[], configuration &state);
 
