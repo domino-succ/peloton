@@ -13,6 +13,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <sys/stat.h>
 
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/benchmark/tpcc/tpcc_loader.h"
@@ -29,11 +30,30 @@ namespace tpcc {
 
 configuration state;
 
-std::ofstream out("outputfile.summary");
+// std::ofstream out("outputfile.summary");
 
 static void WriteOutput() {
+  // Create output directory
+  struct stat st;
+  if (stat("./tpcc-output", &st) == -1) {
+    mkdir("./tpcc-output", 0700);
+  }
+
+  // Create file under output directory
+  time_t tt;
+  time(&tt);
+  struct tm *p;
+  p = localtime(&tt);
+  std::stringstream oss;
+  oss << "./tpcc-output/"
+      << "output" << p->tm_year + 1900 << p->tm_mon + 1 << p->tm_mday
+      << p->tm_hour << p->tm_min << p->tm_sec << ".summary";
+  std::ofstream out(oss.str(), std::ofstream::out);
+
   LOG_INFO("----------------------------------------------------------");
-  LOG_INFO("%lf :: %lf tps, %lf, %d", state.scale_factor, state.throughput, state.abort_rate, state.snapshot_memory[state.snapshot_throughput.size() - 1]);
+  LOG_INFO("%lf :: %lf tps, %lf, %d", state.scale_factor, state.throughput,
+           state.abort_rate,
+           state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
   // out << state.scale_factor << "\n";
 
@@ -49,7 +69,9 @@ static void WriteOutput() {
 
   out << state.throughput << " ";
   out << state.abort_rate << " ";
-  out << state.snapshot_memory[state.snapshot_throughput.size() - 1] <<"\n";
+  out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
+  out << state.backend_count << " ";
+  out << state.warehouse_count << "\n";
   out.flush();
   out.close();
 }
@@ -76,8 +98,8 @@ void RunBenchmark() {
 }  // namespace peloton
 
 int main(int argc, char **argv) {
-  peloton::benchmark::tpcc::ParseArguments(
-      argc, argv, peloton::benchmark::tpcc::state);
+  peloton::benchmark::tpcc::ParseArguments(argc, argv,
+                                           peloton::benchmark::tpcc::state);
 
   peloton::benchmark::tpcc::RunBenchmark();
 

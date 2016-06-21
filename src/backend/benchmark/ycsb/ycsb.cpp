@@ -15,6 +15,11 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <chrono>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "backend/common/logger.h"
 #include "backend/catalog/manager.h"
@@ -35,7 +40,6 @@
       ::abort();                                                          \
     }                                                                     \
   } while (0)
-  
 
 #define CHECK_M(x, message, args...)                                           \
   do {                                                                         \
@@ -47,7 +51,6 @@
     }                                                                          \
   } while (0)
 
-
 namespace peloton {
 namespace benchmark {
 namespace ycsb {
@@ -55,15 +58,40 @@ namespace ycsb {
 configuration state;
 extern storage::DataTable *user_table;
 
-std::ofstream out("outputfile.summary", std::ofstream::out);
+DistributionAnalysis analysis;
+
+// std::ofstream out("outputfile.summary", std::ofstream::out);
 
 static void WriteOutput() {
-  LOG_INFO("%lf %d %d :: %lf tps, %lf, %d", state.update_ratio, state.scale_factor,
-           state.column_count, state.throughput, state.abort_rate, state.snapshot_memory[state.snapshot_throughput.size() - 1]);
+  // Create output directory
+  struct stat st;
+  if (stat("./ycsb-output", &st) == -1) {
+    mkdir("./ycsb-output", 0700);
+  }
 
-  // out << state.update_ratio << " ";
-  // out << state.scale_factor << " ";
-  // out << state.column_count << "\n";
+  // Create file under output directory
+  time_t tt;
+  time(&tt);
+  struct tm *p;
+  p = localtime(&tt);
+  std::stringstream oss;
+  oss << "./ycsb-output/"
+      << "output" << p->tm_year + 1900 << p->tm_mon + 1 << p->tm_mday
+      << p->tm_hour << p->tm_min << p->tm_sec << ".summary";
+  std::ofstream out(oss.str(), std::ofstream::out);
+
+  LOG_INFO("----------------------------------------------------------");
+  LOG_INFO(
+      "%lf %d %d :: %lf tps, %lf abort, %lf delay_ave, %lf delay_max, %lf, %d"
+      "delay_min, "
+      "%lf generate/s",
+      state.update_ratio, state.scale_factor, state.column_count,
+      state.throughput, state.abort_rate, state.delay_ave, state.delay_max,
+      state.delay_min, state.generate_rate,  state.snapshot_memory[state.snapshot_throughput.size() - 1]);
+
+  out << state.update_ratio << " ";
+  out << state.scale_factor << " ";
+  out << state.column_count << "\n";
 
   for (size_t round_id = 0; round_id < state.snapshot_throughput.size();
        ++round_id) {
@@ -77,6 +105,15 @@ static void WriteOutput() {
 
   out << state.throughput << " ";
   out << state.abort_rate << " ";
+  out << state.delay_ave << " ";
+  out << state.delay_max << " ";
+  out << state.delay_min << " ";
+  out << state.backend_count << " ";
+  out << state.generate_count << " ";
+  out << state.scheduler << " ";
+  out << state.zipf_theta << " ";
+  out << state.operation_count << " ";
+  out << state.generate_rate << " ";
   out << state.snapshot_memory[state.snapshot_throughput.size() - 1] <<"\n";
   out.flush();
   out.close();
@@ -175,7 +212,6 @@ static void ValidateMVCC() {
                   next_tile_group_header->GetPrevItemPointer(
                       next_location.offset);
 
-
               CHECK_M(next_prev_location.offset == prev_location.offset &&
                           next_prev_location.block == prev_location.block,
                       "Next version's prev version does not match");
@@ -215,6 +251,33 @@ static void ValidateMVCC() {
   gc_manager.StartGC();
 }
 
+void LoadQuery(uint64_t count) {
+  concurrency::TransactionScheduler::GetInstance().Resize(
+      state.backend_count, (state.scale_factor * FACTOR) - 1);
+
+  ZipfDistribution zipf((state.scale_factor * FACTOR) - 1, state.zipf_theta);
+  for (uint64_t i = 0; i < count; i++) {
+    GenerateAndCacheUpdate(zipf);
+  }
+
+  uint64_t size = analysis.Size();
+  std::cout << "LOAD QUERY Count: " << count << "vector size: " << size
+            << std::endl;
+
+  std::vector<uint64_t> dist = analysis.GetDistribution();
+
+  analysis.Sort();
+
+  concurrency::TransactionScheduler::GetInstance().InitRouter(
+      analysis.GetDistribution());
+
+  EnqueueCachedUpdate();
+
+  concurrency::TransactionScheduler::GetInstance().DebugPrint();
+}
+
+#define PREQUERY 500000  // 2000,000
+
 // Main Entry Point
 void RunBenchmark() {
   gc::GCManagerFactory::Configure(state.gc_protocol, state.gc_thread_count);
@@ -223,6 +286,8 @@ void RunBenchmark() {
   CreateYCSBDatabase();
 
   LoadYCSBDatabase();
+
+  LoadQuery(PREQUERY);
 
   // Validate MVCC storage
   if (state.protocol != CONCURRENCY_TYPE_OCC_N2O 

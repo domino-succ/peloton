@@ -41,14 +41,13 @@ enum LoggingType {
   LOGGING_TYPE_NVM_WBL = 4,
   LOGGING_TYPE_SSD_WBL = 5,
   LOGGING_TYPE_HDD_WBL = 6
-
 };
 
 enum LoggerMappingStrategyType {
-	LOGGER_MAPPING_INVALID,
-	LOGGER_MAPPING_ROUND_ROBIN,
-	LOGGER_MAPPING_AFFINITY,
-	LOGGER_MAPPING_MANUAL,
+  LOGGER_MAPPING_INVALID,
+  LOGGER_MAPPING_ROUND_ROBIN,
+  LOGGER_MAPPING_AFFINITY,
+  LOGGER_MAPPING_MANUAL,
 };
 
 enum CheckpointType {
@@ -155,33 +154,25 @@ extern int DEFAULT_TUPLES_PER_TILEGROUP;
 enum PostgresValueType {
   POSTGRES_VALUE_TYPE_INVALID = -1,
   POSTGRES_VALUE_TYPE_BOOLEAN = 16,
-
   POSTGRES_VALUE_TYPE_SMALLINT = 21,
   POSTGRES_VALUE_TYPE_INTEGER = 23,
   POSTGRES_VALUE_TYPE_BIGINT = 20,
   POSTGRES_VALUE_TYPE_REAL = 700,
   POSTGRES_VALUE_TYPE_DOUBLE = 701,
-
   POSTGRES_VALUE_TYPE_TEXT = 25,
-
   POSTGRES_VALUE_TYPE_BPCHAR = 1042,
   POSTGRES_VALUE_TYPE_BPCHAR2 = 1014,
-
   POSTGRES_VALUE_TYPE_VARCHAR = 1015,
   POSTGRES_VALUE_TYPE_VARCHAR2 = 1043,
-
   POSTGRES_VALUE_TYPE_DATE = 1082,
   POSTGRES_VALUE_TYPE_TIMESTAMPS = 1114,
   POSTGRES_VALUE_TYPE_TIMESTAMPS2 = 1184,
-
   POSTGRES_VALUE_TYPE_TEXT_ARRAY = 1009,     // TEXTARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_INT2_ARRAY = 1005,     // INT2ARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_INT4_ARRAY = 1007,     // INT4ARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_OID_ARRAY = 1028,      // OIDARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_FLOADT4_ARRAY = 1021,  // FLOADT4ARRAYOID in postgres code
-
   POSTGRES_VALUE_TYPE_DECIMAL = 1700
-
 };
 
 enum ValueType {
@@ -352,7 +343,6 @@ enum ExpressionType {
   //===--------------------------------------------------------------------===//
   // Parser
   //===--------------------------------------------------------------------===//
-
   EXPRESSION_TYPE_STAR = 700,
   EXPRESSION_TYPE_PLACEHOLDER = 701,
   EXPRESSION_TYPE_COLUMN_REF = 702,
@@ -391,11 +381,23 @@ enum IsolationLevelType {
 
 enum BackendType {
   BACKEND_TYPE_INVALID = 0,  // invalid backend type
-
   BACKEND_TYPE_MM = 1,   // on volatile memory
   BACKEND_TYPE_NVM = 2,  // on non-volatile memory
   BACKEND_TYPE_SSD = 3,  // on ssd
   BACKEND_TYPE_HDD = 4   // on hdd
+};
+
+//===--------------------------------------------------------------------===//
+// Transaction Scheduler Types
+//===--------------------------------------------------------------------===//
+
+enum SchedulerType {
+  SCHEDULER_TYPE_NONE = 0,              // on abort just abandon the txn
+  SCHEDULER_TYPE_CONTROL = 1,           // on abort txn re-executes immediately
+  SCHEDULER_TYPE_ABORT_QUEUE = 2,       // on abort txn go back the queue
+  SCHEDULER_TYPE_CONFLICT_DETECT = 3,   // new txn detects conflict
+  SCHEDULER_TYPE_CONFLICT_LEANING = 4,  // new txn detects conflict using ml
+  SCHEDULER_TYPE_CONFLICT_RANGE = 5
 };
 
 //===--------------------------------------------------------------------===//
@@ -407,14 +409,12 @@ enum VisibilityType {
   VISIBILITY_OK = 2
 };
 
-
 //===--------------------------------------------------------------------===//
 // Index Types
 //===--------------------------------------------------------------------===//
 
 enum IndexType {
   INDEX_TYPE_INVALID = 0,  // invalid index type
-
   INDEX_TYPE_BTREE = 1,   // btree
   INDEX_TYPE_BWTREE = 2,  // bwtree
   INDEX_TYPE_HASH = 3,    // hash
@@ -425,7 +425,6 @@ enum IndexType {
 
 enum IndexConstraintType {
   INDEX_CONSTRAINT_TYPE_INVALID = 0,  // invalid index constraint type
-
   INDEX_CONSTRAINT_TYPE_DEFAULT =
       1,  // default type - not used to enforce constraints
   INDEX_CONSTRAINT_TYPE_PRIMARY_KEY =
@@ -472,7 +471,6 @@ enum PlanNodeType {
   PLAN_NODE_TYPE_DISTINCT = 57,
   PLAN_NODE_TYPE_SETOP = 58,   // set operation
   PLAN_NODE_TYPE_APPEND = 59,  // append
-
   PLAN_NODE_TYPE_AGGREGATE_V2 = 61,
   PLAN_NODE_TYPE_HASH = 62,
 
@@ -489,12 +487,10 @@ enum PlanNodeType {
 
 enum CreateType {
   CREATE_TYPE_INVALID = 0,  // invalid create type
-
   CREATE_TYPE_DB = 1,         // db create type
   CREATE_TYPE_TABLE = 2,      // table create type
   CREATE_TYPE_INDEX = 3,      // index create type
   CREATE_TYPE_CONSTRAINT = 4  // constraint create type
-
 };
 
 //===--------------------------------------------------------------------===//
@@ -503,7 +499,6 @@ enum CreateType {
 
 enum StatementType {
   STATEMENT_TYPE_INVALID = 0,  // invalid statement type
-
   STATEMENT_TYPE_SELECT = 1,        // select statement type
   STATEMENT_TYPE_INSERT = 3,        // insert statement type
   STATEMENT_TYPE_UPDATE = 4,        // update statement type
@@ -524,7 +519,6 @@ enum StatementType {
 
 enum ScanDirectionType {
   SCAN_DIRECTION_TYPE_INVALID = 0,  // invalid scan direction
-
   SCAN_DIRECTION_TYPE_FORWARD = 1,  // forward
   SCAN_DIRECTION_TYPE_BACKWARD = 2  // backward
 };
