@@ -24,31 +24,33 @@ namespace benchmark {
 namespace ycsb {
 
 void Usage(FILE *out) {
-  fprintf(out,
-          "Command line options : ycsb <options> \n"
-          "   -h --help              :  Print help message \n"
-          "   -i --index             :  index type could be btree or bwtree\n"
-          "   -k --scale_factor      :  # of tuples \n"
-          "   -d --duration          :  execution duration \n"
-          "   -s --snapshot_duration :  snapshot duration \n"
-          "   -b --backend_count     :  # of backends \n"
-          "   -w --generate_count :  :  # of generate threads\n"
-          "   -c --column_count      :  # of columns \n"
-          "   -l --update_col_count  :  # of updated columns \n"
-          "   -r --read_col_count    :  # of read columns \n"
-          "   -o --operation_count   :  # of operations \n"
-          "   -u --write_ratio       :  Fraction of updates \n"
-          "   -z --zipf_theta        :  theta to control skewness \n"
-          "   -m --mix_txn           :  run read/write mix txn \n"
-          "   -e --exp_backoff       :  enable exponential backoff \n"
-          "   -x --blind_write       :  enable blind write \n"
-          "   -p --protocol          :  choose protocol, default OCC\n"
-          "                             protocol could be occ, pcc, pccopt, ssi, sread, ewrite, occrb, occn2o, to, torb, tofullrb, and ton2o\n"
-          "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
-          "                             gc protocol could be off, co, va, and n2o\n"
-          "   -t --gc_thread         :  number of thread used in gc, only used for gc type n2o/va\n"
-          "   -q --scheduler         :  control, queue, detect, ml\n"
-  );
+  fprintf(
+      out,
+      "Command line options : ycsb <options> \n"
+      "   -h --help              :  Print help message \n"
+      "   -i --index             :  index type could be btree or bwtree\n"
+      "   -k --scale_factor      :  # of tuples \n"
+      "   -d --duration          :  execution duration \n"
+      "   -s --snapshot_duration :  snapshot duration \n"
+      "   -b --backend_count     :  # of backends \n"
+      "   -w --generate_count :  :  # of generate threads\n"
+      "   -c --column_count      :  # of columns \n"
+      "   -l --update_col_count  :  # of updated columns \n"
+      "   -r --read_col_count    :  # of read columns \n"
+      "   -o --operation_count   :  # of operations \n"
+      "   -u --write_ratio       :  Fraction of updates \n"
+      "   -z --zipf_theta        :  theta to control skewness \n"
+      "   -m --mix_txn           :  run read/write mix txn \n"
+      "   -e --exp_backoff       :  enable exponential backoff \n"
+      "   -x --blind_write       :  enable blind write \n"
+      "   -p --protocol          :  choose protocol, default OCC\n"
+      "                             protocol could be occ, pcc, pccopt, ssi, "
+      "sread, ewrite, occrb, occn2o, to, torb, tofullrb, and ton2o\n"
+      "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
+      "                             gc protocol could be off, co, va, and n2o\n"
+      "   -t --gc_thread         :  number of thread used in gc, only used for "
+      "gc type n2o/va\n"
+      "   -q --scheduler         :  control, queue, detect, ml\n");
 
   exit(EXIT_FAILURE);
 }
@@ -94,7 +96,8 @@ void ValidateColumnCount(const configuration &state) {
 }
 
 void ValidateUpdateColumnCount(const configuration &state) {
-  if (state.update_column_count <= 0 || state.update_column_count > state.column_count) {
+  if (state.update_column_count <= 0 ||
+      state.update_column_count > state.column_count) {
     LOG_ERROR("Invalid update_column_count :: %d", state.update_column_count);
     exit(EXIT_FAILURE);
   }
@@ -103,7 +106,8 @@ void ValidateUpdateColumnCount(const configuration &state) {
 }
 
 void ValidateReadColumnCount(const configuration &state) {
-  if (state.read_column_count <= 0 || state.read_column_count > state.column_count) {
+  if (state.read_column_count <= 0 ||
+      state.read_column_count > state.column_count) {
     LOG_ERROR("Invalid read_column_count :: %d", state.read_column_count);
     exit(EXIT_FAILURE);
   }
@@ -166,7 +170,8 @@ void ValidateZipfTheta(const configuration &state) {
 }
 
 void ValidateProtocol(const configuration &state) {
-  if (state.protocol != CONCURRENCY_TYPE_TO_N2O && state.protocol != CONCURRENCY_TYPE_OCC_N2O) {
+  if (state.protocol != CONCURRENCY_TYPE_TO_N2O &&
+      state.protocol != CONCURRENCY_TYPE_OCC_N2O) {
     if (state.gc_protocol == GC_TYPE_N2O) {
       LOG_ERROR("Invalid protocol");
       exit(EXIT_FAILURE);
@@ -180,10 +185,20 @@ void ValidateProtocol(const configuration &state) {
 }
 
 void ValidateIndex(const configuration &state) {
-  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE && state.index != INDEX_TYPE_HASH) {
+  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE &&
+      state.index != INDEX_TYPE_HASH) {
     LOG_ERROR("Invalid index");
     exit(EXIT_FAILURE);
   }
+}
+
+void ValidateGenerateCount(const configuration &state) {
+  if (state.generate_count < 0) {
+    LOG_ERROR("Invalid generate_count :: %d", state.generate_count);
+    exit(EXIT_FAILURE);
+  }
+
+  LOG_INFO("%s : %d", "generate_count", state.generate_count);
 }
 
 void ParseArguments(int argc, char *argv[], configuration &state) {
@@ -214,7 +229,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "ahmexk:d:s:q:c:l:r:o:u:b:w:z:p:g:i:t:", opts, &idx);
+    int c = getopt_long(argc, argv, "ahmexk:d:s:q:c:l:r:o:u:b:w:z:p:g:i:t:",
+                        opts, &idx);
 
     if (c == -1) break;
 
@@ -320,11 +336,11 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         char *gc_protocol = optarg;
         if (strcmp(gc_protocol, "off") == 0) {
           state.gc_protocol = GC_TYPE_OFF;
-        }else if (strcmp(gc_protocol, "va") == 0) {
+        } else if (strcmp(gc_protocol, "va") == 0) {
           state.gc_protocol = GC_TYPE_VACUUM;
-        }else if (strcmp(gc_protocol, "co") == 0) {
+        } else if (strcmp(gc_protocol, "co") == 0) {
           state.gc_protocol = GC_TYPE_CO;
-        }else if (strcmp(gc_protocol, "n2o") == 0) {
+        } else if (strcmp(gc_protocol, "n2o") == 0) {
           state.gc_protocol = GC_TYPE_N2O;
         } else {
           fprintf(stderr, "\nUnknown gc protocol: %s\n", gc_protocol);

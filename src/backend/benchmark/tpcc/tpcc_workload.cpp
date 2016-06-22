@@ -24,7 +24,6 @@
 #include <cstddef>
 #include <limits>
 
-
 #include "backend/benchmark/tpcc/tpcc_workload.h"
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/benchmark/tpcc/tpcc_loader.h"
@@ -83,7 +82,11 @@ volatile bool is_running = true;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
-
+oid_t *total_counts;
+oid_t *generate_counts;
+uint64_t *delay_totals;
+uint64_t *delay_maxs;
+uint64_t *delay_mins;
 
 size_t GenerateWarehouseId(const size_t &thread_id) {
   if (state.run_affinity) {
@@ -92,8 +95,9 @@ size_t GenerateWarehouseId(const size_t &thread_id) {
     } else {
       int warehouse_per_partition = state.warehouse_count / state.backend_count;
       int start_warehouse = warehouse_per_partition * thread_id;
-      int end_warehouse = ((int)thread_id != (state.backend_count - 1)) ? 
-        start_warehouse + warehouse_per_partition - 1 : state.warehouse_count - 1;
+      int end_warehouse = ((int)thread_id != (state.backend_count - 1))
+                              ? start_warehouse + warehouse_per_partition - 1
+                              : state.warehouse_count - 1;
       return GetRandomInteger(start_warehouse, end_warehouse);
     }
   } else {
@@ -101,135 +105,105 @@ size_t GenerateWarehouseId(const size_t &thread_id) {
   }
 }
 
+void GenerateAndCacheQuery() {
+  // Generate query
+  UpdateQuery *query =
+      new UpdateQuery(index_scan_executor, index_scan_node, update_executor,
+                      update_node, lookup_key_s);
+
+  /////////////////////////////////////////////////////////
+  // Call txn scheduler to queue this executor
+  /////////////////////////////////////////////////////////
+  concurrency::TransactionScheduler::GetInstance().CacheQuery(query);
+}
+
+void EnqueueCachedUpdate() {}
 
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
-
-
   oid_t &execution_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
-
+  oid_t &total_count_ref = total_counts[thread_id];
+  // uint64_t &delay_total_ref = delay_totals[thread_id];
+  // uint64_t &delay_max_ref = delay_maxs[thread_id];
+  // uint64_t &delay_min_ref = delay_mins[thread_id];
 
   NewOrderPlans new_order_plans = PrepareNewOrderPlan();
-  PaymentPlans payment_plans = PreparePaymentPlan();
-  //DeliveryPlans delivery_plans = PrepareDeliveryPlan();
-  
+
   // backoff
   uint32_t backoff_shifts = 0;
   while (true) {
-
     if (is_running == false) {
       break;
     }
 
-    fast_random rng(rand());
-    
-    auto rng_val = rng.next_uniform();
+    // Pop a query from a queue and execute
+    concurrency::TransactionQuery *ret_query = nullptr;
+    bool ret_pop = false;
 
-     if (rng_val <= 0.04) {
-       while (RunStockLevel(thread_id, state.order_range) == false) {
-          if (is_running == false) {
-            break;
-          }
-         execution_count_ref++;
-        // backoff
-        if (state.run_backoff) {
-          if (backoff_shifts < 63) {
-            ++backoff_shifts;
-          }
-          uint64_t spins = 1UL << backoff_shifts;
-          spins *= 100;
-          while (spins) {
-            _mm_pause();
-            --spins;
-          }
-        }
-       }
-     } else 
-    if (rng_val <= 0.08) {
-       while (RunOrderStatus(thread_id) == false) {
-          if (is_running == false) {
-            break;
-          }
-         execution_count_ref++;
-        // backoff
-        if (state.run_backoff) {
-          if (backoff_shifts < 63) {
-            ++backoff_shifts;
-          }
-          uint64_t spins = 1UL << backoff_shifts;
-          spins *= 100;
-          while (spins) {
-            _mm_pause();
-            --spins;
-          }
-        }
-       }
-     } else 
-     // if (rng_val <= 0.12) {
-     //   while (RunDelivery(delivery_plans, thread_id) == false) {
-     //      if (is_running == false) {
-     //        break;
-     //      }
-     //     execution_count_ref++;
-     //    // backoff
-     //    if (state.run_backoff) {
-     //      if (backoff_shifts < 63) {
-     //        ++backoff_shifts;
-     //      }
-     //      uint64_t spins = 1UL << backoff_shifts;
-     //      spins *= 100;
-     //      while (spins) {
-     //        _mm_pause();
-     //        --spins;
-     //      }
-     //    }
-     //   }
-     // } else 
-     if (rng_val <= 0.55) {
-       while (RunPayment(payment_plans, thread_id) == false) {
-          if (is_running == false) {
-            break;
-          }
-         execution_count_ref++;
-        // backoff
-        if (state.run_backoff) {
-          if (backoff_shifts < 63) {
-            ++backoff_shifts;
-          }
-          uint64_t spins = 1UL << backoff_shifts;
-          spins *= 100;
-          while (spins) {
-            _mm_pause();
-            --spins;
-          }
-        }
-       }
-     } else {
-       while (RunNewOrder(new_order_plans, thread_id) == false) {
-          if (is_running == false) {
-            break;
-          }
-         execution_count_ref++;
-        // backoff
-        if (state.run_backoff) {
-          if (backoff_shifts < 63) {
-            ++backoff_shifts;
-          }
-          uint64_t spins = 1UL << backoff_shifts;
-          spins *= 100;
-          while (spins) {
-            _mm_pause();
-            --spins;
-          }
-        }
-       }
-     }
+    //////////////////////////////////////////
+    // Pop a query
+    //////////////////////////////////////////
+    switch (state.scheduler) {
+      case SCHEDULER_TYPE_NONE:
+      case SCHEDULER_TYPE_CONTROL:
+      case SCHEDULER_TYPE_ABORT_QUEUE: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().SingleDequeue(
+                ret_query);
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_DETECT:
+      case SCHEDULER_TYPE_CONFLICT_LEANING:
+      case SCHEDULER_TYPE_CONFLICT_RANGE: {
+        ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
+            ret_query, thread_id);
+        break;
+      }
 
-    backoff_shifts >>= 1;
-    transaction_count_ref++;
+      default: {
+        LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
+        break;
+      }
+    }  // end switch
 
+    // process the pop result. If queue is empty, continue loop
+    if (ret_pop == false) {
+      LOG_INFO("Queue is empty");
+      continue;
+    }
+
+    PL_ASSERT(ret_query != nullptr);
+    total_count_ref++;
+
+    // Before execute query, we should set the start time
+    (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
+    //////////////////////////////////////////
+    // Execute query
+    //////////////////////////////////////////
+
+    while (RunNewOrder(new_order_plans, thread_id) == false) {
+      if (is_running == false) {
+        break;
+      }
+      execution_count_ref++;
+      // backoff
+      if (state.run_backoff) {
+        if (backoff_shifts < 63) {
+          ++backoff_shifts;
+        }
+        uint64_t spins = 1UL << backoff_shifts;
+        spins *= 100;
+        while (spins) {
+          _mm_pause();
+          --spins;
+        }
+      }  // end backoff
+    }
   }
+
+  backoff_shifts >>= 1;
+  transaction_count_ref++;
 }
 
 void RunWorkload() {
@@ -237,7 +211,7 @@ void RunWorkload() {
   // Execute the workload to build the log
   std::vector<std::thread> thread_group;
   oid_t num_threads = state.backend_count;
-  
+
   abort_counts = new oid_t[num_threads];
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
 
@@ -268,8 +242,8 @@ void RunWorkload() {
            sizeof(oid_t) * num_threads);
     memcpy(commit_counts_snapshots[round_id], commit_counts,
            sizeof(oid_t) * num_threads);
-    auto& manager = catalog::Manager::GetInstance();
-  
+    auto &manager = catalog::Manager::GetInstance();
+
     state.snapshot_memory.push_back(manager.GetLastTileGroupId());
   }
 
@@ -291,10 +265,10 @@ void RunWorkload() {
     total_abort_count += abort_counts_snapshots[0][i];
   }
 
-  state.snapshot_throughput
-      .push_back(total_commit_count * 1.0 / state.snapshot_duration);
-  state.snapshot_abort_rate
-      .push_back(total_abort_count * 1.0 / total_commit_count);
+  state.snapshot_throughput.push_back(total_commit_count * 1.0 /
+                                      state.snapshot_duration);
+  state.snapshot_abort_rate.push_back(total_abort_count * 1.0 /
+                                      total_commit_count);
 
   // calculate the throughput and abort rate for the remaining rounds.
   for (size_t round_id = 0; round_id < snapshot_round - 1; ++round_id) {
@@ -310,10 +284,10 @@ void RunWorkload() {
                            abort_counts_snapshots[round_id][i];
     }
 
-    state.snapshot_throughput
-        .push_back(total_commit_count * 1.0 / state.snapshot_duration);
-    state.snapshot_abort_rate
-        .push_back(total_abort_count * 1.0 / total_commit_count);
+    state.snapshot_throughput.push_back(total_commit_count * 1.0 /
+                                        state.snapshot_duration);
+    state.snapshot_abort_rate.push_back(total_abort_count * 1.0 /
+                                        total_commit_count);
   }
 
   // calculate the aggregated throughput and abort rate.
@@ -350,7 +324,6 @@ void RunWorkload() {
   delete[] commit_counts;
   commit_counts = nullptr;
 
-
   LOG_INFO("============TABLE SIZES==========");
   LOG_INFO("warehouse count = %u", warehouse_table->GetAllCurrentTupleCount());
   LOG_INFO("district count  = %u", district_table->GetAllCurrentTupleCount());
@@ -360,17 +333,16 @@ void RunWorkload() {
   LOG_INFO("stock count = %u", stock_table->GetAllCurrentTupleCount());
   LOG_INFO("orders count = %u", orders_table->GetAllCurrentTupleCount());
   LOG_INFO("new order count = %u", new_order_table->GetAllCurrentTupleCount());
-  LOG_INFO("order line count = %u", order_line_table->GetAllCurrentTupleCount());
+  LOG_INFO("order line count = %u",
+           order_line_table->GetAllCurrentTupleCount());
 }
-
 
 /////////////////////////////////////////////////////////
 // HARNESS
 /////////////////////////////////////////////////////////
 
-
-std::vector<std::vector<Value>>
-ExecuteReadTest(executor::AbstractExecutor* executor) {
+std::vector<std::vector<Value>> ExecuteReadTest(
+    executor::AbstractExecutor *executor) {
 
   std::vector<std::vector<Value>> logical_tile_values;
 
@@ -379,16 +351,15 @@ ExecuteReadTest(executor::AbstractExecutor* executor) {
     std::unique_ptr<executor::LogicalTile> result_tile(executor->GetOutput());
 
     // is this possible?
-    if(result_tile == nullptr)
-      break;
+    if (result_tile == nullptr) break;
 
     auto column_count = result_tile->GetColumnCount();
 
     for (oid_t tuple_id : *result_tile) {
-      expression::ContainerTuple<executor::LogicalTile> cur_tuple(result_tile.get(),
-                                                                  tuple_id);
+      expression::ContainerTuple<executor::LogicalTile> cur_tuple(
+          result_tile.get(), tuple_id);
       std::vector<Value> tuple_values;
-      for (oid_t column_itr = 0; column_itr < column_count; column_itr++){
+      for (oid_t column_itr = 0; column_itr < column_count; column_itr++) {
         auto value = cur_tuple.GetValue(column_itr);
         tuple_values.push_back(value);
       }
@@ -401,18 +372,18 @@ ExecuteReadTest(executor::AbstractExecutor* executor) {
   return std::move(logical_tile_values);
 }
 
+void ExecuteUpdateTest(executor::AbstractExecutor *executor) {
 
-void ExecuteUpdateTest(executor::AbstractExecutor* executor) {
-  
   // Execute stuff
-  while (executor->Execute() == true);
+  while (executor->Execute() == true)
+    ;
 }
 
+void ExecuteDeleteTest(executor::AbstractExecutor *executor) {
 
-void ExecuteDeleteTest(executor::AbstractExecutor* executor) {
-  
   // Execute stuff
-  while (executor->Execute() == true);
+  while (executor->Execute() == true)
+    ;
 }
 
 }  // namespace tpcc

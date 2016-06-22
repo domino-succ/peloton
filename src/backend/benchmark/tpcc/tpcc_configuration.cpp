@@ -10,7 +10,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 #include <iomanip>
 #include <algorithm>
 #include <string.h>
@@ -23,42 +22,45 @@ namespace benchmark {
 namespace tpcc {
 
 void Usage(FILE *out) {
-  fprintf(out,
-          "Command line options : tpcc <options> \n"
-          "   -h --help              :  Print help message \n"
-          "   -i --index             :  index type could be btree or bwtree\n"
-          "   -k --scale_factor      :  scale factor \n"
-          "   -d --duration          :  execution duration \n"
-          "   -s --snapshot_duration :  snapshot duration \n"
-          "   -b --backend_count     :  # of backends \n"
-          "   -w --warehouse_count   :  # of warehouses \n"
-          "   -r --order_range       :  order range \n"
-          "   -e --exp_backoff       :  enable exponential backoff \n"
-          "   -a --affinity          :  enable client affinity \n"
-          "   -p --protocol          :  choose protocol, default OCC\n"
-          "                             protocol could be occ, pcc, pccopt, ssi, sread, ewrite, occrb, occn2o, to, torb, tofullrb, and ton2o\n"
-          "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
-          "                             gc protocol could be off, co, va, and n2o\n"
-          "   -t --gc_thread         :  number of thread used in gc, only used for gc type n2o/va\n"
-  );
+  fprintf(
+      out,
+      "Command line options : tpcc <options> \n"
+      "   -h --help              :  Print help message \n"
+      "   -i --index             :  index type could be btree or bwtree\n"
+      "   -k --scale_factor      :  scale factor \n"
+      "   -d --duration          :  execution duration \n"
+      "   -s --snapshot_duration :  snapshot duration \n"
+      "   -b --backend_count     :  # of backends \n"
+      "   -w --warehouse_count   :  # of warehouses \n"
+      "   -r --order_range       :  order range \n"
+      "   -e --exp_backoff       :  enable exponential backoff \n"
+      "   -a --affinity          :  enable client affinity \n"
+      "   -p --protocol          :  choose protocol, default OCC\n"
+      "                             protocol could be occ, pcc, pccopt, ssi, "
+      "sread, ewrite, occrb, occn2o, to, torb, tofullrb, and ton2o\n"
+      "   -g --gc_protocol       :  choose gc protocol, default OFF\n"
+      "                             gc protocol could be off, co, va, and n2o\n"
+      "   -t --gc_thread         :  number of thread used in gc, only used for "
+      "gc type n2o/va\n"
+      "   -q --scheduler         :  control, queue, detect, ml\n");
   exit(EXIT_FAILURE);
 }
 
 static struct option opts[] = {
-  { "scale_factor", optional_argument, NULL, 'k' },
-  { "index", optional_argument, NULL, 'i'},
-  { "duration", optional_argument, NULL, 'd' },
-  { "snapshot_duration", optional_argument, NULL, 's' },
-  { "backend_count", optional_argument, NULL, 'b'},
-  { "warehouse_count", optional_argument, NULL, 'w' },
-  { "order_range", optional_argument, NULL, 'r' },
-  { "exp_backoff", no_argument, NULL, 'e'},
-  { "affinity", no_argument, NULL, 'a'},
-  { "protocol", optional_argument, NULL, 'p'},
-  { "gc_protocol", optional_argument, NULL, 'g'},
-  { "gc_thread", optional_argument, NULL, 't'},
-  { NULL, 0, NULL, 0 }
-};
+    {"scale_factor", optional_argument, NULL, 'k'},
+    {"index", optional_argument, NULL, 'i'},
+    {"duration", optional_argument, NULL, 'd'},
+    {"snapshot_duration", optional_argument, NULL, 's'},
+    {"backend_count", optional_argument, NULL, 'b'},
+    {"warehouse_count", optional_argument, NULL, 'w'},
+    {"order_range", optional_argument, NULL, 'r'},
+    {"exp_backoff", no_argument, NULL, 'e'},
+    {"affinity", no_argument, NULL, 'a'},
+    {"protocol", optional_argument, NULL, 'p'},
+    {"scheduler", optional_argument, NULL, 'q'},
+    {"gc_protocol", optional_argument, NULL, 'g'},
+    {"gc_thread", optional_argument, NULL, 't'},
+    {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
   if (state.scale_factor <= 0) {
@@ -115,7 +117,8 @@ void ValidateOrderRange(const configuration &state) {
 }
 
 void ValidateProtocol(const configuration &state) {
-  if (state.protocol != CONCURRENCY_TYPE_TO_N2O && state.protocol != CONCURRENCY_TYPE_OCC_N2O) {
+  if (state.protocol != CONCURRENCY_TYPE_TO_N2O &&
+      state.protocol != CONCURRENCY_TYPE_OCC_N2O) {
     if (state.gc_protocol == GC_TYPE_N2O) {
       LOG_ERROR("Invalid protocol");
       exit(EXIT_FAILURE);
@@ -129,7 +132,8 @@ void ValidateProtocol(const configuration &state) {
 }
 
 void ValidateIndex(const configuration &state) {
-  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE && state.index != INDEX_TYPE_HASH) {
+  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE &&
+      state.index != INDEX_TYPE_HASH) {
     LOG_ERROR("Invalid index");
     exit(EXIT_FAILURE);
   }
@@ -145,6 +149,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.order_range = 20;
   state.run_affinity = false;
   state.run_backoff = false;
+  state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
   state.index = INDEX_TYPE_HASH;
@@ -153,7 +158,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aeh:r:k:w:d:s:b:p:g:i:t:", opts, &idx);
+    int c = getopt_long(argc, argv, "aeh:r:k:w:d:s:q:b:p:g:i:t:", opts, &idx);
 
     if (c == -1) break;
 
@@ -185,6 +190,26 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'e':
         state.run_backoff = true;
         break;
+      case 'q': {
+        char *scheduler = optarg;
+        if (strcmp(scheduler, "none") == 0) {
+          state.scheduler = SCHEDULER_TYPE_NONE;
+        } else if (strcmp(scheduler, "control") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONTROL;
+        } else if (strcmp(scheduler, "queue") == 0) {
+          state.scheduler = SCHEDULER_TYPE_ABORT_QUEUE;
+        } else if (strcmp(scheduler, "detect") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_DETECT;
+        } else if (strcmp(scheduler, "ml") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_LEANING;
+        } else if (strcmp(scheduler, "range") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CONFLICT_RANGE;
+        } else {
+          fprintf(stderr, "\nUnknown scheduler: %s\n", scheduler);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
       case 'p': {
         char *protocol = optarg;
         if (strcmp(protocol, "occ") == 0) {
@@ -221,11 +246,11 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         char *gc_protocol = optarg;
         if (strcmp(gc_protocol, "off") == 0) {
           state.gc_protocol = GC_TYPE_OFF;
-        }else if (strcmp(gc_protocol, "va") == 0) {
+        } else if (strcmp(gc_protocol, "va") == 0) {
           state.gc_protocol = GC_TYPE_VACUUM;
-        }else if (strcmp(gc_protocol, "co") == 0) {
+        } else if (strcmp(gc_protocol, "co") == 0) {
           state.gc_protocol = GC_TYPE_CO;
-        }else if (strcmp(gc_protocol, "n2o") == 0) {
+        } else if (strcmp(gc_protocol, "n2o") == 0) {
           state.gc_protocol = GC_TYPE_N2O;
         } else {
           fprintf(stderr, "\nUnknown gc protocol: %s\n", gc_protocol);
@@ -274,10 +299,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateProtocol(state);
   ValidateIndex(state);
   ValidateOrderRange(state);
-  
+
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
-
 }
 
 }  // namespace tpcc

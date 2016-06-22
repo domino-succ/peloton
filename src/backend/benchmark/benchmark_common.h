@@ -12,9 +12,11 @@
 
 #pragma once
 
-#include <cmath>
 #include <cstdint>
+#include <cmath>
 #include <thread>
+#include <vector>
+#include <algorithm>
 
 namespace peloton {
 namespace benchmark {

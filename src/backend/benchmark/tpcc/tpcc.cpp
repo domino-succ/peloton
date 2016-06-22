@@ -75,6 +75,17 @@ static void WriteOutput() {
   out.flush();
   out.close();
 }
+void LoadQuery(uint64_t count) {
+  concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count);
+
+  for (uint64_t i = 0; i < count; i++) {
+    GenerateAndCacheQuery();
+  }
+
+  EnqueueCachedUpdate();
+}
+
+#define PRELOAD 500000  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {
@@ -86,6 +97,8 @@ void RunBenchmark() {
 
   // Load the database
   LoadTPCCDatabase();
+
+  LoadQuery(PRELOAD);
 
   // Run the workload
   RunWorkload();

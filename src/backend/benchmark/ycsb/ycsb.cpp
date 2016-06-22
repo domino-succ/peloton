@@ -82,12 +82,13 @@ static void WriteOutput() {
 
   LOG_INFO("----------------------------------------------------------");
   LOG_INFO(
-      "%lf %d %d :: %lf tps, %lf abort, %lf delay_ave, %lf delay_max, %lf, %d"
+      "%lf %d %d :: %lf tps, %lf abort, %lf delay_ave, %lf delay_max, %lf, "
       "delay_min, "
-      "%lf generate/s",
+      "%lf generate/s, %d",
       state.update_ratio, state.scale_factor, state.column_count,
       state.throughput, state.abort_rate, state.delay_ave, state.delay_max,
-      state.delay_min, state.generate_rate,  state.snapshot_memory[state.snapshot_throughput.size() - 1]);
+      state.delay_min, state.generate_rate,
+      state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
   out << state.update_ratio << " ";
   out << state.scale_factor << " ";
@@ -99,7 +100,7 @@ static void WriteOutput() {
         << state.snapshot_duration * round_id << " - " << std::setw(3)
         << std::left << state.snapshot_duration * (round_id + 1)
         << " s]: " << state.snapshot_throughput[round_id] << " "
-        << state.snapshot_abort_rate[round_id] << " " 
+        << state.snapshot_abort_rate[round_id] << " "
         << state.snapshot_memory[round_id] << "\n";
   }
 
@@ -114,7 +115,7 @@ static void WriteOutput() {
   out << state.zipf_theta << " ";
   out << state.operation_count << " ";
   out << state.generate_rate << " ";
-  out << state.snapshot_memory[state.snapshot_throughput.size() - 1] <<"\n";
+  out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << "\n";
   out.flush();
   out.close();
 }
@@ -144,7 +145,9 @@ static void ValidateMVCC() {
     for (oid_t tuple_slot = 0; tuple_slot < tuple_count; tuple_slot++) {
       txn_id_t txn_id = tile_group_header->GetTransactionId(tuple_slot);
       CHECK_M(txn_id == INVALID_TXN_ID || txn_id == INITIAL_TXN_ID,
-              "(%u,%u) Transaction id %lu(%lx) is not INVALID_TXNID or INITIAL_TXNID", tile_group->GetTileGroupId(), tuple_slot, txn_id, txn_id);
+              "(%u,%u) Transaction id %lu(%lx) is not INVALID_TXNID or "
+              "INITIAL_TXNID",
+              tile_group->GetTileGroupId(), tuple_slot, txn_id, txn_id);
     }
 
     LOG_TRACE("[OK] All tuples have valid txn id");
@@ -189,10 +192,10 @@ static void ValidateMVCC() {
                 // of the chain. It is either because we have deleted a tuple
                 // (so append a invalid tuple),
                 // or because this new version is aborted.
-                CHECK_M(next_tile_group_header->GetNextItemPointer(
-                                                  next_location.offset)
-                            .IsNull(),
-                        "Invalid version in a version chain and is not delete");
+                CHECK_M(
+                    next_tile_group_header->GetNextItemPointer(
+                                                next_location.offset).IsNull(),
+                    "Invalid version in a version chain and is not delete");
               }
 
               cid_t next_begin_cid = next_tile_group_header->GetBeginCommitId(
@@ -201,7 +204,8 @@ static void ValidateMVCC() {
                   next_tile_group_header->GetEndCommitId(next_location.offset);
 
               // 3. Timestamp consistence
-              // It must be an aborted version, it shouldn't exist in version chain
+              // It must be an aborted version, it shouldn't exist in version
+              // chain
               CHECK_M(next_begin_cid != MAX_CID,
                       "Aborted version shouldn't be at version chain");
 
@@ -231,10 +235,9 @@ static void ValidateMVCC() {
             // last_tile_group_header->GetTransactionId(last_location.offset);
             cid_t last_end_cid =
                 last_tile_group_header->GetEndCommitId(last_location.offset);
-            CHECK_M(
-                last_tile_group_header->GetNextItemPointer(last_location.offset)
-                    .IsNull(),
-                "Last version has a next pointer");
+            CHECK_M(last_tile_group_header->GetNextItemPointer(
+                                                last_location.offset).IsNull(),
+                    "Last version has a next pointer");
 
             CHECK_M(last_end_cid == MAX_CID,
                     "Last version doesn't end with MAX_CID");
@@ -290,11 +293,11 @@ void RunBenchmark() {
   LoadQuery(PREQUERY);
 
   // Validate MVCC storage
-  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O 
-    && state.protocol != CONCURRENCY_TYPE_TO_N2O 
-    && state.protocol != CONCURRENCY_TYPE_OCC_RB
-    && state.protocol != CONCURRENCY_TYPE_TO_RB
-    && state.protocol != CONCURRENCY_TYPE_TO_FULL_RB) {
+  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O &&
+      state.protocol != CONCURRENCY_TYPE_TO_N2O &&
+      state.protocol != CONCURRENCY_TYPE_OCC_RB &&
+      state.protocol != CONCURRENCY_TYPE_TO_RB &&
+      state.protocol != CONCURRENCY_TYPE_TO_FULL_RB) {
     ValidateMVCC();
   }
 
@@ -302,11 +305,11 @@ void RunBenchmark() {
   RunWorkload();
 
   // Validate MVCC storage
-  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O 
-    && state.protocol != CONCURRENCY_TYPE_TO_N2O 
-    && state.protocol != CONCURRENCY_TYPE_OCC_RB
-    && state.protocol != CONCURRENCY_TYPE_TO_RB
-    && state.protocol != CONCURRENCY_TYPE_TO_FULL_RB) {
+  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O &&
+      state.protocol != CONCURRENCY_TYPE_TO_N2O &&
+      state.protocol != CONCURRENCY_TYPE_OCC_RB &&
+      state.protocol != CONCURRENCY_TYPE_TO_RB &&
+      state.protocol != CONCURRENCY_TYPE_TO_FULL_RB) {
     ValidateMVCC();
   }
 
