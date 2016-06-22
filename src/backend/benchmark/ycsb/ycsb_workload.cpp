@@ -86,14 +86,6 @@ uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
 
-// Helper function to pin current thread to a specific core
-static void PinToCore(size_t core) {
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(core, &cpuset);
-  pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-}
-
 // If return true and query is null, that means the queue is empty
 // If return true and query is not null, that means execute successfully
 // If return false, that means execute fail
@@ -225,8 +217,8 @@ void RecordDelay(UpdateQuery *query, uint64_t &delay_total_ref,
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
-  auto update_ratio = state.update_ratio;
-  //auto operation_count = state.operation_count;
+  // auto update_ratio = state.update_ratio;
+  // auto operation_count = state.operation_count;
 
   // auto update_ratio = state.update_ratio;
   oid_t &execution_count_ref = abort_counts[thread_id];
@@ -376,6 +368,29 @@ void RunBackend(oid_t thread_id) {
       //         execution_count_ref, thread_id);
     }  // end else execute == true
   }    // end while do update or read
+}
+
+void QueryBackend(oid_t thread_id) {
+  PinToCore(thread_id);
+
+  auto update_ratio = state.update_ratio;
+  oid_t &generate_count_ref = generate_counts[thread_id - state.backend_count];
+  ZipfDistribution zipf(state.scale_factor * FACTOR - 1, state.zipf_theta);
+  fast_random rng(rand());
+
+  while (true) {
+    if (is_running == false) {
+      break;
+    }
+    auto rng_val = rng.next_uniform();
+    // Generate Update into queue
+    if (rng_val < update_ratio) {
+      GenerateAndQueueUpdate(zipf);
+    } else {
+      GenerateAndQueueUpdate(zipf);
+    }
+    generate_count_ref++;
+  }
 }
 
 void RunWorkload() {
@@ -563,14 +578,12 @@ void RunWorkload() {
   delay_mins = nullptr;
 }
 
-
 /////////////////////////////////////////////////////////
 // HARNESS
 /////////////////////////////////////////////////////////
 
-
-std::vector<std::vector<Value>>
-ExecuteReadTest(executor::AbstractExecutor* executor) {
+std::vector<std::vector<Value>> ExecuteReadTest(
+    executor::AbstractExecutor *executor) {
 
   std::vector<std::vector<Value>> logical_tile_values;
 
@@ -579,17 +592,16 @@ ExecuteReadTest(executor::AbstractExecutor* executor) {
     std::unique_ptr<executor::LogicalTile> result_tile(executor->GetOutput());
 
     // is this possible?
-    if(result_tile == nullptr)
-      break;
+    if (result_tile == nullptr) break;
 
     auto column_count = result_tile->GetColumnCount();
     LOG_TRACE("result column count = %d\n", (int)column_count);
 
     for (oid_t tuple_id : *result_tile) {
-      expression::ContainerTuple<executor::LogicalTile> cur_tuple(result_tile.get(),
-                                                                  tuple_id);
+      expression::ContainerTuple<executor::LogicalTile> cur_tuple(
+          result_tile.get(), tuple_id);
       std::vector<Value> tuple_values;
-      for (oid_t column_itr = 0; column_itr < column_count; column_itr++){
+      for (oid_t column_itr = 0; column_itr < column_count; column_itr++) {
         auto value = cur_tuple.GetValue(column_itr);
         tuple_values.push_back(value);
       }
@@ -602,12 +614,12 @@ ExecuteReadTest(executor::AbstractExecutor* executor) {
   return std::move(logical_tile_values);
 }
 
-void ExecuteUpdateTest(executor::AbstractExecutor* executor) {
-  
-  // Execute stuff
-  while (executor->Execute() == true);
-}
+void ExecuteUpdateTest(executor::AbstractExecutor *executor) {
 
+  // Execute stuff
+  while (executor->Execute() == true)
+    ;
+}
 
 }  // namespace ycsb
 }  // namespace benchmark

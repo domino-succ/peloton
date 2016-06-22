@@ -314,6 +314,9 @@ void GenerateAndQueueUpdate(ZipfDistribution &zipf) {
   }
 }
 
+/*
+ * This function new a update, so remember to delete it
+ */
 UpdateQuery *GenerateUpdate(ZipfDistribution &zipf) {
 
   /////////////////////////////////////////////////////////
@@ -527,7 +530,8 @@ UpdatePlans PrepareUpdatePlan() {
                                          index_scan_desc);
 
   executor::IndexScanExecutor *index_scan_executor =
-      new executor::IndexScanExecutor(&index_scan_node, nullptr, state.blind_write);
+      new executor::IndexScanExecutor(&index_scan_node, nullptr,
+                                      state.blind_write);
 
   /////////////////////////////////////////////////////////
   // UPDATE
