@@ -201,7 +201,12 @@ class NewOrder : public concurrency::TransactionQuery {
         stock_update_executor_(nullptr),
         context_(nullptr),
         start_time_(std::chrono::system_clock::now()),
-        first_pop_(true) {}
+        first_pop_(true),
+        warehouse_id_(0),
+        district_id_(0),
+        customer_id_(0),
+        o_ol_cnt_(0),
+        o_all_local_(true) {}
 
   ~NewOrder() {}
 
@@ -224,8 +229,10 @@ class NewOrder : public concurrency::TransactionQuery {
   }
 
   void Cleanup() {
-    delete context_;
-    context_ = nullptr;
+
+    // Note: context is set in RunNewOrder, and it is unique_prt
+    // delete context_;
+    // context_ = nullptr;
 
     delete item_index_scan_executor_;
     item_index_scan_executor_ = nullptr;
@@ -299,6 +306,14 @@ class NewOrder : public concurrency::TransactionQuery {
 
   // uint64_t primary_key_;
   std::vector<uint64_t> primary_keys_;
+
+  // For execute
+  int warehouse_id_;
+  int district_id_;
+  int customer_id_;
+  int o_ol_cnt_;
+  bool o_all_local_;
+  std::vector<int> i_ids_, ol_w_ids_, ol_qtys_;
 };
 
 struct PaymentPlans {
@@ -435,8 +450,11 @@ PaymentPlans PreparePaymentPlan();
 DeliveryPlans PrepareDeliveryPlan();
 
 size_t GenerateWarehouseId(const size_t& thread_id);
+size_t GenerateWarehouseId();
 
 bool RunNewOrder(NewOrderPlans& new_order_plans, const size_t& thread_id);
+bool RunNewOrder(NewOrder* new_order);
+void SetNewOrder(NewOrder* new_order);
 
 bool RunPayment(PaymentPlans& payment_plans, const size_t& thread_id);
 
@@ -445,6 +463,11 @@ bool RunDelivery(DeliveryPlans& delivery_plans, const size_t& thread_id);
 bool RunOrderStatus(const size_t& thread_id);
 
 bool RunStockLevel(const size_t& thread_id, const int& order_range);
+
+/////////////////////////////////////////////////////////
+void GenerateAndCacheQuery();
+void EnqueueCachedUpdate();
+NewOrder* GenerateNewOrder();
 
 /////////////////////////////////////////////////////////
 
