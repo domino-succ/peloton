@@ -89,6 +89,9 @@ class configuration {
   // number of backends
   int backend_count;
 
+  // number of query thread
+  int generate_count;
+
   std::vector<double> snapshot_throughput;
 
   std::vector<double> snapshot_abort_rate;
@@ -98,6 +101,11 @@ class configuration {
   double throughput;
 
   double abort_rate;
+
+  double generate_rate;
+  double delay_ave;
+  double delay_max;
+  double delay_min;
 
   // enable exponential backoff
   bool run_backoff;

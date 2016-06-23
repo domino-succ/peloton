@@ -80,7 +80,6 @@ class configuration {
   double abort_rate;
 
   double generate_rate;
-
   double delay_ave;
   double delay_max;
   double delay_min;
@@ -99,7 +98,7 @@ class configuration {
 
   //
   SchedulerType scheduler;
-  
+
   // protocol type
   ConcurrencyType protocol;
 
@@ -112,7 +111,6 @@ class configuration {
   // number of threads used in GC,
   // Only available when gc type is n2o and va
   int gc_thread_count;
-  
 };
 
 extern configuration state;

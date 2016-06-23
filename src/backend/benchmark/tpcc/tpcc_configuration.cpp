@@ -145,6 +145,10 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.duration = 10;
   state.snapshot_duration = 1;
   state.backend_count = 1;
+  state.generate_count = 0;  // 0 means no query thread. only prepared queries
+  state.delay_ave = 0.0;
+  state.delay_max = 0.0;
+  state.delay_min = 0.0;
   state.warehouse_count = 1;
   state.order_range = 20;
   state.run_affinity = false;

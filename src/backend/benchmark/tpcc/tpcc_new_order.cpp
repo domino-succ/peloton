@@ -304,32 +304,596 @@ NewOrder *GenerateNewOrder() {
 
   /////////////////////////////////////////////////////////
 
-  NewOrderPlans new_order_plans;
+  NewOrder *new_order = new NewOrder();
 
-  new_order_plans.item_index_scan_executor_ = item_index_scan_executor;
+  new_order->item_index_scan_executor_ = item_index_scan_executor;
 
-  new_order_plans.warehouse_index_scan_executor_ =
-      warehouse_index_scan_executor;
+  new_order->warehouse_index_scan_executor_ = warehouse_index_scan_executor;
 
-  new_order_plans.district_index_scan_executor_ = district_index_scan_executor;
+  new_order->district_index_scan_executor_ = district_index_scan_executor;
 
-  new_order_plans.district_update_index_scan_executor_ =
+  new_order->district_update_index_scan_executor_ =
       district_update_index_scan_executor;
 
-  new_order_plans.district_update_executor_ = district_update_executor;
+  new_order->district_update_executor_ = district_update_executor;
 
-  new_order_plans.customer_index_scan_executor_ = customer_index_scan_executor;
+  new_order->customer_index_scan_executor_ = customer_index_scan_executor;
 
-  new_order_plans.stock_index_scan_executor_ = stock_index_scan_executor;
+  new_order->stock_index_scan_executor_ = stock_index_scan_executor;
 
-  new_order_plans.stock_update_index_scan_executor_ =
+  new_order->stock_update_index_scan_executor_ =
       stock_update_index_scan_executor;
 
-  new_order_plans.stock_update_executor_ = stock_update_executor;
+  new_order->stock_update_executor_ = stock_update_executor;
 
-  return new_order_plans;
+  SetNewOrder(new_order);
+
+  return new_order;
 }
 
+/*
+ * Set the parameters needed by execution. Set the W_ID, D_ID, C_ID, I_ID.
+ * So when a txn has all of the parameters when enqueue
+ */
+void SetNewOrder(NewOrder *new_order) {
+  /////////////////////////////////////////////////////////
+  // PREPARE ARGUMENTS
+  /////////////////////////////////////////////////////////
+  new_order->warehouse_id_ = GenerateWarehouseId();
+  new_order->district_id_ =
+      GetRandomInteger(0, state.districts_per_warehouse - 1);
+  new_order->customer_id_ =
+      GetRandomInteger(0, state.customers_per_district - 1);
+  new_order->o_ol_cnt_ = GetRandomInteger(orders_min_ol_cnt, orders_max_ol_cnt);
+
+  std::vector<int> i_ids, ol_w_ids, ol_qtys;
+  bool o_all_local = true;
+
+  for (auto ol_itr = 0; ol_itr < new_order->o_ol_cnt_; ol_itr++) {
+    i_ids.push_back(GetRandomInteger(0, state.item_count - 1));
+    bool remote = GetRandomBoolean(new_order_remote_txns);
+    ol_w_ids.push_back(new_order->warehouse_id_);
+
+    if (remote == true) {
+      ol_w_ids[ol_itr] = GetRandomIntegerExcluding(0, state.warehouse_count - 1,
+                                                   new_order->warehouse_id_);
+      o_all_local = false;
+    }
+
+    ol_qtys.push_back(GetRandomInteger(0, order_line_max_ol_quantity));
+  }
+
+  new_order->i_ids_ = i_ids;
+  new_order->ol_w_ids_ = ol_w_ids;
+  new_order->ol_qtys_ = ol_qtys;
+  new_order->o_all_local_ = o_all_local;
+
+  // Take warehouse_id_ as the primary key
+  new_order->primary_keys_.assign(1, new_order->warehouse_id_);
+}
+
+/*
+ * Before running, a New Order already has all of the parameters
+ * (W_ID,D_ID,C_ID,I_ID)
+ */
+bool RunNewOrder(NewOrder *new_order) {
+  /*
+     "NEW_ORDER": {
+     "getWarehouseTaxRate": "SELECT W_TAX FROM WAREHOUSE WHERE W_ID = ?", # w_id
+     "getDistrict": "SELECT D_TAX, D_NEXT_O_ID FROM DISTRICT WHERE D_ID = ? AND
+     D_W_ID = ?", # d_id, w_id
+     "getCustomer": "SELECT C_DISCOUNT, C_LAST, C_CREDIT FROM CUSTOMER WHERE
+     C_W_ID = ? AND C_D_ID = ? AND C_ID = ?", # w_id, d_id, c_id
+     "incrementNextOrderId": "UPDATE DISTRICT SET D_NEXT_O_ID = ? WHERE D_ID = ?
+     AND D_W_ID = ?", # d_next_o_id, d_id, w_id
+     "createOrder": "INSERT INTO ORDERS (O_ID, O_D_ID, O_W_ID, O_C_ID,
+     O_ENTRY_D, O_CARRIER_ID, O_OL_CNT, O_ALL_LOCAL) VALUES (?, ?, ?, ?, ?, ?,
+     ?, ?)", # d_next_o_id, d_id, w_id, c_id, o_entry_d, o_carrier_id, o_ol_cnt,
+     o_all_local
+     "createNewOrder": "INSERT INTO NEW_ORDER (NO_O_ID, NO_D_ID, NO_W_ID) VALUES
+     (?, ?, ?)", # o_id, d_id, w_id
+     "getItemInfo": "SELECT I_PRICE, I_NAME, I_DATA FROM ITEM WHERE I_ID = ?", #
+     ol_i_id
+     "getStockInfo": "SELECT S_QUANTITY, S_DATA, S_YTD, S_ORDER_CNT,
+     S_REMOTE_CNT, S_DIST_%02d FROM STOCK WHERE S_I_ID = ? AND S_W_ID = ?", #
+     d_id, ol_i_id, ol_supply_w_id
+     "updateStock": "UPDATE STOCK SET S_QUANTITY = ?, S_YTD = ?, S_ORDER_CNT =
+     ?, S_REMOTE_CNT = ? WHERE S_I_ID = ? AND S_W_ID = ?", # s_quantity,
+     s_order_cnt, s_remote_cnt, ol_i_id, ol_supply_w_id
+     "createOrderLine": "INSERT INTO ORDER_LINE (OL_O_ID, OL_D_ID, OL_W_ID,
+     OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_DELIVERY_D, OL_QUANTITY, OL_AMOUNT,
+     OL_DIST_INFO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", # o_id, d_id, w_id,
+     ol_number, ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info
+     }
+   */
+
+  LOG_TRACE("-------------------------------------");
+
+  /////////////////////////////////////////////////////////
+  // PREPARE ARGUMENTS
+  /////////////////////////////////////////////////////////
+  int warehouse_id = new_order->warehouse_id_;
+  int district_id = new_order->district_id_;
+  int customer_id = new_order->customer_id_;
+  int o_ol_cnt = new_order->o_ol_cnt_;
+  // auto o_entry_ts = GetTimeStamp();
+
+  std::vector<int> &i_ids = new_order->i_ids_;
+  std::vector<int> &ol_w_ids = new_order->ol_w_ids_;
+  std::vector<int> &ol_qtys = new_order->ol_qtys_;
+
+  bool o_all_local = new_order->o_all_local_;
+
+  /////////////////////////////////////////////////////////
+  // BEGIN TRANSACTION
+  /////////////////////////////////////////////////////////
+
+  std::unique_ptr<executor::ExecutorContext> context(
+      new executor::ExecutorContext(nullptr));
+
+  new_order->SetContext(context.get());
+
+  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+
+  auto txn = txn_manager.BeginTransaction();
+
+  // std::vector<float> i_prices;
+  for (auto item_id : i_ids) {
+
+    LOG_TRACE(
+        "getItemInfo: SELECT I_PRICE, I_NAME, I_DATA FROM ITEM WHERE I_ID = %d",
+        item_id);
+
+    new_order->item_index_scan_executor_->ResetState();
+
+    std::vector<Value> item_key_values;
+
+    item_key_values.push_back(ValueFactory::GetIntegerValue(item_id));
+
+    new_order->item_index_scan_executor_->SetValues(item_key_values);
+
+    auto gii_lists_values =
+        ExecuteReadTest(new_order->item_index_scan_executor_);
+
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      LOG_TRACE("abort transaction");
+      txn_manager.AbortTransaction();
+      return false;
+    }
+
+    if (gii_lists_values.size() != 1) {
+      LOG_ERROR("getItemInfo return size incorrect : %lu",
+                gii_lists_values.size());
+      assert(false);
+    }
+  }
+
+  LOG_TRACE("getWarehouseTaxRate: SELECT W_TAX FROM WAREHOUSE WHERE W_ID = %d",
+            warehouse_id);
+
+  /////////////////////////////////////////////////////////
+  // WAREHOUSE SELECTION
+  /////////////////////////////////////////////////////////
+  new_order->warehouse_index_scan_executor_->ResetState();
+
+  std::vector<Value> warehouse_key_values;
+
+  warehouse_key_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
+
+  new_order->warehouse_index_scan_executor_->SetValues(warehouse_key_values);
+
+  auto gwtr_lists_values =
+      ExecuteReadTest(new_order->warehouse_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  if (gwtr_lists_values.size() != 1) {
+    LOG_ERROR("getWarehouseTaxRate return size incorrect : %lu",
+              gwtr_lists_values.size());
+    assert(false);
+  }
+
+  auto w_tax = gwtr_lists_values[0][0];
+
+  LOG_TRACE("w_tax: %s", w_tax.GetInfo().c_str());
+
+  LOG_TRACE(
+      "getDistrict: SELECT D_TAX, D_NEXT_O_ID FROM DISTRICT WHERE D_ID = %d "
+      "AND D_W_ID = %d",
+      district_id, warehouse_id);
+
+  /////////////////////////////////////////////////////////
+  // DISTRICT SELECTION
+  /////////////////////////////////////////////////////////
+  new_order->district_index_scan_executor_->ResetState();
+
+  std::vector<Value> district_key_values;
+
+  district_key_values.push_back(ValueFactory::GetIntegerValue(district_id));
+  district_key_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
+
+  new_order->district_index_scan_executor_->SetValues(district_key_values);
+
+  auto gd_lists_values =
+      ExecuteReadTest(new_order->district_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  if (gd_lists_values.size() != 1) {
+    LOG_ERROR("getDistrict return size incorrect : %lu",
+              gd_lists_values.size());
+    assert(false);
+  }
+
+  auto d_tax = gd_lists_values[0][0];
+  auto d_next_o_id = gd_lists_values[0][1];
+
+  LOG_TRACE("d_tax: %s, d_next_o_id: %s", d_tax.GetInfo().c_str(),
+            d_next_o_id.GetInfo().c_str());
+
+  LOG_TRACE(
+      "getCustomer: SELECT C_DISCOUNT, C_LAST, C_CREDIT FROM CUSTOMER WHERE "
+      "C_W_ID = %d AND C_D_ID = %d AND C_ID = %d",
+      warehouse_id, district_id, customer_id);
+
+  /////////////////////////////////////////////////////////
+  // CUSTOMER SELECTION
+  /////////////////////////////////////////////////////////
+  new_order->customer_index_scan_executor_->ResetState();
+
+  std::vector<Value> customer_key_values;
+
+  customer_key_values.push_back(ValueFactory::GetIntegerValue(customer_id));
+  customer_key_values.push_back(ValueFactory::GetIntegerValue(district_id));
+  customer_key_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
+
+  new_order->customer_index_scan_executor_->SetValues(customer_key_values);
+
+  auto gc_lists_values =
+      ExecuteReadTest(new_order->customer_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  if (gc_lists_values.size() != 1) {
+    LOG_ERROR("getCustomer return size incorrect : %lu",
+              gc_lists_values.size());
+    assert(false);
+  }
+
+  auto c_last = gc_lists_values[0][0];
+  auto c_credit = gc_lists_values[0][1];
+  auto c_discount = gc_lists_values[0][2];
+
+  LOG_TRACE("c_last: %s, c_credit: %s, c_discount: %s",
+            c_last.GetInfo().c_str(), c_credit.GetInfo().c_str(),
+            c_discount.GetInfo().c_str());
+
+  int district_update_value = ValuePeeker::PeekAsInteger(d_next_o_id) + 1;
+  LOG_TRACE("district update value = %d", district_update_value);
+
+  LOG_TRACE(
+      "incrementNextOrderId: UPDATE DISTRICT SET D_NEXT_O_ID = %d WHERE D_ID = "
+      "%d AND D_W_ID = %d",
+      district_update_value, district_id, warehouse_id);
+
+  /////////////////////////////////////////////////////////
+  // DISTRICT UPDATE
+  /////////////////////////////////////////////////////////
+  new_order->district_update_index_scan_executor_->ResetState();
+
+  new_order->district_update_index_scan_executor_->SetValues(
+      district_key_values);
+
+  TargetList district_target_list;
+
+  Value district_update_val =
+      ValueFactory::GetIntegerValue(district_update_value);
+
+  district_target_list.emplace_back(
+      10,
+      expression::ExpressionUtil::ConstantValueFactory(district_update_val));
+
+  new_order->district_update_executor_->SetTargetList(district_target_list);
+
+  ExecuteUpdateTest(new_order->district_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  LOG_TRACE(
+      "createOrder: INSERT INTO ORDERS (O_ID, O_D_ID, O_W_ID, O_C_ID, "
+      "O_ENTRY_D, O_CARRIER_ID, O_OL_CNT, O_ALL_LOCAL)");
+
+  /////////////////////////////////////////////////////////
+  // ORDERS INSERT
+  /////////////////////////////////////////////////////////
+  std::unique_ptr<storage::Tuple> orders_tuple(
+      new storage::Tuple(orders_table->GetSchema(), true));
+
+  // O_ID
+  orders_tuple->SetValue(
+      0, ValueFactory::GetIntegerValue(ValuePeeker::PeekAsInteger(d_next_o_id)),
+      nullptr);
+  // O_C_ID
+  orders_tuple->SetValue(1, ValueFactory::GetIntegerValue(customer_id),
+                         nullptr);
+  // O_D_ID
+  orders_tuple->SetValue(2, ValueFactory::GetIntegerValue(district_id),
+                         nullptr);
+  // O_W_ID
+  orders_tuple->SetValue(3, ValueFactory::GetIntegerValue(warehouse_id),
+                         nullptr);
+  // O_ENTRY_D
+  // auto o_entry_d = GetTimeStamp();
+  orders_tuple->SetValue(4, ValueFactory::GetTimestampValue(1), nullptr);
+  // O_CARRIER_ID
+  orders_tuple->SetValue(5, ValueFactory::GetIntegerValue(0), nullptr);
+  // O_OL_CNT
+  orders_tuple->SetValue(6, ValueFactory::GetIntegerValue(o_ol_cnt), nullptr);
+  // O_ALL_LOCAL
+  orders_tuple->SetValue(7, ValueFactory::GetIntegerValue(o_all_local),
+                         nullptr);
+
+  planner::InsertPlan orders_node(orders_table, std::move(orders_tuple));
+  executor::InsertExecutor orders_executor(&orders_node, context.get());
+  orders_executor.Execute();
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE(
+        "abort transaction when inserting order table, thread_id = %d, d_id = "
+        "%d, next_o_id = %d",
+        (int)thread_id, (int)district_id,
+        (int)ValuePeeker::PeekAsInteger(d_next_o_id));
+    txn_manager.AbortTransaction();
+    return false;
+  } else {
+    LOG_TRACE(
+        "successfully insert order table, thread_id = %d, d_id = %d, next_o_id "
+        "= %d",
+        (int)thread_id, (int)district_id,
+        (int)ValuePeeker::PeekAsInteger(d_next_o_id));
+  }
+
+  LOG_TRACE(
+      "createNewOrder: INSERT INTO NEW_ORDER (NO_O_ID, NO_D_ID, NO_W_ID) "
+      "VALUES (?, ?, ?)");
+
+  /////////////////////////////////////////////////////////
+  // NEW ORDER INSERT
+  /////////////////////////////////////////////////////////
+  std::unique_ptr<storage::Tuple> new_order_tuple(
+      new storage::Tuple(new_order_table->GetSchema(), true));
+
+  // NO_O_ID
+  new_order_tuple->SetValue(
+      0, ValueFactory::GetIntegerValue(ValuePeeker::PeekAsInteger(d_next_o_id)),
+      nullptr);
+  // NO_D_ID
+  new_order_tuple->SetValue(1, ValueFactory::GetIntegerValue(district_id),
+                            nullptr);
+  // NO_W_ID
+  new_order_tuple->SetValue(2, ValueFactory::GetIntegerValue(warehouse_id),
+                            nullptr);
+
+  planner::InsertPlan new_order_node(new_order_table,
+                                     std::move(new_order_tuple));
+  executor::InsertExecutor new_order_executor(&new_order_node, context.get());
+  new_order_executor.Execute();
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction when inserting new order table");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  /////////////////////////////////////////////////////////
+  // FOR EACH ITEM: STOCK SELECTION AND UPDATE
+  /////////////////////////////////////////////////////////
+  for (size_t i = 0; i < i_ids.size(); ++i) {
+    int item_id = i_ids.at(i);
+    int ol_w_id = ol_w_ids.at(i);
+    int ol_qty = ol_qtys.at(i);
+
+    LOG_TRACE(
+        "getStockInfo: SELECT S_QUANTITY, S_DATA, S_YTD, S_ORDER_CNT, "
+        "S_REMOTE_CNT, S_DIST_? FROM STOCK WHERE S_I_ID = %d AND S_W_ID = %d",
+        item_id, ol_w_id);
+
+    /////////////////////////////////////////////////////////
+    // STOCK SELECTION
+    /////////////////////////////////////////////////////////
+    new_order->stock_index_scan_executor_->ResetState();
+
+    std::vector<Value> stock_key_values;
+
+    stock_key_values.push_back(ValueFactory::GetIntegerValue(item_id));
+    stock_key_values.push_back(ValueFactory::GetIntegerValue(ol_w_id));
+
+    new_order->stock_index_scan_executor_->SetValues(stock_key_values);
+
+    // S_QUANTITY, S_DIST_%02d, S_YTD, S_ORDER_CNT, S_REMOTE_CNT, S_DATA
+    std::vector<oid_t> stock_column_ids = {2,  oid_t(3 + district_id), 13,
+                                           14, 15,                     16};
+
+    new_order->stock_index_scan_executor_->SetColumnIds(stock_column_ids);
+
+    auto gsi_lists_values =
+        ExecuteReadTest(new_order->stock_index_scan_executor_);
+
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      LOG_TRACE("abort transaction");
+      txn_manager.AbortTransaction();
+      return false;
+    }
+
+    if (gsi_lists_values.size() != 1) {
+      LOG_ERROR("getStockInfo return size incorrect : %lu",
+                gsi_lists_values.size());
+      assert(false);
+    }
+
+    int s_quantity = ValuePeeker::PeekAsInteger(gsi_lists_values[0][0]);
+
+    if (s_quantity >= ol_qty + 10) {
+      s_quantity = s_quantity - ol_qty;
+    } else {
+      s_quantity = s_quantity + 91 - ol_qty;
+    }
+
+    Value s_data = gsi_lists_values[0][1];
+
+    int s_ytd = ValuePeeker::PeekAsInteger(gsi_lists_values[0][2]) + ol_qty;
+
+    int s_order_cnt = ValuePeeker::PeekAsInteger(gsi_lists_values[0][3]) + 1;
+
+    int s_remote_cnt = ValuePeeker::PeekAsInteger(gsi_lists_values[0][4]);
+
+    if (ol_w_id != warehouse_id) {
+      s_remote_cnt += 1;
+    }
+
+    LOG_TRACE(
+        "updateStock: UPDATE STOCK SET S_QUANTITY = ?, S_YTD = ?, S_ORDER_CNT "
+        "= ?, S_REMOTE_CNT = ? WHERE S_I_ID = ? AND S_W_ID = ?");
+
+    /////////////////////////////////////////////////////////
+    // STOCK UPDATE
+    /////////////////////////////////////////////////////////
+    new_order->stock_update_index_scan_executor_->ResetState();
+
+    new_order->stock_update_index_scan_executor_->SetValues(stock_key_values);
+
+    TargetList stock_target_list;
+
+    stock_target_list.emplace_back(
+        2, expression::ExpressionUtil::ConstantValueFactory(
+               ValueFactory::GetIntegerValue(s_quantity)));
+    stock_target_list.emplace_back(
+        13, expression::ExpressionUtil::ConstantValueFactory(
+                ValueFactory::GetIntegerValue(s_ytd)));
+    stock_target_list.emplace_back(
+        14, expression::ExpressionUtil::ConstantValueFactory(
+                ValueFactory::GetIntegerValue(s_order_cnt)));
+    stock_target_list.emplace_back(
+        15, expression::ExpressionUtil::ConstantValueFactory(
+                ValueFactory::GetIntegerValue(s_remote_cnt)));
+
+    new_order->stock_update_executor_->SetTargetList(stock_target_list);
+
+    ExecuteUpdateTest(new_order->stock_update_executor_);
+
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      LOG_TRACE("abort transaction");
+      txn_manager.AbortTransaction();
+      return false;
+    }
+
+    // the original benchmark requires check constraints.
+    // however, we ignored here.
+    // it does not influence the performance.
+    // if i_data.find(constants.ORIGINAL_STRING) != -1 and
+    // s_data.find(constants.ORIGINAL_STRING) != -1:
+    // brand_generic = 'B'
+    // else:
+    // brand_generic = 'G'
+
+    LOG_TRACE(
+        "createOrderLine: INSERT INTO ORDER_LINE (OL_O_ID, OL_D_ID, OL_W_ID, "
+        "OL_NUMBER, OL_I_ID, OL_SUPPLY_W_ID, OL_DELIVERY_D, OL_QUANTITY, "
+        "OL_AMOUNT, OL_DIST_INFO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    std::unique_ptr<storage::Tuple> order_line_tuple(
+        new storage::Tuple(order_line_table->GetSchema(), true));
+
+    /////////////////////////////////////////////////////////
+    // ORDER LINE INSERT
+    /////////////////////////////////////////////////////////
+    // OL_O_ID
+    order_line_tuple->SetValue(0, ValueFactory::GetIntegerValue(
+                                      ValuePeeker::PeekAsInteger(d_next_o_id)),
+                               nullptr);
+    // OL_D_ID
+    order_line_tuple->SetValue(1, ValueFactory::GetIntegerValue(district_id),
+                               nullptr);
+    // OL_W_ID
+    order_line_tuple->SetValue(2, ValueFactory::GetIntegerValue(warehouse_id),
+                               nullptr);
+    // OL_NUMBER
+    order_line_tuple->SetValue(3, ValueFactory::GetIntegerValue(i), nullptr);
+    // OL_I_ID
+    order_line_tuple->SetValue(4, ValueFactory::GetIntegerValue(item_id),
+                               nullptr);
+    // OL_SUPPLY_W_ID
+    order_line_tuple->SetValue(5, ValueFactory::GetIntegerValue(ol_w_id),
+                               nullptr);
+    // OL_DELIVERY_D
+    order_line_tuple->SetValue(6, ValueFactory::GetTimestampValue(1), nullptr);
+    // OL_QUANTITY
+    order_line_tuple->SetValue(7, ValueFactory::GetIntegerValue(ol_qty),
+                               nullptr);
+    // OL_AMOUNT
+    // TODO: workaround!!! I don't know how to get float from Value.
+    order_line_tuple->SetValue(8, ValueFactory::GetDoubleValue(0), nullptr);
+    // OL_DIST_INFO
+    order_line_tuple->SetValue(9, s_data, nullptr);
+
+    planner::InsertPlan order_line_node(order_line_table,
+                                        std::move(order_line_tuple));
+    executor::InsertExecutor order_line_executor(&order_line_node,
+                                                 context.get());
+    order_line_executor.Execute();
+
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      LOG_TRACE("abort transaction when inserting order line table");
+      txn_manager.AbortTransaction();
+      return false;
+    }
+  }
+
+  // transaction passed execution.
+  assert(txn->GetResult() == Result::RESULT_SUCCESS);
+
+  /////////////////////////////////////////////////////////
+  // TRANSACTION COMMIT
+  /////////////////////////////////////////////////////////
+  auto result = txn_manager.CommitTransaction();
+
+  if (result == Result::RESULT_SUCCESS) {
+    // transaction passed commitment.
+    LOG_TRACE("commit txn, thread_id = %d, d_id = %d, next_o_id = %d",
+              (int)thread_id, (int)district_id,
+              (int)ValuePeeker::PeekAsInteger(d_next_o_id));
+    return true;
+
+  } else {
+    // transaction failed commitment.
+    assert(result == Result::RESULT_ABORTED ||
+           result == Result::RESULT_FAILURE);
+    LOG_TRACE("abort txn, thread_id = %d, d_id = %d, next_o_id = %d",
+              (int)thread_id, (int)district_id,
+              (int)ValuePeeker::PeekAsInteger(d_next_o_id));
+    return true;
+    return false;
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Old method
+////////////////////////////////////////////////////////////////////////////////////////
 NewOrderPlans PrepareNewOrderPlan() {
 
   std::vector<expression::AbstractExpression *> runtime_keys;
@@ -694,6 +1258,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
   LOG_TRACE("getWarehouseTaxRate: SELECT W_TAX FROM WAREHOUSE WHERE W_ID = %d",
             warehouse_id);
 
+  /////////////////////////////////////////////////////////
+  // WAREHOUSE SELECTION
+  /////////////////////////////////////////////////////////
   new_order_plans.warehouse_index_scan_executor_->ResetState();
 
   std::vector<Value> warehouse_key_values;
@@ -727,6 +1294,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
       "AND D_W_ID = %d",
       district_id, warehouse_id);
 
+  /////////////////////////////////////////////////////////
+  // DISTRICT SELECTION
+  /////////////////////////////////////////////////////////
   new_order_plans.district_index_scan_executor_->ResetState();
 
   std::vector<Value> district_key_values;
@@ -762,6 +1332,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
       "C_W_ID = %d AND C_D_ID = %d AND C_ID = %d",
       warehouse_id, district_id, customer_id);
 
+  /////////////////////////////////////////////////////////
+  // CUSTOMER SELECTION
+  /////////////////////////////////////////////////////////
   new_order_plans.customer_index_scan_executor_->ResetState();
 
   std::vector<Value> customer_key_values;
@@ -803,6 +1376,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
       "%d AND D_W_ID = %d",
       district_update_value, district_id, warehouse_id);
 
+  /////////////////////////////////////////////////////////
+  // DISTRICT UPDATE
+  /////////////////////////////////////////////////////////
   new_order_plans.district_update_index_scan_executor_->ResetState();
 
   new_order_plans.district_update_index_scan_executor_->SetValues(
@@ -832,6 +1408,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
       "createOrder: INSERT INTO ORDERS (O_ID, O_D_ID, O_W_ID, O_C_ID, "
       "O_ENTRY_D, O_CARRIER_ID, O_OL_CNT, O_ALL_LOCAL)");
 
+  /////////////////////////////////////////////////////////
+  // ORDERS INSERT
+  /////////////////////////////////////////////////////////
   std::unique_ptr<storage::Tuple> orders_tuple(
       new storage::Tuple(orders_table->GetSchema(), true));
 
@@ -882,6 +1461,10 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
   LOG_TRACE(
       "createNewOrder: INSERT INTO NEW_ORDER (NO_O_ID, NO_D_ID, NO_W_ID) "
       "VALUES (?, ?, ?)");
+
+  /////////////////////////////////////////////////////////
+  // NEW ORDER INSERT
+  /////////////////////////////////////////////////////////
   std::unique_ptr<storage::Tuple> new_order_tuple(
       new storage::Tuple(new_order_table->GetSchema(), true));
 
@@ -907,6 +1490,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
     return false;
   }
 
+  /////////////////////////////////////////////////////////
+  // FOR EACH ITEM: STOCK SELECTION AND UPDATE
+  /////////////////////////////////////////////////////////
   for (size_t i = 0; i < i_ids.size(); ++i) {
     int item_id = i_ids.at(i);
     int ol_w_id = ol_w_ids.at(i);
@@ -917,6 +1503,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
         "S_REMOTE_CNT, S_DIST_? FROM STOCK WHERE S_I_ID = %d AND S_W_ID = %d",
         item_id, ol_w_id);
 
+    /////////////////////////////////////////////////////////
+    // STOCK SELECTION
+    /////////////////////////////////////////////////////////
     new_order_plans.stock_index_scan_executor_->ResetState();
 
     std::vector<Value> stock_key_values;
@@ -971,6 +1560,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
         "updateStock: UPDATE STOCK SET S_QUANTITY = ?, S_YTD = ?, S_ORDER_CNT "
         "= ?, S_REMOTE_CNT = ? WHERE S_I_ID = ? AND S_W_ID = ?");
 
+    /////////////////////////////////////////////////////////
+    // STOCK UPDATE
+    /////////////////////////////////////////////////////////
     new_order_plans.stock_update_index_scan_executor_->ResetState();
 
     new_order_plans.stock_update_index_scan_executor_->SetValues(
@@ -1017,6 +1609,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
     std::unique_ptr<storage::Tuple> order_line_tuple(
         new storage::Tuple(order_line_table->GetSchema(), true));
 
+    /////////////////////////////////////////////////////////
+    // ORDER LINE INSERT
+    /////////////////////////////////////////////////////////
     // OL_O_ID
     order_line_tuple->SetValue(0, ValueFactory::GetIntegerValue(
                                       ValuePeeker::PeekAsInteger(d_next_o_id)),
@@ -1062,6 +1657,9 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
 
+  /////////////////////////////////////////////////////////
+  // TRANSACTION COMMIT
+  /////////////////////////////////////////////////////////
   auto result = txn_manager.CommitTransaction();
 
   if (result == Result::RESULT_SUCCESS) {
