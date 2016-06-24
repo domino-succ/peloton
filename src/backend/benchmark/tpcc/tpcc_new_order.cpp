@@ -374,7 +374,7 @@ void SetNewOrder(NewOrder *new_order) {
 
 /*
  * Before running, a New Order already has all of the parameters
- * (W_ID,D_ID,C_ID,I_ID).
+ * (W_ID,D_ID,C_ID,I_ID)
  */
 bool RunNewOrder(NewOrder *new_order) {
   /*
