@@ -21,24 +21,37 @@
 class UniformGenerator {
 
  public:
-  UniformGenerator() {
-    unif = std::uniform_real_distribution<double>(0, 1);
-  }
+  UniformGenerator() { unif = std::uniform_real_distribution<double>(0, 1); }
 
-  UniformGenerator(double lower_bound, double upper_bound){
+  UniformGenerator(double lower_bound, double upper_bound) {
     unif = std::uniform_real_distribution<double>(lower_bound, upper_bound);
   }
 
-  double GetSample(){
-    return unif(rng);
-  }
+  double GetSample() { return unif(rng); }
 
  private:
-
   // Random number generator
   std::mt19937_64 rng;
 
   // Distribution
   std::uniform_real_distribution<double> unif;
+};
 
+class UniformIntGenerator {
+
+ public:
+  UniformIntGenerator() {}
+  void Init(int lower_bound, int upper_bound) {
+    unif = std::uniform_real_distribution<>(lower_bound, upper_bound);
+  }
+
+  int GetSample() { return unif(rng); }
+
+ private:
+  // Random number generator
+  // std::random_device rd;
+  std::mt19937_64 rng;
+
+  // Distribution
+  std::uniform_real_distribution<> unif;
 };

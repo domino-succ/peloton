@@ -51,8 +51,9 @@ static void WriteOutput() {
   std::ofstream out(oss.str(), std::ofstream::out);
 
   LOG_INFO("----------------------------------------------------------");
-  LOG_INFO("%lf :: %lf tps, %lf, %d", state.scale_factor, state.throughput,
-           state.abort_rate,
+  LOG_INFO("%lf :: %lf tps, %lf abort, %lf delay, %lf generate, %d",
+           state.scale_factor, state.throughput, state.abort_rate,
+           state.delay_ave, state.generate_rate,
            state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
   // out << state.scale_factor << "\n";
@@ -69,6 +70,9 @@ static void WriteOutput() {
 
   out << state.throughput << " ";
   out << state.abort_rate << " ";
+  out << state.delay_ave << " ";
+  out << state.delay_max << " ";
+  out << state.delay_min << " ";
   out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
   out << state.backend_count << " ";
   out << state.warehouse_count << "\n";
@@ -83,7 +87,10 @@ void LoadQuery(uint64_t count) {
     GenerateAndCacheQuery();
   }
 
-  EnqueueCachedUpdate();
+  if (state.generate_count == 0) {
+    EnqueueCachedUpdate();
+    LOG_INFO("No enqueue thread");
+  }
 
   std::cout << "LOAD QUERY Count: " << count << std::endl;
 

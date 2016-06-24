@@ -42,7 +42,8 @@ void Usage(FILE *out) {
       "                             gc protocol could be off, co, va, and n2o\n"
       "   -t --gc_thread         :  number of thread used in gc, only used for "
       "gc type n2o/va\n"
-      "   -q --scheduler         :  control, queue, detect, ml\n");
+      "   -q --scheduler         :  control, queue, detect, ml\n"
+      "   -z --enqueue thread    :  number of enqueue threads\n");
   exit(EXIT_FAILURE);
 }
 
@@ -60,6 +61,7 @@ static struct option opts[] = {
     {"scheduler", optional_argument, NULL, 'q'},
     {"gc_protocol", optional_argument, NULL, 'g'},
     {"gc_thread", optional_argument, NULL, 't'},
+    {"generate_count", optional_argument, NULL, 'z'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -139,6 +141,15 @@ void ValidateIndex(const configuration &state) {
   }
 }
 
+void ValidateGenerateCount(const configuration &state) {
+  if (state.generate_count < 0) {
+    LOG_ERROR("Invalid generate_count :: %d", state.generate_count);
+    exit(EXIT_FAILURE);
+  }
+
+  LOG_INFO("%s : %d", "generate_count", state.generate_count);
+}
+
 void ParseArguments(int argc, char *argv[], configuration &state) {
   // Default Values
   state.scale_factor = 1;
@@ -162,7 +173,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aeh:r:k:w:d:s:q:b:p:g:i:t:", opts, &idx);
+    int c = getopt_long(argc, argv, "aeh:r:k:w:z:d:s:q:b:p:g:i:t:", opts, &idx);
 
     if (c == -1) break;
 
@@ -175,6 +186,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'w':
         state.warehouse_count = atoi(optarg);
+        break;
+      case 'z':
+        state.generate_count = atoi(optarg);
         break;
       case 'r':
         state.order_range = atoi(optarg);
@@ -303,6 +317,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateProtocol(state);
   ValidateIndex(state);
   ValidateOrderRange(state);
+  ValidateGenerateCount(state);
 
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
