@@ -138,12 +138,13 @@ void EnqueueCachedUpdate() {
     // and
     // index_executor should be deleted, then query itself should be deleted
     if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
-      concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+      concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
     } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
       concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
           query);
     } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
-      concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
+      // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().Enqueue(query);
     } else {  // Control
       concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
     }
@@ -154,7 +155,7 @@ void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
                  uint64_t &delay_max_ref, uint64_t &delay_min_ref) {
   std::chrono::system_clock::time_point end_time =
       std::chrono::system_clock::now();
-  uint64_t delay = std::chrono::duration_cast<std::chrono::milliseconds>(
+  uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
       end_time - query->GetStartTime()).count();
   delay_total_ref = delay_total_ref + delay;
 
@@ -166,167 +167,14 @@ void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
   }
 }
 
-// void RunBackend(oid_t thread_id) {
-//  PinToCore(thread_id);
-//  oid_t &execution_count_ref = abort_counts[thread_id];
-//  oid_t &transaction_count_ref = commit_counts[thread_id];
-//  oid_t &total_count_ref = total_counts[thread_id];
-//  uint64_t &delay_total_ref = delay_totals[thread_id];
-//  uint64_t &delay_max_ref = delay_maxs[thread_id];
-//  uint64_t &delay_min_ref = delay_mins[thread_id];
-//
-//  while (true) {
-//    if (is_running == false) {
-//      break;
-//    }
-//
-//    // Pop a query from a queue and execute
-//    concurrency::TransactionQuery *ret_query = nullptr;
-//    bool ret_pop = false;
-//
-//    //////////////////////////////////////////
-//    // Pop a query
-//    //////////////////////////////////////////
-//    switch (state.scheduler) {
-//      case SCHEDULER_TYPE_NONE:
-//      case SCHEDULER_TYPE_CONTROL:
-//      case SCHEDULER_TYPE_ABORT_QUEUE: {
-//        ret_pop =
-//            concurrency::TransactionScheduler::GetInstance().SingleDequeue(
-//                ret_query);
-//        break;
-//      }
-//      case SCHEDULER_TYPE_CONFLICT_DETECT:
-//      case SCHEDULER_TYPE_CONFLICT_LEANING:
-//      case SCHEDULER_TYPE_CONFLICT_RANGE: {
-//        ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
-//            ret_query, thread_id);
-//        break;
-//      }
-//
-//      default: {
-//        LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
-//        break;
-//      }
-//    }  // end switch
-//
-//    // process the pop result. If queue is empty, continue loop
-//    if (ret_pop == false) {
-//      LOG_INFO("Queue is empty");
-//      continue;
-//    }
-//
-//    PL_ASSERT(ret_query != nullptr);
-//    total_count_ref++;
-//
-//    // Before execute query, we should set the start time
-//    (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
-//    //////////////////////////////////////////
-//    // Execute query
-//    //////////////////////////////////////////
-//
-//    if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
-//      execution_count_ref++;
-//      if (is_running == false) {
-//        break;
-//      }
-//      switch (state.scheduler) {
-//
-//        case SCHEDULER_TYPE_NONE: {
-//          // We do nothing in this case.Just delete the query
-//          // Since we discard the txn, donot record the throughput and delay
-//          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-//          delete ret_query;
-//          break;
-//        }
-//        case SCHEDULER_TYPE_CONTROL: {
-//          // Control: The txn re-executed immediately
-//          while (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) ==
-//                 false) {
-//            // If still fail, the counter increase, then enter loop again
-//            execution_count_ref++;
-//            if (is_running == false) {
-//              break;
-//            }
-//          }
-//
-//          // If execute successfully, we should clean up the query
-//          // First compute the delay
-//          RecordDelay(reinterpret_cast<NewOrder *>(ret_query),
-// delay_total_ref,
-//                      delay_max_ref, delay_min_ref);
-//
-//          // Second, clean up
-//          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-//          delete ret_query;
-//
-//          // Increase the counter
-//          transaction_count_ref++;
-//          LOG_INFO("In Control Fail,transaction_count_ref:%d",
-//                   transaction_count_ref);
-//          break;
-//        }
-//        case SCHEDULER_TYPE_ABORT_QUEUE: {
-//          // Queue: put the txn at the end of the queue
-//          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
-//              ret_query);
-//          break;
-//        }
-//
-//        case SCHEDULER_TYPE_CONFLICT_DETECT: {
-//          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-//          break;
-//        }
-//
-//        case SCHEDULER_TYPE_CONFLICT_LEANING: {
-//          concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
-//              ret_query);
-//          break;
-//        }
-//
-//        case SCHEDULER_TYPE_CONFLICT_RANGE: {
-//          concurrency::TransactionScheduler::GetInstance().RangeEnqueue(
-//              ret_query);
-//          break;
-//        }
-//
-//        default: {
-//          LOG_INFO("Scheduler_type :: Unsupported scheduler: %u ",
-//                   state.scheduler);
-//          break;
-//        }
-//      }  // end switch
-//    }    // end if execute fail
-//
-//    /////////////////////////////////////////////////
-//    // Execute success: the memory should be deleted
-//    /////////////////////////////////////////////////
-//    else {
-//      // First compute the delay
-//      RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
-//                  delay_max_ref, delay_min_ref);
-//
-//      // Second, clean up
-//      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-//      delete ret_query;
-//
-//      // Increase the counter
-//
-//      transaction_count_ref++;
-//      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
-//      //         execution_count_ref, thread_id);
-//    }  // end else execute == true
-//  }    // end big while
-//}
-
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
   oid_t &execution_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
-  //  uint64_t &delay_total_ref = delay_totals[thread_id];
-  //  uint64_t &delay_max_ref = delay_maxs[thread_id];
-  //  uint64_t &delay_min_ref = delay_mins[thread_id];
+  uint64_t &delay_total_ref = delay_totals[thread_id];
+  uint64_t &delay_max_ref = delay_maxs[thread_id];
+  uint64_t &delay_min_ref = delay_mins[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -340,8 +188,32 @@ void RunBackend(oid_t thread_id) {
     //////////////////////////////////////////
     // Pop a query
     //////////////////////////////////////////
-    ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
-        ret_query, thread_id);
+    switch (state.scheduler) {
+      case SCHEDULER_TYPE_NONE:
+      case SCHEDULER_TYPE_CONTROL:
+      case SCHEDULER_TYPE_ABORT_QUEUE: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().SingleDequeue(
+                ret_query);
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_DETECT: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().CounterDequeue(
+                ret_query, thread_id);
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_LEANING:
+      case SCHEDULER_TYPE_CONFLICT_RANGE: {
+        ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
+            ret_query, thread_id);
+        break;
+      }
+      default: {
+        LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
+        break;
+      }
+    }  // end switch
 
     // process the pop result. If queue is empty, continue loop
     if (ret_pop == false) {
@@ -353,32 +225,179 @@ void RunBackend(oid_t thread_id) {
     total_count_ref++;
 
     // Before execute query, we should set the start time
-    //(reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
+    (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
+
     if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
       execution_count_ref++;
-      LOG_INFO("Execution fail! put the txn at the end of the queue");
       if (is_running == false) {
         break;
       }
-      concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-    }
+      switch (state.scheduler) {
+
+        case SCHEDULER_TYPE_NONE: {
+          // We do nothing in this case.Just delete the query
+          // Since we discard the txn, donot record the throughput and delay
+          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+          delete ret_query;
+          break;
+        }
+        case SCHEDULER_TYPE_CONTROL: {
+          // Control: The txn re-executed immediately
+          while (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) ==
+                 false) {
+            // If still fail, the counter increase, then enter loop again
+            execution_count_ref++;
+            if (is_running == false) {
+              break;
+            }
+          }
+
+          // If execute successfully, we should clean up the query
+          // First compute the delay
+          RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
+                      delay_max_ref, delay_min_ref);
+
+          // Second, clean up
+          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+          delete ret_query;
+
+          // Increase the counter
+          transaction_count_ref++;
+          break;
+        }
+        case SCHEDULER_TYPE_ABORT_QUEUE: {
+          // Queue: put the txn at the end of the queue
+          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
+              ret_query);
+          break;
+        }
+
+        case SCHEDULER_TYPE_CONFLICT_DETECT: {
+          concurrency::TransactionScheduler::GetInstance().CounterEnqueue(
+              ret_query);
+          break;
+        }
+
+        case SCHEDULER_TYPE_CONFLICT_LEANING: {
+          concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
+              ret_query);
+          break;
+        }
+
+        case SCHEDULER_TYPE_CONFLICT_RANGE: {
+          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
+          break;
+        }
+
+        default: {
+          LOG_INFO("Scheduler_type :: Unsupported scheduler: %u ",
+                   state.scheduler);
+          break;
+        }
+      }  // end switch
+    }    // end if execute fail
+
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
     /////////////////////////////////////////////////
     else {
+      // First compute the delay
+      RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
+                  delay_max_ref, delay_min_ref);
+
       // Second, clean up
-      //      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-      //      delete ret_query;
+      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+      delete ret_query;
 
       // Increase the counter
+
       transaction_count_ref++;
       // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
       //         execution_count_ref, thread_id);
     }  // end else execute == true
   }    // end big while
+}
+
+// void RunBackend(oid_t thread_id) {
+//  PinToCore(thread_id);
+//  oid_t &execution_count_ref = abort_counts[thread_id];
+//  oid_t &transaction_count_ref = commit_counts[thread_id];
+//  oid_t &total_count_ref = total_counts[thread_id];
+//  //  uint64_t &delay_total_ref = delay_totals[thread_id];
+//  //  uint64_t &delay_max_ref = delay_maxs[thread_id];
+//  //  uint64_t &delay_min_ref = delay_mins[thread_id];
+//
+//  while (true) {
+//    if (is_running == false) {
+//      break;
+//    }
+//
+//    // Pop a query from a queue and execute
+//    concurrency::TransactionQuery *ret_query = nullptr;
+//    bool ret_pop = false;
+//
+//    //////////////////////////////////////////
+//    // Pop a query
+//    //////////////////////////////////////////
+//    ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
+//        ret_query, thread_id);
+//
+//    // process the pop result. If queue is empty, continue loop
+//    if (ret_pop == false) {
+//      LOG_INFO("Queue is empty");
+//      continue;
+//    }
+//
+//    PL_ASSERT(ret_query != nullptr);
+//    total_count_ref++;
+//
+//    // Before execute query, we should set the start time
+//    //(reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
+//    //////////////////////////////////////////
+//    // Execute query
+//    //////////////////////////////////////////
+//    if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
+//      execution_count_ref++;
+//      LOG_INFO("Execution fail! put the txn at the end of the queue");
+//      if (is_running == false) {
+//        break;
+//      }
+//      concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
+//    }
+//    /////////////////////////////////////////////////
+//    // Execute success: the memory should be deleted
+//    /////////////////////////////////////////////////
+//    else {
+//      // Second, clean up
+//      //      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+//      //      delete ret_query;
+//
+//      // Increase the counter
+//      transaction_count_ref++;
+//      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
+//      //         execution_count_ref, thread_id);
+//    }  // end else execute == true
+//  }    // end big while
+//}
+
+void QueryBackend(oid_t thread_id) {
+  PinToCore(thread_id);
+
+  oid_t &generate_count_ref = generate_counts[thread_id - state.backend_count];
+  LOG_INFO("Enqueue thread---%d---", thread_id);
+
+  while (true) {
+    if (is_running == false) {
+      break;
+    }
+
+    EnqueueCachedUpdate();
+
+    generate_count_ref++;
+  }
 }
 
 void RunWorkload() {
@@ -424,6 +443,12 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(RunBackend, thread_itr)));
   }
 
+  // Launch a bunch of threads to queue the query
+  for (oid_t thread_itr = num_threads; thread_itr < num_threads + num_generate;
+       ++thread_itr) {
+    thread_group.push_back(std::move(std::thread(QueryBackend, thread_itr)));
+  }
+
   for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
@@ -439,9 +464,17 @@ void RunWorkload() {
   is_running = false;
 
   // Join the threads with the main thread
-  for (oid_t thread_itr = 0; thread_itr < num_threads; ++thread_itr) {
+  for (oid_t thread_itr = 0; thread_itr < num_threads + num_generate;
+       ++thread_itr) {
     thread_group[thread_itr].join();
   }
+
+  // calculate the generate rate
+  oid_t total_generate_count = 0;
+  for (size_t i = 0; i < num_generate; ++i) {
+    total_generate_count += generate_counts[i];
+  }
+  state.generate_rate = total_generate_count * 1.0 / state.duration;
 
   // calculate the total execution count
   oid_t total_exe_count = 0;
@@ -497,14 +530,16 @@ void RunWorkload() {
   }
 
   state.throughput = total_commit_count * 1.0 / state.duration;
-  state.abort_rate = total_abort_count * 1.0 / total_commit_count;
+  state.abort_rate =
+      total_abort_count * 1.0 / (total_commit_count + total_abort_count);
+  // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
   // calculate the average delay
   uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_delay += delay_totals[i];
   }
-  state.delay_ave = (total_delay * 1.0) / (total_commit_count);
+  state.delay_ave = (total_delay * 1.0) / (total_commit_count * 1000);
 
   // calculate the max delay
   uint64_t max_delay = 0;
@@ -513,7 +548,7 @@ void RunWorkload() {
       max_delay = delay_maxs[i];
     }
   }
-  state.delay_max = max_delay;
+  state.delay_max = max_delay * 1.0 / 1000;
 
   // calculate the min delay
   uint64_t min_delay = delay_mins[0];
@@ -522,7 +557,7 @@ void RunWorkload() {
       min_delay = delay_mins[i];
     }
   }
-  state.delay_min = min_delay;
+  state.delay_min = min_delay * 1.0 / 1000;
 
   LOG_INFO("============Delete Everything==========");
   // cleanup everything.
