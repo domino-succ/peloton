@@ -466,7 +466,7 @@ bool RunStockLevel(const size_t& thread_id, const int& order_range);
 
 /////////////////////////////////////////////////////////
 void GenerateAndCacheQuery();
-void EnqueueCachedUpdate();
+bool EnqueueCachedUpdate();
 NewOrder* GenerateNewOrder();
 
 /////////////////////////////////////////////////////////

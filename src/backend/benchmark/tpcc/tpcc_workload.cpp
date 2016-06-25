@@ -119,36 +119,35 @@ void GenerateAndCacheQuery() {
   concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
 }
 
-void EnqueueCachedUpdate() {
-  uint64_t size = concurrency::TransactionScheduler::GetInstance().CacheSize();
+bool EnqueueCachedUpdate() {
+  // uint64_t size =
+  // concurrency::TransactionScheduler::GetInstance().CacheSize();
   concurrency::TransactionQuery *query = nullptr;
 
-  for (uint64_t i = 0; i < size; i++) {
+  bool ret =
+      concurrency::TransactionScheduler::GetInstance().DequeueCache(query);
 
-    bool ret =
-        concurrency::TransactionScheduler::GetInstance().DequeueCache(query);
-
-    if (ret == false) {
-      LOG_INFO("Error when dequeue cache: is the cache empty??");
-      continue;
-    }
-
-    // Push the query into the queue
-    // Note: when poping the query and after executing it, the update_executor
-    // and
-    // index_executor should be deleted, then query itself should be deleted
-    if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
-      concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
-    } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
-      concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
-          query);
-    } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
-      // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
-      concurrency::TransactionScheduler::GetInstance().Enqueue(query);
-    } else {  // Control
-      concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
-    }
+  if (ret == false) {
+    // LOG_INFO("Error when dequeue cache: is the cache empty??");
+    return false;
   }
+
+  // Push the query into the queue
+  // Note: when poping the query and after executing it, the update_executor
+  // and
+  // index_executor should be deleted, then query itself should be deleted
+  if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
+    concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
+  } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
+    concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
+  } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
+    // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
+    concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+  } else {  // Control
+    concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+  }
+
+  return true;
 }
 
 void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
@@ -394,7 +393,10 @@ void QueryBackend(oid_t thread_id) {
       break;
     }
 
-    EnqueueCachedUpdate();
+    if (EnqueueCachedUpdate() == false) {
+      _mm_pause();
+      continue;
+    }
 
     generate_count_ref++;
   }

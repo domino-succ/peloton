@@ -88,8 +88,10 @@ void LoadQuery(uint64_t count) {
   }
 
   if (state.generate_count == 0) {
-    EnqueueCachedUpdate();
     LOG_INFO("No enqueue thread");
+    for (uint64_t i = 0; i < count; i++) {
+      EnqueueCachedUpdate();
+    }
   }
 
   std::cout << "LOAD QUERY Count: " << count << std::endl;
@@ -97,7 +99,7 @@ void LoadQuery(uint64_t count) {
   concurrency::TransactionScheduler::GetInstance().DebugPrint();
 }
 
-#define PRELOAD 50000  // 2000,000
+#define PRELOAD 1000000  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {
