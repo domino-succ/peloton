@@ -75,7 +75,8 @@ static void WriteOutput() {
   out << state.delay_min << " ";
   out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
   out << state.backend_count << " ";
-  out << state.warehouse_count << "\n";
+  out << state.warehouse_count << " ";
+  out << state.generate_rate << "\n";
   out.flush();
   out.close();
 }
