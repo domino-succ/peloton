@@ -120,8 +120,7 @@ void GenerateAndCacheQuery() {
 }
 
 bool EnqueueCachedUpdate() {
-  // uint64_t size =
-  // concurrency::TransactionScheduler::GetInstance().CacheSize();
+
   concurrency::TransactionQuery *query = nullptr;
 
   bool ret =
@@ -132,8 +131,11 @@ bool EnqueueCachedUpdate() {
     return false;
   }
 
+  // Start counting the response time when entering the queue
+  (reinterpret_cast<NewOrder *>(query))->ReSetStartTime();
+
   // Push the query into the queue
-  // Note: when poping the query and after executing it, the update_executor
+  // Note: when popping the query and after executing it, the update_executor
   // and
   // index_executor should be deleted, then query itself should be deleted
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
@@ -216,7 +218,7 @@ void RunBackend(oid_t thread_id) {
 
     // process the pop result. If queue is empty, continue loop
     if (ret_pop == false) {
-      LOG_INFO("Queue is empty");
+      // LOG_INFO("Queue is empty");
       continue;
     }
 
@@ -224,7 +226,8 @@ void RunBackend(oid_t thread_id) {
     total_count_ref++;
 
     // Before execute query, we should set the start time
-    (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
+    // (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
+
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
@@ -388,6 +391,11 @@ void QueryBackend(oid_t thread_id) {
   oid_t &generate_count_ref = generate_counts[thread_id - state.backend_count];
   LOG_INFO("Enqueue thread---%d---", thread_id);
 
+  int speed = state.generate_speed;
+  int count = 0;
+  // std::chrono::system_clock::time_point start_time =
+  //    std::chrono::system_clock::now();
+
   while (true) {
     if (is_running == false) {
       break;
@@ -397,8 +405,51 @@ void QueryBackend(oid_t thread_id) {
       _mm_pause();
       continue;
     }
-
     generate_count_ref++;
+
+    // If there is no speed limit, ignore the speed control
+    if (speed == 0) {
+      continue;
+    }
+
+    count++;
+
+    // If executed txns exceeds the speed, compute elapsed time
+    if (count >= speed) {
+      // Reset the counter
+      count = 0;
+      SleepMilliseconds(1000);
+
+      //      // Compute the elapsed time
+      //      std::chrono::system_clock::time_point now_time =
+      //          std::chrono::system_clock::now();
+      //
+      //      int elapsed_time =
+      // std::chrono::duration_cast<std::chrono::microseconds>(
+      //          now_time - start_time).count();
+      //
+      //      // If elapsed time is still less than 1 second, sleep the rest of
+      // the time
+      //      if (elapsed_time / 1000 < 1000) {
+      //        SleepMilliseconds(1000 - elapsed_time / 1000);
+      //
+      //        // Reset start time
+      //        start_time = std::chrono::system_clock::now();
+      //      }
+      //      // Otherwise, if elapsed time is larger then 1 second, re-set
+      // starttime
+      //      // and continue to enqueue txns
+      //      else {
+      //        // Rest start time
+      //        start_time = std::chrono::system_clock::now();
+      //
+      //        continue;
+      //      }
+    }
+    // If executed txns are still less than the speed, continue to enqueue
+    else {
+      continue;
+    }
   }
 }
 
@@ -536,7 +587,7 @@ void RunWorkload() {
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
-  // calculate the average delay
+  // calculate the average delay: ms
   uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_delay += delay_totals[i];

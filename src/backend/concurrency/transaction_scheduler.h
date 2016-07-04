@@ -310,7 +310,7 @@ class TransactionScheduler {
         return true;
       }
     }
-    LOG_INFO("Queue empty: %ld", thread_id);
+    // LOG_INFO("Queue is empty: %ld", thread_id);
 
     // Return false if every queue is empty
     return false;
@@ -327,7 +327,7 @@ class TransactionScheduler {
 
       if (ret == true) return true;
     }
-    LOG_INFO("Queue empty: %ld", thread_id);
+    // LOG_INFO("Queue is empty: %ld", thread_id);
 
     // Return false if every queue is empty
     return false;

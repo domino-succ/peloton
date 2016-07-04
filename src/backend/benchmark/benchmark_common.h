@@ -17,6 +17,7 @@
 #include <thread>
 #include <vector>
 #include <algorithm>
+#include <time.h>
 
 namespace peloton {
 namespace benchmark {
@@ -134,6 +135,8 @@ class DistributionAnalysis {
  private:
   std::vector<uint64_t> distribution_number_;
 };
+
+void SleepMilliseconds(int n);
 
 void PinToCore(size_t core);
 

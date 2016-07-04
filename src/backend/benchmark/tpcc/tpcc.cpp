@@ -79,6 +79,7 @@ static void WriteOutput() {
   out.flush();
   out.close();
 }
+
 void LoadQuery(uint64_t count) {
   // The number of queues is equal to the threads (backend_count)
   concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count);

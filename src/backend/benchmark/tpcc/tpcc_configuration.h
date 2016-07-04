@@ -92,6 +92,9 @@ class configuration {
   // number of query thread
   int generate_count;
 
+  // number of txn / second
+  int generate_speed;
+
   std::vector<double> snapshot_throughput;
 
   std::vector<double> snapshot_abort_rate;

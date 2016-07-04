@@ -43,7 +43,8 @@ void Usage(FILE *out) {
       "   -t --gc_thread         :  number of thread used in gc, only used for "
       "gc type n2o/va\n"
       "   -q --scheduler         :  control, queue, detect, ml\n"
-      "   -z --enqueue thread    :  number of enqueue threads\n");
+      "   -z --enqueue thread    :  number of enqueue threads\n"
+      "   -v --enqueue speed     :  number of txns per second \n");
   exit(EXIT_FAILURE);
 }
 
@@ -62,6 +63,7 @@ static struct option opts[] = {
     {"gc_protocol", optional_argument, NULL, 'g'},
     {"gc_thread", optional_argument, NULL, 't'},
     {"generate_count", optional_argument, NULL, 'z'},
+    {"generate_speed", optional_argument, NULL, 'v'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -150,6 +152,15 @@ void ValidateGenerateCount(const configuration &state) {
   LOG_INFO("%s : %d", "generate_count", state.generate_count);
 }
 
+void ValidateGenerateSpeed(const configuration &state) {
+  if (state.generate_speed < 0) {
+    LOG_ERROR("Invalid generate_speed :: %d", state.generate_speed);
+    exit(EXIT_FAILURE);
+  }
+
+  LOG_INFO("%s : %d", "generate_speed", state.generate_speed);
+}
+
 void ParseArguments(int argc, char *argv[], configuration &state) {
   // Default Values
   state.scale_factor = 1;
@@ -157,6 +168,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.snapshot_duration = 1;
   state.backend_count = 1;
   state.generate_count = 0;  // 0 means no query thread. only prepared queries
+  state.generate_speed = 0;
   state.delay_ave = 0.0;
   state.delay_max = 0.0;
   state.delay_min = 0.0;
@@ -173,7 +185,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aeh:r:k:w:z:d:s:q:b:p:g:i:t:", opts, &idx);
+    int c =
+        getopt_long(argc, argv, "aeh:r:k:w:z:v:d:s:q:b:p:g:i:t:", opts, &idx);
 
     if (c == -1) break;
 
@@ -189,6 +202,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'z':
         state.generate_count = atoi(optarg);
+        break;
+      case 'v':
+        state.generate_speed = atoi(optarg);
         break;
       case 'r':
         state.order_range = atoi(optarg);
@@ -318,6 +334,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateIndex(state);
   ValidateOrderRange(state);
   ValidateGenerateCount(state);
+  ValidateGenerateSpeed(state);
 
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
