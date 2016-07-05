@@ -169,7 +169,11 @@ void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
 }
 
 void RunBackend(oid_t thread_id) {
-  PinToCore(thread_id);
+  // Just test for 6 cores and 12 logical cores
+  oid_t core_id = thread_id % 12;
+  PinToCore(core_id);
+  // PinToCore(thread_id);
+  // End test
   oid_t &execution_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
@@ -386,7 +390,9 @@ void RunBackend(oid_t thread_id) {
 //}
 
 void QueryBackend(oid_t thread_id) {
-  PinToCore(thread_id);
+  // Test
+  // PinToCore(thread_id);
+  PinToCore(12);
 
   oid_t &generate_count_ref = generate_counts[thread_id - state.backend_count];
   LOG_INFO("Enqueue thread---%d---", thread_id);
