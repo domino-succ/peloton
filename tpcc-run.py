@@ -24,17 +24,17 @@ if os.path.isfile(output_file):
 #######################################################################################################
 
 for i in range(1, 12):
-    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 10 -w 11 -q control -z 1"
+    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -q control -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 10 -w 11 -q detect -z 1"
+    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -q detect -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 10 -w 11 -q range -z 1"
+    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -q range -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -42,17 +42,35 @@ for i in range(1, 12):
 #   Warehouse from 1 to n
 #######################################################################################################
 for i in range(1, 12):
-    cmd = "./src/tpcc -b 8 -k 0.03 -p occ -g co -d 10 -w" + " " + str(i) + " " + "-q control -z 1"
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w" + " " + str(i) + " " + "-q control -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/tpcc -b 8 -k 0.03 -p occ -g co -d 10 -w" + " " + str(i) + " " + "-q detect -z 1"
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w" + " " + str(i) + " " + "-q detect -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/tpcc -b 8 -k 0.03 -p occ -g co -d 10 -w" + " " + str(i) + " " + "-q range -z 1"
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w" + " " + str(i) + " " + "-q range -z 1"
+    pid = subprocess.Popen(cmd, shell=True)
+    pid.wait()
+
+########################################################################################################
+#   Request speed from 1000 to 12000 per second
+#######################################################################################################
+for i in range(1000, 12000, 1000):
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w 11 -q control -z 1 -v" + " " + str(i)
+    pid = subprocess.Popen(cmd, shell=True)
+    pid.wait()
+
+for i in range(1000, 12000, 1000):
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w 11 -q detect -z 1 -v" + " " + str(i)
+    pid = subprocess.Popen(cmd, shell=True)
+    pid.wait()
+
+for i in range(1000, 12000, 1000):
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w 11 -q range -z 1 -v" + " " + str(i)
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
