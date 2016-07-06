@@ -38,6 +38,11 @@ for i in range(1, 12):
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
+for i in range(1, 12):
+    cmd = "./src/tpcc -k 0.03 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -q ml -z 1"
+    pid = subprocess.Popen(cmd, shell=True)
+    pid.wait()
+
 ########################################################################################################
 #   Warehouse from 1 to n
 #######################################################################################################
@@ -53,6 +58,11 @@ for i in range(1, 12):
 
 for i in range(1, 12):
     cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w" + " " + str(i) + " " + "-q range -z 1"
+    pid = subprocess.Popen(cmd, shell=True)
+    pid.wait()
+
+for i in range(1, 12):
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w" + " " + str(i) + " " + "-q ml -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -74,6 +84,10 @@ for i in range(1000, 12000, 1000):
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
+for i in range(1000, 12000, 1000):
+    cmd = "./src/tpcc -b 11 -k 0.03 -p occ -g co -d 5 -w 11 -q ml -z 1 -v" + " " + str(i)
+    pid = subprocess.Popen(cmd, shell=True)
+    pid.wait()
 
 result = open(output_file, "a")
 files = os.listdir(search_dir)
