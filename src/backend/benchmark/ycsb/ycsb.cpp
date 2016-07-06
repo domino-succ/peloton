@@ -255,6 +255,7 @@ static void ValidateMVCC() {
 }
 
 void LoadQuery(uint64_t count) {
+  // FACTOR is 1000
   concurrency::TransactionScheduler::GetInstance().Resize(
       state.backend_count, (state.scale_factor * FACTOR) - 1);
 

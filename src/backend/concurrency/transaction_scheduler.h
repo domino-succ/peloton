@@ -87,9 +87,10 @@ class TransactionScheduler {
   // Singleton
   static TransactionScheduler& GetInstance();
 
-  TransactionScheduler() : queue_counts_(1), range_(0) {}
+  TransactionScheduler() : queue_counts_(1), partition_counts_(1), range_(0) {}
 
-  void Resize(int queue_counts, int factor) {
+  // factor is the total size of the of rows in YCSB
+  void ResizeWithRange(int queue_counts, int factor) {
     queues_.resize(queue_counts);
     queue_counts_ = queue_counts;
 
@@ -97,12 +98,14 @@ class TransactionScheduler {
     range_ = (factor / queue_counts) + 1;
   }
 
-  void Resize(int queue_counts) {
+  // In TPCC partition_counts is the # of warehouses
+  void Resize(int queue_counts, int partition_counts) {
     queues_.resize(queue_counts);
     counter_.resize(queue_counts);
     random_generator_.Init(0, queue_counts);
 
     queue_counts_ = queue_counts;
+    partition_counts_ = partition_counts;
   }
 
   int QueueCount() {
@@ -176,6 +179,8 @@ class TransactionScheduler {
     queues_[count_idx.second].Enqueue(query);
   }
 
+  // Based on the router's range. The ranges in router are continuous for
+  // example: [0,999) [1000, 3999)[4000, 4999)[5000, 8000)
   void RouterRangeEnqueue(TransactionQuery* query) {
     std::vector<uint64_t> keys = query->GetPrimaryKeysByint();
     std::map<uint64_t, int> idx_count;
@@ -317,6 +322,31 @@ class TransactionScheduler {
   }
 
   bool Dequeue(TransactionQuery*& query);
+
+  /*
+   * Dequeue a txn according some static information. In TPCC, it is based on
+   * the number of warehouses. For example, the # of warehouses is 5, and 5 is
+   * the static information. The idea is not waste the thread to loop the queue.
+   * When the # of warehouses is less than the # of threads (queues) some queues
+   * are empty, so a thread should associated to a non-empty queue.
+   *
+   * So in TPCC a thread is associated to a partition (warehouse). If the # of
+   * warehouse is less than the # of queues some queues are empty
+   */
+  bool PartitionDequeue(TransactionQuery*& query, uint64_t thread_id) {
+    // Each thread is associated to a partition (warehouse).
+    for (uint64_t loop = 0; loop < partition_counts_; loop++) {
+      uint64_t idx = (thread_id + loop) % partition_counts_;
+      bool ret = queues_[idx].Dequeue(query);
+
+      if (ret == true) return true;
+    }
+    // LOG_INFO("Queue is empty: %ld", thread_id);
+
+    // Return false if every queue is empty
+    return false;
+  }
+
   bool Dequeue(TransactionQuery*& query, uint64_t thread_id) {
     // Each thread should associate to a queue. But if the associated queue is
     // empty, the thread can pop elements from other queues. If every queue is
@@ -404,8 +434,12 @@ class TransactionScheduler {
 
  private:
   uint64_t Hash(uint64_t key) { return key % queue_counts_; }
+
+  // range_ is how many items (tuples) should be stored in a queue
   uint64_t RangeHash(uint64_t key) { return key / range_; }
 
+  // RouterHash is based on the router. Router stores several ranges. Given a
+  // key, routerhash returns which range the key belongs to
   int RouterHash(uint64_t key) {
     std::map<uint64_t, int>::iterator it = router_.lower_bound(key);
     PL_ASSERT(it != router_.end());
@@ -415,6 +449,10 @@ class TransactionScheduler {
 
  private:
   uint64_t queue_counts_;
+
+  // In TPCC, it is the number of warehouses. It is initiated using
+  // state.warehouses
+  uint64_t partition_counts_;
 
   // FIXME: I'd like to use unique_ptr, but not sure LockFreeQueue supports
   // smart pointer

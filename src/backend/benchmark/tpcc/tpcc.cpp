@@ -83,7 +83,8 @@ static void WriteOutput() {
 
 void LoadQuery(uint64_t count) {
   // The number of queues is equal to the threads (backend_count)
-  concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count);
+  concurrency::TransactionScheduler::GetInstance().Resize(
+      state.backend_count, state.warehouse_count);
 
   for (uint64_t i = 0; i < count; i++) {
     GenerateAndCacheQuery();

@@ -141,7 +141,8 @@ bool EnqueueCachedUpdate() {
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
     concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
-    concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
+    // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
+    concurrency::TransactionScheduler::GetInstance().Enqueue(query);
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
     // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
     concurrency::TransactionScheduler::GetInstance().Enqueue(query);
@@ -205,7 +206,12 @@ void RunBackend(oid_t thread_id) {
                 ret_query, thread_id);
         break;
       }
-      case SCHEDULER_TYPE_CONFLICT_LEANING:
+      case SCHEDULER_TYPE_CONFLICT_LEANING: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                ret_query, thread_id);
+        break;
+      }
       case SCHEDULER_TYPE_CONFLICT_RANGE: {
         ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
             ret_query, thread_id);
@@ -285,8 +291,9 @@ void RunBackend(oid_t thread_id) {
         }
 
         case SCHEDULER_TYPE_CONFLICT_LEANING: {
-          concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
-              ret_query);
+          // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
+          //    ret_query);
+          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
           break;
         }
 
