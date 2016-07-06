@@ -332,8 +332,17 @@ class TransactionScheduler {
    *
    * So in TPCC a thread is associated to a partition (warehouse). If the # of
    * warehouse is less than the # of queues some queues are empty
+   *
+   * Note: if the # of warehouse is larger than the # of queues, idx will exceed
    */
   bool PartitionDequeue(TransactionQuery*& query, uint64_t thread_id) {
+
+    // If the # of warehouse is larger than the # of queues, call Dequeue,
+    // otherwise idx will exceed memory bound
+    if (partition_counts_ > queue_counts_) {
+      return Dequeue(query, thread_id);
+    }
+
     // Each thread is associated to a partition (warehouse).
     for (uint64_t loop = 0; loop < partition_counts_; loop++) {
       uint64_t idx = (thread_id + loop) % partition_counts_;
