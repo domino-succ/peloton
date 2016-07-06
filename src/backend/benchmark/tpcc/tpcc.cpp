@@ -51,10 +51,11 @@ static void WriteOutput() {
   std::ofstream out(oss.str(), std::ofstream::out);
 
   LOG_INFO("----------------------------------------------------------");
-  LOG_INFO("%lf :: %lf tps, %lf abort, %lf delay, %lf generate, %d",
-           state.scale_factor, state.throughput, state.abort_rate,
-           state.delay_ave, state.generate_rate,
-           state.snapshot_memory[state.snapshot_throughput.size() - 1]);
+  LOG_INFO(
+      "scheduler:%d---%lf :: %lf tps, %lf abort, %lf delay, %lf generate, %d",
+      state.scheduler, state.scale_factor, state.throughput, state.abort_rate,
+      state.delay_ave, state.generate_rate,
+      state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
   // out << state.scale_factor << "\n";
 
