@@ -133,7 +133,7 @@ void LoadQuery(uint64_t count) {
   concurrency::TransactionScheduler::GetInstance().DebugPrint();
 }
 
-#define PRELOAD 1000  // 2000,000
+#define PRELOAD 50000  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {
