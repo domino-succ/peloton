@@ -45,12 +45,10 @@ void RunWorkload();
 /////////////////////////////////////////////////////////
 
 struct ReadPlans {
-  
+
   executor::IndexScanExecutor* index_scan_executor_;
 
-  void ResetState() {
-    index_scan_executor_->ResetState();
-  }
+  void ResetState() { index_scan_executor_->ResetState(); }
 
   void Cleanup() {
     delete index_scan_executor_;
@@ -60,7 +58,7 @@ struct ReadPlans {
 
 ReadPlans PrepareReadPlan();
 
-bool RunRead(ReadPlans &read_plans, ZipfDistribution &zipf);
+bool RunRead(ReadPlans& read_plans, ZipfDistribution& zipf);
 
 /////////////////////////////////////////////////////////
 
@@ -74,9 +72,7 @@ struct UpdatePlans {
     update_executor_->SetContext(context);
   }
 
-  void ResetState() {
-    index_scan_executor_->ResetState();
-  }
+  void ResetState() { index_scan_executor_->ResetState(); }
 
   void Cleanup() {
     delete index_scan_executor_;
@@ -162,6 +158,19 @@ class UpdateQuery : public concurrency::TransactionQuery {
     return peloton::PLAN_NODE_TYPE_UPDATE;
   };
 
+  virtual Region* RegionTransform() {
+    // Compute how large of the whole space
+
+    // Generate the space with a vector
+    std::vector<uint32> cover(0, 0);
+
+    // Generate region and return
+    // std::shared_ptr<Region> region(new Region(cover));
+    return new Region(cover);
+  }
+
+  virtual Region& GetRegion() { return region_; }
+
  private:
   executor::IndexScanExecutor* index_scan_executor_;
   planner::IndexScanPlan* index_scan_plan_;
@@ -174,11 +183,13 @@ class UpdateQuery : public concurrency::TransactionQuery {
   std::vector<uint64_t> primary_keys_;
 
   bool first_pop_;
+
+  Region region_;
 };
 
 UpdatePlans PrepareUpdatePlan();
 
-bool RunUpdate(UpdatePlans &update_plans, ZipfDistribution &zipf);
+bool RunUpdate(UpdatePlans& update_plans, ZipfDistribution& zipf);
 void GenerateAndQueueUpdate(ZipfDistribution& zipf);
 void GenerateAndCacheUpdate(ZipfDistribution& zipf);
 UpdateQuery* GenerateUpdate(ZipfDistribution& zipf);
@@ -197,7 +208,6 @@ struct MixedPlans {
 
   executor::IndexScanExecutor* update_index_scan_executor_;
   executor::UpdateExecutor* update_executor_;
-
 
   void SetContext(executor::ExecutorContext* context) {
     index_scan_executor_->SetContext(context);
@@ -223,14 +233,13 @@ struct MixedPlans {
 
 MixedPlans PrepareMixedPlan();
 
-bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng);
-
+bool RunMixed(MixedPlans& mixed_plans, ZipfDistribution& zipf,
+              fast_random& rng);
 
 /////////////////////////////////////////////////////////
 
-
-std::vector<std::vector<Value>>
-ExecuteReadTest(executor::AbstractExecutor* executor);
+std::vector<std::vector<Value>> ExecuteReadTest(
+    executor::AbstractExecutor* executor);
 
 void ExecuteUpdateTest(executor::AbstractExecutor* executor);
 

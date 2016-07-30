@@ -326,7 +326,11 @@ NewOrder *GenerateNewOrder() {
 
   new_order->stock_update_executor_ = stock_update_executor;
 
+  // Set values
   SetNewOrder(new_order);
+
+  // Set txn's region cover
+  new_order->SetRegionCover();
 
   return new_order;
 }
@@ -353,13 +357,11 @@ void SetNewOrder(NewOrder *new_order) {
     i_ids.push_back(GetRandomInteger(0, state.item_count - 1));
     bool remote = GetRandomBoolean(new_order_remote_txns);
     ol_w_ids.push_back(new_order->warehouse_id_);
-
     if (remote == true) {
       ol_w_ids[ol_itr] = GetRandomIntegerExcluding(0, state.warehouse_count - 1,
                                                    new_order->warehouse_id_);
       o_all_local = false;
     }
-
     ol_qtys.push_back(GetRandomInteger(0, order_line_max_ol_quantity));
   }
 

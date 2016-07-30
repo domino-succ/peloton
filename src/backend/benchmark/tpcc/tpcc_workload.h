@@ -286,6 +286,63 @@ class NewOrder : public concurrency::TransactionQuery {
     return peloton::PLAN_NODE_TYPE_UPDATE;
   };
 
+  // According the New-Order predicate, transform them into a region
+  // New-Order predicate have two UPDATE types. In this experiment
+  // we only consider one UPDATE (STOCK table update). It contains
+  // two columns W_ID and I_ID. W_ID's range is from [1, state.warehouse_count]
+  // and I_ID's
+  // range is from [1, state.item_count].
+  virtual Region* RegionTransform() {
+    // Compute how large of the whole space
+    uint32_t digits = state.warehouse_count * state.item_count;
+
+    // Generate the space with a vector
+    std::vector<uint32> cover(digits, 0);
+
+    // Set the digit according the W_ID and I_ID
+
+    for (int item = 0; item < o_ol_cnt_; item++) {
+      int wid = ol_w_ids_.at(item);
+      int iid = i_ids_.at(item);
+
+      int idx = wid + iid * state.warehouse_count;
+
+      // std::cout << "idx = " << idx << std::endl;
+      cover[idx]++;
+    }
+
+    // Generate region and return
+    // std::shared_ptr<Region> region(new Region(cover));
+    return new Region(cover);
+  }
+
+  // According predicate (WID AND IID), set the region cover(vector) for this
+  // txn
+  void SetRegionCover() {
+    // Compute how large of the whole space
+    uint32_t digits = state.warehouse_count * state.item_count;
+
+    // Generate the space with a vector
+    std::vector<uint32> cover(digits, 0);
+
+    // Set the digit according the W_ID and I_ID
+
+    for (int item = 0; item < o_ol_cnt_; item++) {
+      int wid = ol_w_ids_.at(item);
+      int iid = i_ids_.at(item);
+
+      int idx = wid + iid * state.warehouse_count;
+
+      // std::cout << "idx = " << idx << std::endl;
+      cover[idx]++;
+    }
+
+    // Set region
+    region_.SetCover(cover);
+  }
+
+  virtual Region& GetRegion() { return region_; }
+
   // Make them public for convenience
  public:
   executor::IndexScanExecutor* item_index_scan_executor_;
@@ -314,6 +371,8 @@ class NewOrder : public concurrency::TransactionQuery {
   int o_ol_cnt_;
   bool o_all_local_;
   std::vector<int> i_ids_, ol_w_ids_, ol_qtys_;
+
+  Region region_;
 };
 
 struct PaymentPlans {
@@ -467,6 +526,7 @@ bool RunStockLevel(const size_t& thread_id, const int& order_range);
 /////////////////////////////////////////////////////////
 void GenerateAndCacheQuery();
 bool EnqueueCachedUpdate();
+std::vector<Region> ClusterAnalysis();
 NewOrder* GenerateNewOrder();
 
 /////////////////////////////////////////////////////////

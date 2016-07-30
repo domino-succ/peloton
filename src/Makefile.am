@@ -41,7 +41,7 @@ bin_PROGRAMS = \
 			   peloton \
 			   hyadapt \
 			   ycsb \
-			   tpcc
+			   tpcc 
 
 lib_LTLIBRARIES += libpeloton.la
 lib_LTLIBRARIES += libpelotonpg.la

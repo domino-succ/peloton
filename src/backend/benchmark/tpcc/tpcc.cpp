@@ -84,9 +84,39 @@ static void WriteOutput() {
 
 void LoadQuery(uint64_t count) {
   // The number of queues is equal to the threads (backend_count)
-  concurrency::TransactionScheduler::GetInstance().Resize(
-      state.backend_count, state.warehouse_count);
+  // concurrency::TransactionScheduler::GetInstance().Resize(
+  //    state.backend_count, state.warehouse_count);
 
+  // These queries are for clustering
+  for (uint64_t i = 0; i < count; i++) {
+    GenerateAndCacheQuery();
+  }
+
+  std::cout << "Enter cluster analysis" << std::endl;
+
+  // Get clustering result. Each cluster is a big region (vector) including the
+  // cluster NO.
+  std::vector<Region> clusters = ClusterAnalysis();
+
+  // Test
+  std::cout << "===========Print debug info =================" << std::endl;
+  for (auto &cluster : clusters) {
+
+    std::cout << "Cluster: " << cluster.GetCluster()
+              << ". Its members are: " << cluster.GetMemberCount();
+    std::cout << std::endl;
+  }
+  // end test
+
+  // Resize the number of queues according the number of clusters
+  concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count,
+                                                          clusters.size());
+
+  // Set the cluster result to scheduler. When enqueue, the new coming txn
+  // compares the big region with each cluster
+  concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
+
+  // These new queries are for TPCC executions
   for (uint64_t i = 0; i < count; i++) {
     GenerateAndCacheQuery();
   }
@@ -103,7 +133,7 @@ void LoadQuery(uint64_t count) {
   concurrency::TransactionScheduler::GetInstance().DebugPrint();
 }
 
-#define PRELOAD 500000  // 2000,000
+#define PRELOAD 500  // 2000,000
 
 // Main Entry Point
 void RunBenchmark() {

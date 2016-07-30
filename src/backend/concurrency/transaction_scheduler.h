@@ -15,6 +15,7 @@
 #include "backend/common/lockfree_queue.h"
 #include "backend/common/platform.h"
 #include "backend/common/generator.h"
+#include "backend/common/dbscan.h"
 #include "backend/planner/abstract_plan.h"
 #include "backend/executor/abstract_executor.h"
 
@@ -60,6 +61,11 @@ class TransactionQuery {
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() = 0;
 
+  virtual Region* RegionTransform() = 0;
+
+  virtual Region& GetRegion() = 0;
+  // virtual std::shared_ptr<Region> RegionTransform() = 0;
+
   // private:
   // Plan_tree is a pointer shared with the passing by object
   // std::shared_ptr<planner::AbstractPlan> plan_tree_;
@@ -98,7 +104,7 @@ class TransactionScheduler {
     range_ = (factor / queue_counts) + 1;
   }
 
-  // In TPCC partition_counts is the # of warehouses
+  // In TPCC partition_counts is the # of warehouses or the # of clusters
   void Resize(int queue_counts, int partition_counts) {
     queues_.resize(queue_counts);
     counter_.resize(queue_counts);
@@ -205,6 +211,32 @@ class TransactionScheduler {
 
     // We got which queue is the most updates, so push the query
     queues_[count_idx.second].Enqueue(query);
+  }
+
+  // Based on the clustering result. Since the number of queues is
+  // equal to the number of cluster, and the cluster result is passed
+  // to the scheduler. When dequeue, we use the method of ParitionDeuque
+  void ClusterEnqueue(TransactionQuery* query) {
+    // Get the region for current query
+    Region& current = query->GetRegion();
+
+    int max = 0;
+    int cluster_idx = 0;
+
+    // Compare the overlap query's region with each cluster's region
+    for (auto& cluster : clusters_) {
+      int overlap = current.OverlapValue(cluster);
+
+      // If the current overlap is larger than the max, keep it
+      if (overlap > max) {
+        max = overlap;
+        cluster_idx = cluster.GetCluster();
+      }
+    }
+
+    // Finally, we get the final cluster. Here use % since # of clusters might
+    // be larger than # of queues
+    queues_[cluster_idx % queue_counts_].Enqueue(query);
   }
 
   void ModRangeEnqueue(TransactionQuery* query) {
@@ -441,6 +473,10 @@ class TransactionScheduler {
     //    }
   }
 
+  int GetCacheSize() { return query_cache_queue_.Size(); }
+
+  void SetClusters(std::vector<Region>& clusters) { clusters_ = clusters; }
+
  private:
   uint64_t Hash(uint64_t key) { return key % queue_counts_; }
 
@@ -490,6 +526,9 @@ class TransactionScheduler {
 
   // Random Generator
   UniformIntGenerator random_generator_;
+
+  // Only used when use clustering
+  std::vector<Region> clusters_;
 };
 
 // UINT64_MAX;
