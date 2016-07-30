@@ -235,8 +235,8 @@ class TransactionScheduler {
     }
 
     // Finally, we get the final cluster. Here use % since # of clusters might
-    // be larger than # of queues
-    queues_[cluster_idx % queue_counts_].Enqueue(query);
+    // be larger than # of queues. Note: cluster_idx should be from 0
+    queues_[cluster_idx - 1 % queue_counts_].Enqueue(query);
   }
 
   void ModRangeEnqueue(TransactionQuery* query) {

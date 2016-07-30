@@ -134,7 +134,7 @@ std::vector<Region> ClusterAnalysis() {
       LOG_INFO("Error when dequeue cache: is the cache empty??");
     }
 
-    LOG_INFO("Dequeue a query %d and begin to transform", i);
+    // LOG_INFO("Dequeue a query %d and begin to transform", i);
 
     // Transform the query into a region
     Region *region = query->RegionTransform();
