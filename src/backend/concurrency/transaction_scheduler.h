@@ -109,6 +109,7 @@ class TransactionScheduler {
     queues_.resize(queue_counts);
     counter_.resize(queue_counts);
     random_generator_.Init(0, queue_counts);
+    random_cluster_.Init(1, partition_counts);
 
     queue_counts_ = queue_counts;
     partition_counts_ = partition_counts;
@@ -234,9 +235,14 @@ class TransactionScheduler {
       }
     }
 
+    // If there is no overlap with any cluster, randomly pickup a cluster
+    if (cluster_idx == 0) {
+      cluster_idx = random_cluster_.GetSample();
+    }
+
     // Finally, we get the final cluster. Here use % since # of clusters might
     // be larger than # of queues. Note: cluster_idx should be from 0
-    queues_[cluster_idx - 1 % queue_counts_].Enqueue(query);
+    queues_[(cluster_idx - 1) % queue_counts_].Enqueue(query);
   }
 
   void ModRangeEnqueue(TransactionQuery* query) {
@@ -526,6 +532,7 @@ class TransactionScheduler {
 
   // Random Generator
   UniformIntGenerator random_generator_;
+  UniformIntGenerator random_cluster_;
 
   // Only used when use clustering
   std::vector<Region> clusters_;

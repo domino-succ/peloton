@@ -145,7 +145,7 @@ std::vector<Region> ClusterAnalysis() {
   LOG_INFO("Finish transform, begin to clustering");
 
   // Cluster all txn_regions
-  DBScan dbs(txn_regions, 32);
+  DBScan dbs(txn_regions, 60);
   // dbs.DebugPrintRegion();
   LOG_INFO("Finish generate dbscan, begin to PreProcess");
 
