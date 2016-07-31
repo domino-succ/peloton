@@ -52,7 +52,7 @@ class Region {
   bool IsMarked() { return marked_; }
   void SetMarked() { marked_ = true; }
 
-  // The two vector should have the same size.
+  // The two vectors should have the same size.
   std::vector<uint32_t> Overlap(Region &rh_region) {
     assert(cover_.size() == rh_region.GetCover().size());
     std::vector<uint32_t> intersect(cover_.size());
