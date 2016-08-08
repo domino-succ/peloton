@@ -19,6 +19,9 @@
 #include <algorithm>
 #include <time.h>
 
+#define ITEM_SCALE 1000
+#define WAREHOUSE_SCALE 6
+
 namespace peloton {
 namespace benchmark {
 

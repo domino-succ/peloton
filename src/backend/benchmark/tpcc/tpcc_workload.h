@@ -32,6 +32,9 @@ class DataTable;
 namespace benchmark {
 namespace tpcc {
 
+#define PRELOAD 300000  // 2000,000
+#define LOGTABLE "logtable"
+
 enum TxnType {
   TXN_TYPE_INVALID = 0,  // invalid plan node type
   TXN_TYPE_NEW_ORDER = 1,
@@ -206,7 +209,8 @@ class NewOrder : public concurrency::TransactionQuery {
         district_id_(0),
         customer_id_(0),
         o_ol_cnt_(0),
-        o_all_local_(true) {}
+        o_all_local_(true),
+        queue_(-1) {}
 
   ~NewOrder() {}
 
@@ -290,58 +294,330 @@ class NewOrder : public concurrency::TransactionQuery {
   // New-Order predicate have two UPDATE types. In this experiment
   // we only consider one UPDATE (STOCK table update). It contains
   // two columns W_ID and I_ID. W_ID's range is from [1, state.warehouse_count]
-  // and I_ID's
-  // range is from [1, state.item_count].
+  // and I_ID's range is from [1, state.item_count].
+  // Note: this is new a Region which is different from the GetRegion();
   virtual Region* RegionTransform() {
     // Compute how large of the whole space
-    uint32_t digits = state.warehouse_count * state.item_count;
-
+    // uint32_t digits = state.warehouse_count * state.item_count;
     // Generate the space with a vector
-    std::vector<uint32> cover(digits, 0);
+    // std::vector<uint32> cover(digits, 0);
 
     // Set the digit according the W_ID and I_ID
-
-    for (int item = 0; item < o_ol_cnt_; item++) {
-      int wid = ol_w_ids_.at(item);
-      int iid = i_ids_.at(item);
-
-      int idx = wid + iid * state.warehouse_count;
-
-      // std::cout << "idx = " << idx << std::endl;
-      cover[idx]++;
-    }
+    //    for (int item = 0; item < o_ol_cnt_; item++) {
+    //      int wid = ol_w_ids_.at(item);
+    //      int iid = i_ids_.at(item);
+    //
+    //      int idx = wid + iid * state.warehouse_count;
+    //
+    //      // std::cout << "idx = " << idx << std::endl;
+    //      cover[idx]++;
+    //    }
 
     // Generate region and return
     // std::shared_ptr<Region> region(new Region(cover));
-    return new Region(cover);
+    return new Region(state.warehouse_count, ol_w_ids_, state.item_count,
+                      i_ids_);
   }
 
   // According predicate (WID AND IID), set the region cover(vector) for this
   // txn
   void SetRegionCover() {
-    // Compute how large of the whole space
-    uint32_t digits = state.warehouse_count * state.item_count;
-
-    // Generate the space with a vector
-    std::vector<uint32> cover(digits, 0);
-
-    // Set the digit according the W_ID and I_ID
-
-    for (int item = 0; item < o_ol_cnt_; item++) {
-      int wid = ol_w_ids_.at(item);
-      int iid = i_ids_.at(item);
-
-      int idx = wid + iid * state.warehouse_count;
-
-      // std::cout << "idx = " << idx << std::endl;
-      cover[idx]++;
-    }
+    //    // Compute how large of the whole space
+    //    uint32_t digits = state.warehouse_count * state.item_count;
+    //
+    //    // Generate the space with a vector
+    //    std::vector<uint32> cover(digits, 0);
+    //
+    //    // Set the digit according the W_ID and I_ID
+    //
+    //    for (int item = 0; item < o_ol_cnt_; item++) {
+    //      int wid = ol_w_ids_.at(item);
+    //      int iid = i_ids_.at(item);
+    //
+    //      int idx = wid + iid * state.warehouse_count;
+    //
+    //      // std::cout << "idx = " << idx << std::endl;
+    //      cover[idx]++;
+    //    }
 
     // Set region
-    region_.SetCover(cover);
+    region_.SetCover(state.warehouse_count, ol_w_ids_, state.item_count,
+                     i_ids_);
   }
 
   virtual Region& GetRegion() { return region_; }
+
+  virtual void UpdateLogTable() {
+    // Extract txn conditions include 4 conditions:
+    // S_I_ID  S_W_ID D_ID D_W_ID
+    // the corresponding values can be found from:
+    // warehouse_id_; district_id_; i_ids_
+    // For simplicity, the column name is hard coding here
+
+    // Extract D_W_ID and update it in Log Table
+    std::string key =
+        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
+
+    // Extract D_ID and update it in Log Table
+    key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+    concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
+
+    // Extract S_W_ID and update it in Log Table
+    key = std::string("S_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
+
+    // Extract S_I_ID and update it in Log Table
+    for (auto id : i_ids_) {
+      key = std::string("S_I_ID") + "-" + std::to_string(id);
+      concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
+    }
+  }
+
+  // Return a queue to schedule
+  virtual int LookupRunTable() {
+    // Extract txn conditions include 4 conditions:
+    // S_I_ID  S_W_ID D_ID D_W_ID
+    // the corresponding values can be found from:
+    // warehouse_id_; district_id_; i_ids_
+    // For simplicity, the column name is hard coding here
+
+    // Create a prepare queue map. This can be used to store the queue/thread
+    // counter
+    int queue_count =
+        concurrency::TransactionScheduler::GetInstance().GetQueueCount();
+
+    std::vector<int> queue_map(queue_count, 0);
+    int max_conflict = 220;
+    int return_queue = -1;
+
+    //////////////////////////////////////////////////////////////////////
+    // D_W_ID
+    //////////////////////////////////////////////////////////////////////
+    // Extract D_W_ID and update it in Log Table
+    std::string key =
+        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    // Get the number of conflict for this condition
+    int conflict =
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+    // Get the queues for the given condition. The queues are contained in a
+    // map. Besides queues the counter also included: <queueNo. count>
+    std::unordered_map<int, int>* queue_info =
+        concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+    if (queue_info != nullptr) {
+      for (auto queue : (*queue_info)) {
+        // Get the queue No.
+        int queue_no = queue.first;
+
+        // accumulate the conflict for this queue
+        queue_map[queue_no] += conflict;
+
+        // Get the latest conflict
+        int queue_conflict = queue_map[queue_no];
+
+        // Compare with the max, if current queue has larger conflict
+        if (queue_conflict > max_conflict) {
+          return_queue = queue_no;
+          max_conflict = queue_conflict;
+        }
+      }
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // D_ID
+    //////////////////////////////////////////////////////////////////////
+    // Extract D_ID and update it in Log Table
+    key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+    conflict =
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+    queue_info =
+        concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+    if (queue_info != nullptr) {
+      for (auto queue : (*queue_info)) {
+        // Get the queue No.
+        int queue_no = queue.first;
+
+        // accumulate the conflict for this queue
+        queue_map[queue_no] += conflict;
+
+        // Get the latest conflict
+        int queue_conflict = queue_map[queue_no];
+
+        // Compare with the max, if current queue has larger conflict
+        if (queue_conflict > max_conflict) {
+          return_queue = queue_no;
+          max_conflict = queue_conflict;
+        }
+      }
+    }
+    //////////////////////////////////////////////////////////////////////
+    // S_W_ID
+    //////////////////////////////////////////////////////////////////////
+    // Extract S_W_ID and update it in Log Table
+    key = std::string("S_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    conflict =
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+    queue_info =
+        concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+    if (queue_info != nullptr) {
+      for (auto queue : (*queue_info)) {
+        // Get the queue No.
+        int queue_no = queue.first;
+
+        // accumulate the conflict for this queue
+        queue_map[queue_no] += conflict;
+
+        // Get the latest conflict
+        int queue_conflict = queue_map[queue_no];
+
+        // Compare with the max, if current queue has larger conflict
+        if (queue_conflict > max_conflict) {
+          return_queue = queue_no;
+          max_conflict = queue_conflict;
+        }
+      }
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // S_I_ID
+    //////////////////////////////////////////////////////////////////////
+    // Extract S_I_ID and update it in Log Table
+    for (auto id : i_ids_) {
+      key = std::string("S_I_ID") + "-" + std::to_string(id);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+      queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+      if (queue_info != nullptr) {
+        for (auto queue : (*queue_info)) {
+          // Get the queue No.
+          int queue_no = queue.first;
+
+          // accumulate the conflict for this queue
+          queue_map[queue_no] += conflict;
+
+          // Get the latest conflict
+          int queue_conflict = queue_map[queue_no];
+
+          // Compare with the max, if current queue has larger conflict
+          if (queue_conflict > max_conflict) {
+            return_queue = queue_no;
+            max_conflict = queue_conflict;
+          }
+        }
+      }
+    }
+
+    return return_queue;
+  }
+
+  // Increase each condition with the queue/thread. When a txn completes, it
+  // will decrease the reference
+  virtual void UpdateRunTable(int queue_no) {
+    //////////////////////////////////////////////////////////////////////
+    // D_W_ID
+    //////////////////////////////////////////////////////////////////////
+    std::string key =
+        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    // update run table
+    concurrency::TransactionScheduler::GetInstance().RunTableIncrease(key,
+                                                                      queue_no);
+
+    //////////////////////////////////////////////////////////////////////
+    // D_ID
+    //////////////////////////////////////////////////////////////////////
+    key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+    // update run table
+    concurrency::TransactionScheduler::GetInstance().RunTableIncrease(key,
+                                                                      queue_no);
+
+    //////////////////////////////////////////////////////////////////////
+    // S_W_ID
+    //////////////////////////////////////////////////////////////////////
+    key = std::string("S_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    // update run table
+    concurrency::TransactionScheduler::GetInstance().RunTableIncrease(key,
+                                                                      queue_no);
+
+    //////////////////////////////////////////////////////////////////////
+    // S_I_ID
+    //////////////////////////////////////////////////////////////////////
+
+    for (auto id : i_ids_) {
+      key = std::string("S_I_ID") + "-" + std::to_string(id);
+
+      // update run table
+      concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
+          key, queue_no);
+    }
+  }
+
+  // Increase each condition with the queue/thread. When a txn completes, it
+  // will decrease the reference
+  virtual void DecreaseRunTable() {
+    int queue_no = GetQueueNo();
+
+    //////////////////////////////////////////////////////////////////////
+    // D_W_ID
+    //////////////////////////////////////////////////////////////////////
+    std::string key =
+        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    // update run table
+    concurrency::TransactionScheduler::GetInstance().RunTableDecrease(key,
+                                                                      queue_no);
+
+    //////////////////////////////////////////////////////////////////////
+    // D_ID
+    //////////////////////////////////////////////////////////////////////
+    key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+    // update run table
+    concurrency::TransactionScheduler::GetInstance().RunTableDecrease(key,
+                                                                      queue_no);
+
+    //////////////////////////////////////////////////////////////////////
+    // S_W_ID
+    //////////////////////////////////////////////////////////////////////
+    key = std::string("S_W_ID") + "-" + std::to_string(warehouse_id_);
+
+    // update run table
+    concurrency::TransactionScheduler::GetInstance().RunTableDecrease(key,
+                                                                      queue_no);
+
+    //////////////////////////////////////////////////////////////////////
+    // S_I_ID
+    //////////////////////////////////////////////////////////////////////
+
+    for (auto id : i_ids_) {
+      key = std::string("S_I_ID") + "-" + std::to_string(id);
+
+      // update run table
+      concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
+          key, queue_no);
+    }
+  }
+
+  // For queue No.
+  virtual void SetQueueNo(int queue_no) { queue_ = queue_no; }
+  virtual int GetQueueNo() { return queue_; }
 
   // Make them public for convenience
  public:
@@ -373,6 +649,9 @@ class NewOrder : public concurrency::TransactionQuery {
   std::vector<int> i_ids_, ol_w_ids_, ol_qtys_;
 
   Region region_;
+
+  // For queue No.
+  int queue_;
 };
 
 struct PaymentPlans {
@@ -537,6 +816,53 @@ std::vector<std::vector<Value>> ExecuteReadTest(
 void ExecuteUpdateTest(executor::AbstractExecutor* executor);
 
 void ExecuteDeleteTest(executor::AbstractExecutor* executor);
+
+//// For simplicity, we only consider New-Order txn. Some are hard coding
+// class RegionTpcc : public Region {
+// public:
+//  RegionTpcc() : wid_bitset_(nullptr), iid_bitset_(nullptr) {}
+//
+//  // Give two bitsets, just copy them
+//  RegionTpcc(Bitset& wid, Bitset& iid) : wid_bitset_(wid), iid_bitset_(iid) {}
+//
+//  RegionTpcc(int wid_scale, std::vector<int> wids, int iid_scale,
+//             std::vector<int> iids) {
+//    // Resize bitset
+//    wid_bitset_.Resize(wid_scale);
+//    iid_bitset_.Resize(iid_scale);
+//
+//    // Set bit
+//    wid_bitset_.Set(wids);
+//    iid_bitset_.Set(iids);
+//  }
+//
+//  ~RegionTpcc() {}
+//
+//  virtual int OverlapValue(Region& rh_region) {
+//    // convert rh_region to RegionTpcc. We should refactor this later
+//    int wid_overlap = GetWid().AND(((RegionTpcc)rh_region).GetWid());
+//    int iid_overlap = GetIid().AND(((RegionTpcc)rh_region).GetIid());
+//
+//    return wid_overlap * iid_overlap;
+//  }
+//
+//  // Computer the overlay (OP operation) and return a new Region.
+//  // Note: new Region is using new, so remember to delete it
+//  RegionTpcc Overlay(Region& rh_region) {
+//    Bitset wid_overlay = GetWid().OR(((RegionTpcc)rh_region).GetWid());
+//    Bitset iid_overlay = GetIid().OR(((RegionTpcc)rh_region).GetIid());
+//
+//    return RegionTpcc(wid_overlay, iid_overlay);
+//  }
+//
+//  Bitset& GetWid() { return wid_bitset_; }
+//  Bitset& GetIid() { return iid_bitset_; }
+//
+// private:
+//  // For simplicity, only consider two conditions: wid and iid
+//  Bitset wid_bitset_;
+//  Bitset iid_bitset_;
+//};
 
 }  // namespace tpcc
 }  // namespace benchmark

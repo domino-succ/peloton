@@ -13,6 +13,7 @@
 #pragma once
 
 #include "backend/common/logger.h"
+#include "backend/common/bitset.h"
 
 #include <stdint.h>
 #include <vector>
@@ -22,14 +23,34 @@ namespace peloton {
 
 class Region {
  public:
-  Region(std::vector<uint32_t> &cover)
-      : cover_(cover),
+  // Give two bitsets, just copy them
+  Region(Bitset &wid, Bitset &iid)
+      : wid_bitset_(wid),
+        iid_bitset_(iid),
         core_(false),
         noise_(false),
         sum_overlap_(0),
         cluster_(0),
         marked_(false),
         item_count_(0) {}
+
+  Region(int wid_scale, std::vector<int> wids, int iid_scale,
+         std::vector<int> iids)
+      : core_(false),
+        noise_(false),
+        sum_overlap_(0),
+        cluster_(0),
+        marked_(false),
+        item_count_(0) {
+    // Resize bitset
+    wid_bitset_.Resize(wid_scale);
+    iid_bitset_.Resize(iid_scale);
+
+    // Set bit
+    wid_bitset_.Set(wids);
+    iid_bitset_.Set(iids);
+  }
+
   Region()
       : core_(false),
         noise_(false),
@@ -37,11 +58,27 @@ class Region {
         cluster_(0),
         marked_(false),
         item_count_(0) {}
+
   ~Region() {}
 
-  void SetCover(std::vector<uint32_t> cover) { cover_ = cover; }
+  // Just copy bitset, involves char* copy, but no deep copying here
+  void SetCover(Region &rh_region) {
+    wid_bitset_ = rh_region.GetWid();
+    iid_bitset_ = rh_region.GetIid();
+  }
 
-  std::vector<uint32_t> &GetCover() { return cover_; }
+  // Set two bitsets: the scale and bits
+  void SetCover(int wid_scale, std::vector<int> wids, int iid_scale,
+                std::vector<int> iids) {
+    // Resize bitset
+    wid_bitset_.Resize(wid_scale);
+    iid_bitset_.Resize(iid_scale);
+
+    // Set bit
+    wid_bitset_.Set(wids);
+    iid_bitset_.Set(iids);
+  }
+
   std::vector<std::pair<uint32_t, int>> &GetNeighbors() { return neighbors_; }
   bool IsCore() { return core_; }
   void SetCore() { core_ = true; }
@@ -52,47 +89,25 @@ class Region {
   bool IsMarked() { return marked_; }
   void SetMarked() { marked_ = true; }
 
-  // The two vectors should have the same size.
-  std::vector<uint32_t> Overlap(Region &rh_region) {
-    assert(cover_.size() == rh_region.GetCover().size());
-    std::vector<uint32_t> intersect(cover_.size());
-
-    for (uint32_t idx = 0; idx < cover_.size(); idx++) {
-      if (cover_.at(idx) * rh_region.GetCover().at(idx) != 0) {
-        intersect.at(idx) = cover_.at(idx) + rh_region.GetCover().at(idx);
-      } else {
-        intersect.at(idx) = 0;
-      }
-    }
-
-    // In c++11, the efficient way to return a vector is std::vector vect = f();
-    return intersect;
-  }
-
   int OverlapValue(Region &rh_region) {
-    assert(cover_.size() == rh_region.GetCover().size());
-    int intersect = 0;
+    // convert rh_region to RegionTpcc. We should refactor this later
+    int wid_overlap = GetWid().CountAnd(rh_region.GetWid());
+    int iid_overlap = GetIid().CountAnd(rh_region.GetIid());
 
-    for (uint32_t idx = 0; idx < cover_.size(); idx++) {
-      if (cover_.at(idx) * rh_region.GetCover().at(idx) != 0) {
-        intersect = intersect + (cover_.at(idx) + rh_region.GetCover().at(idx));
-      }
-    }
-
-    return intersect;
+    return wid_overlap * iid_overlap;
   }
 
-  std::vector<uint32_t> Overlay(Region &rh_region) {
-    assert(cover_.size() == rh_region.GetCover().size());
-    std::vector<uint32_t> all_cover(cover_.size());
+  // Computer the overlay (OP operation) and return a new Region.
+  // FIXME: make sure default copy is right (for return)
+  Region Overlay(Region &rh_region) {
+    Bitset wid_overlay = GetWid().OR(rh_region.GetWid());
+    Bitset iid_overlay = GetIid().OR(rh_region.GetIid());
 
-    for (uint32_t idx = 0; idx < cover_.size(); idx++) {
-      all_cover.at(idx) = cover_.at(idx) + rh_region.GetCover().at(idx);
-    }
-
-    // In c++11, the efficient way to return a vector is std::vector vect = f();
-    return all_cover;
+    return Region(wid_overlay, iid_overlay);
   }
+
+  Bitset &GetWid() { return wid_bitset_; }
+  Bitset &GetIid() { return iid_bitset_; }
 
   void AddNeighbor(uint32_t region_idx, int overlap) {
     auto item = std::make_pair(region_idx, overlap);
@@ -101,6 +116,7 @@ class Region {
     sum_overlap_ = sum_overlap_ + overlap;
   }
 
+  // Only used for cluster
   void SetCluster(int cluster) { cluster_ = cluster; }
   int GetCluster() { return cluster_; }
 
@@ -111,7 +127,10 @@ class Region {
 
  private:
   // The vector expression for this region
-  std::vector<uint32_t> cover_;
+  // std::vector<uint32_t> cover_;
+  // For simplicity, only consider two conditions: wid and iid
+  Bitset wid_bitset_;
+  Bitset iid_bitset_;
 
   // Neighbors of this region: region_index: overlap
   std::vector<std::pair<uint32_t, int>> neighbors_;
@@ -138,10 +157,7 @@ class Region {
 class DBScan {
  public:
   DBScan(std::vector<Region> &input_regions, int input_min_pts)
-      : regions_(input_regions), minPts_(input_min_pts), cluster_count_(0) {
-    // The scale of the vector
-    scale_ = regions_.front().GetCover().size();
-  }
+      : regions_(input_regions), minPts_(input_min_pts), cluster_count_(0) {}
 
   int Clustering() {
     // The number of all the regions
@@ -152,8 +168,6 @@ class DBScan {
 
     // Iterate all regions
     for (int region_index = 0; region_index < region_count; region_index++) {
-
-      std::cout << "THe current cluster is: " << cluster << std::endl;
 
       Region &region = regions_.at(region_index);
 
@@ -179,7 +193,7 @@ class DBScan {
       // region list
       // If their is overlap between them, put the current region into neighbors
       // we only need iterate one time
-      LOG_INFO("This is the txn: %d", region);
+
       for (uint32_t compare_region = region + 1;
            compare_region < regions_.size(); compare_region++) {
         // Computer the overlap
@@ -239,15 +253,6 @@ class DBScan {
     // First create the regions corresponding to the clusters
     clusters_region_.resize(cluster_count_);
 
-    std::cout << "the scale of the vector is %d" << scale_ << std::endl;
-
-    // Init each cluster_region
-    std::vector<uint32_t> init_cover(scale_, 0);
-
-    for (auto &cluster_region : clusters_region_) {
-      cluster_region.SetCover(init_cover);
-    }
-
     // Iterate all txns
     for (auto &region : regions_) {
       // Get the cluster tag
@@ -258,8 +263,8 @@ class DBScan {
 
       // Compute the overall region for each cluster
       // Note: cluster tag starts from 1, so the index should be cluster-1
-      clusters_region_[cluster - 1]
-          .SetCover(region.Overlay(clusters_region_[cluster - 1]));
+      Region r = region.Overlay(clusters_region_[cluster - 1]);
+      clusters_region_[cluster - 1].SetCover(r);
 
       // Increase the total txns in this cluster
       clusters_region_[cluster - 1].IncreaseMemberCount();
@@ -310,7 +315,6 @@ class DBScan {
 
  private:
   std::vector<Region> regions_;
-  int scale_;
   std::vector<int> labels_;
   int minPts_;
 

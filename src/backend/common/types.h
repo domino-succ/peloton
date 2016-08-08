@@ -366,11 +366,12 @@ enum ConcurrencyType {
   CONCURRENCY_TYPE_TO = 4,                // timestamp ordering
   CONCURRENCY_TYPE_SSI = 5,               // serializable snapshot isolation
   CONCURRENCY_TYPE_OCC_RB = 6,            // optimistic + rollback segment
-  CONCURRENCY_TYPE_OCC_N2O = 7,           // optimisitic with new to old version chain
-  CONCURRENCY_TYPE_TO_RB = 8,             // timestamp ordering + rollback segment
-  CONCURRENCY_TYPE_TO_N2O = 9,            // timestamp ordering with new to old version chain
+  CONCURRENCY_TYPE_OCC_N2O = 7,  // optimisitic with new to old version chain
+  CONCURRENCY_TYPE_TO_RB = 8,    // timestamp ordering + rollback segment
+  CONCURRENCY_TYPE_TO_N2O =
+      9,  // timestamp ordering with new to old version chain
   CONCURRENCY_TYPE_PESSIMISTIC_OPT = 10,  // pessimistic with optimization
-  CONCURRENCY_TYPE_TO_FULL_RB = 11        // rollback segment with full tuple storage
+  CONCURRENCY_TYPE_TO_FULL_RB = 11  // rollback segment with full tuple storage
 };
 
 enum IsolationLevelType {
@@ -381,10 +382,10 @@ enum IsolationLevelType {
 
 enum BackendType {
   BACKEND_TYPE_INVALID = 0,  // invalid backend type
-  BACKEND_TYPE_MM = 1,   // on volatile memory
-  BACKEND_TYPE_NVM = 2,  // on non-volatile memory
-  BACKEND_TYPE_SSD = 3,  // on ssd
-  BACKEND_TYPE_HDD = 4   // on hdd
+  BACKEND_TYPE_MM = 1,       // on volatile memory
+  BACKEND_TYPE_NVM = 2,      // on non-volatile memory
+  BACKEND_TYPE_SSD = 3,      // on ssd
+  BACKEND_TYPE_HDD = 4       // on hdd
 };
 
 //===--------------------------------------------------------------------===//
@@ -397,7 +398,8 @@ enum SchedulerType {
   SCHEDULER_TYPE_ABORT_QUEUE = 2,       // on abort txn go back the queue
   SCHEDULER_TYPE_CONFLICT_DETECT = 3,   // new txn detects conflict
   SCHEDULER_TYPE_CONFLICT_LEANING = 4,  // new txn detects conflict using ml
-  SCHEDULER_TYPE_CONFLICT_RANGE = 5
+  SCHEDULER_TYPE_CONFLICT_RANGE = 5,
+  SCHEDULER_TYPE_HASH = 6  // OOHASH mechanism
 };
 
 //===--------------------------------------------------------------------===//
@@ -414,13 +416,13 @@ enum VisibilityType {
 //===--------------------------------------------------------------------===//
 
 enum IndexType {
-  INDEX_TYPE_INVALID = 0,  // invalid index type
-  INDEX_TYPE_BTREE = 1,   // btree
-  INDEX_TYPE_BWTREE = 2,  // bwtree
-  INDEX_TYPE_HASH = 3,    // hash
-  INDEX_TYPE_HASH_UNIQUE = 4, // hash for primary index
-  INDEX_TYPE_RBBTREE = 5,  // rollback segment btree index
-  INDEX_TYPE_RBHASH = 6 // rollback segment hash index
+  INDEX_TYPE_INVALID = 0,      // invalid index type
+  INDEX_TYPE_BTREE = 1,        // btree
+  INDEX_TYPE_BWTREE = 2,       // bwtree
+  INDEX_TYPE_HASH = 3,         // hash
+  INDEX_TYPE_HASH_UNIQUE = 4,  // hash for primary index
+  INDEX_TYPE_RBBTREE = 5,      // rollback segment btree index
+  INDEX_TYPE_RBHASH = 6        // rollback segment hash index
 };
 
 enum IndexConstraintType {
@@ -486,7 +488,7 @@ enum PlanNodeType {
 //===--------------------------------------------------------------------===//
 
 enum CreateType {
-  CREATE_TYPE_INVALID = 0,  // invalid create type
+  CREATE_TYPE_INVALID = 0,    // invalid create type
   CREATE_TYPE_DB = 1,         // db create type
   CREATE_TYPE_TABLE = 2,      // table create type
   CREATE_TYPE_INDEX = 3,      // index create type
@@ -498,7 +500,7 @@ enum CreateType {
 //===--------------------------------------------------------------------===//
 
 enum StatementType {
-  STATEMENT_TYPE_INVALID = 0,  // invalid statement type
+  STATEMENT_TYPE_INVALID = 0,       // invalid statement type
   STATEMENT_TYPE_SELECT = 1,        // select statement type
   STATEMENT_TYPE_INSERT = 3,        // insert statement type
   STATEMENT_TYPE_UPDATE = 4,        // update statement type
@@ -529,12 +531,11 @@ enum ScanDirectionType {
 
 enum PelotonJoinType {
   JOIN_TYPE_INVALID = 0,  // invalid join type
-
-  JOIN_TYPE_LEFT = 1,   // left
-  JOIN_TYPE_RIGHT = 2,  // right
-  JOIN_TYPE_INNER = 3,  // inner
-  JOIN_TYPE_OUTER = 4,  // outer
-  JOIN_TYPE_SEMI = 5    // IN+Subquery is SEMI
+  JOIN_TYPE_LEFT = 1,     // left
+  JOIN_TYPE_RIGHT = 2,    // right
+  JOIN_TYPE_INNER = 3,    // inner
+  JOIN_TYPE_OUTER = 4,    // outer
+  JOIN_TYPE_SEMI = 5      // IN+Subquery is SEMI
 };
 
 //===--------------------------------------------------------------------===//
@@ -561,8 +562,7 @@ enum QuantifierType {
 //===--------------------------------------------------------------------===//
 
 enum TableReferenceType {
-  TABLE_REFERENCE_TYPE_INVALID = 0,  // invalid table reference type
-
+  TABLE_REFERENCE_TYPE_INVALID = 0,       // invalid table reference type
   TABLE_REFERENCE_TYPE_NAME = 1,          // table name
   TABLE_REFERENCE_TYPE_SELECT = 2,        // output of select
   TABLE_REFERENCE_TYPE_JOIN = 3,          // output of join
@@ -575,9 +575,8 @@ enum TableReferenceType {
 
 enum InsertType {
   INSERT_TYPE_INVALID = 0,  // invalid insert type
-
-  INSERT_TYPE_VALUES = 1,  // values
-  INSERT_TYPE_SELECT = 2   // select
+  INSERT_TYPE_VALUES = 1,   // values
+  INSERT_TYPE_SELECT = 2    // select
 };
 
 //===--------------------------------------------------------------------===//
@@ -585,8 +584,7 @@ enum InsertType {
 //===--------------------------------------------------------------------===//
 
 enum PayloadType {
-  PAYLOAD_TYPE_INVALID = 0,  // invalid message type
-
+  PAYLOAD_TYPE_INVALID = 0,          // invalid message type
   PAYLOAD_TYPE_CLIENT_REQUEST = 1,   // request
   PAYLOAD_TYPE_CLIENT_RESPONSE = 2,  // response
   PAYLOAD_TYPE_STOP = 3              // stop loop
@@ -598,7 +596,6 @@ enum PayloadType {
 
 enum TaskPriorityType {
   TASK_PRIORTY_TYPE_INVALID = 0,  // invalid priority
-
   TASK_PRIORTY_TYPE_LOW = 10,
   TASK_PRIORTY_TYPE_NORMAL = 11,
   TASK_PRIORTY_TYPE_HIGH = 12
@@ -610,7 +607,6 @@ enum TaskPriorityType {
 
 enum Result {
   RESULT_INVALID = 0,  // invalid result type
-
   RESULT_SUCCESS = 1,
   RESULT_FAILURE = 2,
   RESULT_ABORTED = 3,  // aborted
@@ -625,7 +621,6 @@ enum Result {
 enum PostgresConstraintType {
   POSTGRES_CONSTRAINT_NULL, /* not standard SQL, but a lot of people * expect it
                                */
-
   POSTGRES_CONSTRAINT_NOTNULL,
   POSTGRES_CONSTRAINT_DEFAULT,
   POSTGRES_CONSTRAINT_CHECK,
@@ -641,8 +636,7 @@ enum PostgresConstraintType {
 };
 
 enum ConstraintType {
-  CONSTRAINT_TYPE_INVALID = 0,  // invalid
-
+  CONSTRAINT_TYPE_INVALID = 0,   // invalid
   CONSTRAINT_TYPE_NULL = 1,      // notnull
   CONSTRAINT_TYPE_NOTNULL = 2,   // notnull
   CONSTRAINT_TYPE_DEFAULT = 3,   // default
@@ -658,7 +652,6 @@ enum ConstraintType {
 //===--------------------------------------------------------------------===//
 enum SetOpType {
   SETOP_TYPE_INVALID = 0,
-
   SETOP_TYPE_INTERSECT = 1,
   SETOP_TYPE_INTERSECT_ALL = 2,
   SETOP_TYPE_EXCEPT = 3,
@@ -671,7 +664,6 @@ enum SetOpType {
 
 enum LoggingStatus {
   LOGGING_STATUS_TYPE_INVALID = 0,
-
   LOGGING_STATUS_TYPE_STANDBY = 1,
   LOGGING_STATUS_TYPE_RECOVERY = 2,
   LOGGING_STATUS_TYPE_LOGGING = 3,
@@ -681,10 +673,8 @@ enum LoggingStatus {
 
 enum LoggerType {
   LOGGER_TYPE_INVALID = 0,
-
   LOGGER_TYPE_FRONTEND = 1,
   LOGGER_TYPE_BACKEND = 2
-
 };
 
 enum LogRecordType {
@@ -740,7 +730,10 @@ enum TupleSerializationFormat {
 // Endianess
 // ------------------------------------------------------------------
 
-enum Endianess { BYTE_ORDER_BIG_ENDIAN = 0, BYTE_ORDER_LITTLE_ENDIAN = 1 };
+enum Endianess {
+  BYTE_ORDER_BIG_ENDIAN = 0,
+  BYTE_ORDER_LITTLE_ENDIAN = 1
+};
 
 //===--------------------------------------------------------------------===//
 // Type definitions.
@@ -787,7 +780,8 @@ struct TupleMetadata {
   oid_t tuple_slot_id;
   cid_t tuple_end_cid;
 
-  TupleMetadata():table_id(0), tile_group_id(0), tuple_slot_id(0), tuple_end_cid(0){}
+  TupleMetadata()
+      : table_id(0), tile_group_id(0), tuple_slot_id(0), tuple_end_cid(0) {}
 };
 
 //===--------------------------------------------------------------------===//
@@ -812,7 +806,7 @@ struct ItemPointer {
 
   ItemPointer(oid_t block, oid_t offset) : block(block), offset(offset) {}
 
-  bool IsNull() const { 
+  bool IsNull() const {
     return (block == INVALID_OID && offset == INVALID_OID);
   }
 
@@ -900,7 +894,7 @@ ValueType PostgresValueTypeToPelotonValueType(
 ConstraintType PostgresConstraintTypeToPelotonConstraintType(
     PostgresConstraintType PostgresConstrType);
 
-namespace expression{
+namespace expression {
 class AbstractExpression;
 }
 
@@ -947,11 +941,10 @@ typedef std::vector<DirectMap> DirectMapList;
 
 // peloton::ItemPointer hasher
 namespace std {
-  template <>
-  struct hash<peloton::ItemPointer>
-  {
-    std::size_t operator()(const peloton::ItemPointer &item_pointer) const {
-      return ((uint64_t)(item_pointer.block) << 32) | item_pointer.offset;
-    }
-  };
+template <>
+struct hash<peloton::ItemPointer> {
+  std::size_t operator()(const peloton::ItemPointer &item_pointer) const {
+    return ((uint64_t)(item_pointer.block) << 32) | item_pointer.offset;
+  }
+};
 }

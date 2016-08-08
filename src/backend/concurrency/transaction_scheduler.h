@@ -64,6 +64,19 @@ class TransactionQuery {
   virtual Region* RegionTransform() = 0;
 
   virtual Region& GetRegion() = 0;
+
+  // For Log Table
+  virtual void UpdateLogTable() = 0;
+
+  // For Run Table
+  virtual int LookupRunTable() = 0;
+  virtual void UpdateRunTable(int queue_no) = 0;
+  virtual void DecreaseRunTable() = 0;
+
+  // For metadata
+  virtual void SetQueueNo(int queue_no) = 0;
+  virtual int GetQueueNo() = 0;
+
   // virtual std::shared_ptr<Region> RegionTransform() = 0;
 
   // private:
@@ -359,6 +372,58 @@ class TransactionScheduler {
     return false;
   }
 
+  /*
+   * 1.For a new coming query, it first lookups the LogTable and selects the
+   * conditions matches. For simplicity, we only consider New-Order, so the
+   * conditions are hard coding: S_I_ID  S_W_ID D_ID D_W_ID, and get the number
+   *   S_I_ID-190 : 4444
+   *   S_W_ID-2   : 2234
+   *   D_ID-3     : 123
+   *   D_W_ID-2   : 452
+   *
+   * 2.Then lookup these four conditions in RunTable to see they belong to which
+   * queue and accumulate the count for the corresponding
+   *quTransactionSchedulereue.
+   *   S_I_ID-190-->(3,100)(5,99)
+   *   S_W_ID-2  -->(3,200)
+   *   D_ID-3    -->(5,99)
+   *   D_W_ID-2  -->(1,1000)
+   *
+   *   queue3 : 4444 + 2234
+   *   queue5 : 4444+ 123
+   *   queue1 : 452
+   *
+   * 3.Then pick up the queue with the largest score.
+   *
+   * 4.Increase the number for each conditions
+   */
+
+  std::atomic<int> g_queue_no;
+
+  void OOHashEnqueue(TransactionQuery* query) {
+
+    // Find out the corresponding queue
+    int queue = query->LookupRunTable();
+
+    // These is no queue matched. Randomly select a queue
+    if (queue == -1) {
+      // queue = random_generator_.GetSample();
+      queue = g_queue_no.fetch_add(1) % queue_counts_;
+      std::cout << "Can't find a queue, randomly assigned to " << queue
+                << std::endl;
+    }
+
+    // Update Run Table with the queue. That is to increasing the queue
+    // reference in Run Table
+    query->UpdateRunTable(queue);
+
+    // Set queue No. then when clean run table queue No. will be used
+    query->SetQueueNo(queue);
+
+    // Finally, enqueue this query
+    queues_[queue].Enqueue(query);
+  }
+
   bool Dequeue(TransactionQuery*& query);
 
   /*
@@ -483,6 +548,145 @@ class TransactionScheduler {
 
   void SetClusters(std::vector<Region>& clusters) { clusters_ = clusters; }
 
+  int GetQueueCount() { return queue_counts_; }
+  //////////////////////////////////////////////////////////////////////
+  // OO-Hash
+  //////////////////////////////////////////////////////////////////////
+
+  // support multi-thread
+  void LogTableIncrease(std::string& key) {
+    counter_lock_.Lock();
+    ++log_table_[key];
+    counter_lock_.Unlock();
+  }
+
+  // Return the condition conflict number
+  int LogTableGet(std::string& key) {
+
+    auto entry = log_table_.find(key);
+    if (entry != log_table_.end()) {
+      return entry->second;
+    }
+
+    return 0;
+  }
+
+  // Return the condition thread/queue pointer. Since we might return null, so
+  // returning reference wouldn't work here
+  std::unordered_map<int, int>* RunTableGet(std::string& key) {
+
+    auto entry = run_table_.find(key);
+    if (entry != run_table_.end()) {
+      return &(entry->second);
+    }
+
+    return nullptr;
+  }
+
+  // support multi-thread
+  void RunTableIncrease(std::string& key, int queue_no) {
+    counter_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGet(key);
+
+    if (queue_info != nullptr) {
+      // Increase the reference for this queue
+      ++(*queue_info)[queue_no];
+    }
+    // If there is no such entry, create it
+    else {
+      std::unordered_map<int, int> queue_map = {{queue_no, 1}};
+      run_table_.insert(std::make_pair(key, queue_map));
+    }
+
+    counter_lock_.Unlock();
+  }
+
+  // support multi-thread
+  void RunTableDecrease(std::string& key, int queue_no) {
+    counter_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGet(key);
+
+    // Decrease the reference for this queue
+    if (queue_info != nullptr) {
+      // Find out the entry with queue NO.
+      auto queue = queue_info->find(queue_no);
+
+      // If it exists, decrease the reference
+      if (queue != queue_info->end()) {
+
+        // If the reference is larger than 1, decrease
+        if (queue_info->at(queue_no) >= 1) {
+          --(*queue_info)[queue_no];
+        }
+      }
+    }
+
+    counter_lock_.Unlock();
+  }
+
+  // Clear all queues using pop.
+  // TODO: Is there any better way to clear the queues?
+  void ClearQueue(TransactionQuery* query) {
+
+    // Pop concurrency_queue_
+    while (concurrency_queue_.Dequeue(query) == false) {
+      if (concurrency_queue_.IsEmpty()) {
+        break;
+      }
+    }
+
+    // Pop query_cache_queue_
+    while (query_cache_queue_.Dequeue(query) == false) {
+      if (query_cache_queue_.IsEmpty()) {
+        break;
+      }
+    }
+
+    // Pop queues_
+    for (auto& queue : queues_) {
+      while (queue.Dequeue(query) == false) {
+        if (queue.IsEmpty()) {
+          break;
+        }
+      }
+    }
+  }
+
+  // Write LogTable into a file
+  void OutputLogTable(std::string filename) {
+    // Create file
+    std::stringstream oss;
+    oss << filename;
+    std::ofstream out(oss.str(), std::ofstream::out);
+
+    // Iterate Log Table (map)
+    for (auto& entry : log_table_) {
+      out << entry.first << " ";
+      out << entry.second << "\n";
+    }
+
+    out.flush();
+    out.close();
+  }
+
+  // Load data into log table
+  void LoadLog(std::string condition, int conflict) {
+    log_table_.insert(std::make_pair(condition, conflict));
+  }
+
+  ///////////////////////////
+  // For debug
+  //////////////////////////
+  void DumpLogTable() {
+    for (auto& entry : log_table_) {
+      std::cout << entry.first << " " << entry.second << std::endl;
+    }
+  }
+
  private:
   uint64_t Hash(uint64_t key) { return key % queue_counts_; }
 
@@ -536,6 +740,42 @@ class TransactionScheduler {
 
   // Only used when use clustering
   std::vector<Region> clusters_;
+
+  //////////////////////////////////////////////
+  // The condition format (string): 'columnname' + '-' + 'value', such as wid-4
+  //////////////////////////////////////////////
+
+  /*
+   * The process for online and offline hash.
+   *
+   * 1-When a txn fails, record its conditions in Log Table (just increase the
+   *count)
+   * 2-Run all txns, record all failed txns
+   * 3-Rerun benchmark, when a txn execute, check Run Table
+   */
+
+  // Run Table: a Hash table that records condition-->thread-No. For example,
+  // txnA has three conditions: wid=3, iid=100, did=10, and txnA is executed by
+  // thread-5, then in Run-Table, txnA creates three entries:
+  // |----------------
+  // | wid=3   --> 3
+  // | iid=100 --> 100
+  // | did=10  --> 10
+  // |----------------
+  // If wid=3 --> 3 already exists, do nothing.
+  // Note: wid=3 might be executed by several threads at the time, so it is
+  // vector for threads in the table. wid-3-->(3,100)(5,99)
+  std::unordered_map<std::string, std::unordered_map<int, int>> run_table_;
+
+  // Log Table: a Hash table that records condition-->count for conflict txns.
+  // For example, txnA conflict with another txnB. TxnA has three conditions:
+  // wid=3, iid=100, did=10. It increase these three conditions in LogTable:
+  // |----------------
+  // | wid=3   --> 3001
+  // | iid=100 --> 101
+  // | did=10  --> 11
+  // |----------------
+  std::unordered_map<std::string, int> log_table_;
 };
 
 // UINT64_MAX;

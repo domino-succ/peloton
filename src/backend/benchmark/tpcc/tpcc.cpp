@@ -84,44 +84,45 @@ static void WriteOutput() {
 
 void LoadQuery(uint64_t count) {
   // The number of queues is equal to the threads (backend_count)
-  // concurrency::TransactionScheduler::GetInstance().Resize(
-  //    state.backend_count, state.warehouse_count);
+  concurrency::TransactionScheduler::GetInstance().Resize(
+      state.backend_count, state.warehouse_count);
 
-  // These queries are for clustering
-  for (uint64_t i = 0; i < count; i++) {
-    GenerateAndCacheQuery();
-  }
-
-  std::cout << "Enter cluster analysis" << std::endl;
-
-  // Get clustering result. Each cluster is a big region (vector) including the
-  // cluster NO.
-  std::vector<Region> clusters = ClusterAnalysis();
-
-  if (clusters.size() == 0) {
-    LOG_INFO(
-        "The parameter can not cluster data! Pls change parameter can try "
-        "again");
-
-    return;
-  }
-  // Test
-  std::cout << "===========Print debug info =================" << std::endl;
-  for (auto &cluster : clusters) {
-
-    std::cout << "Cluster: " << cluster.GetCluster()
-              << ". Its members are: " << cluster.GetMemberCount();
-    std::cout << std::endl;
-  }
-  // end test
-
-  // Resize the number of queues according the number of clusters
-  concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count,
-                                                          clusters.size());
-
-  // Set the cluster result to scheduler. When enqueue, the new coming txn
-  // compares the big region with each cluster
-  concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
+  //  // These queries are for clustering
+  //  for (uint64_t i = 0; i < count; i++) {
+  //    GenerateAndCacheQuery();
+  //  }
+  //
+  //  std::cout << "Enter cluster analysis" << std::endl;
+  //
+  //  // Get clustering result. Each cluster is a big region (vector) including
+  // the
+  //  // cluster NO.
+  //  std::vector<Region> clusters = ClusterAnalysis();
+  //
+  //  if (clusters.size() == 0) {
+  //    LOG_INFO(
+  //        "The parameter can not cluster data! Pls change parameter can try "
+  //        "again");
+  //
+  //    return;
+  //  }
+  //  // Test
+  //  std::cout << "===========Print debug info =================" << std::endl;
+  //  for (auto &cluster : clusters) {
+  //
+  //    std::cout << "Cluster: " << cluster.GetCluster()
+  //              << ". Its members are: " << cluster.GetMemberCount();
+  //    std::cout << std::endl;
+  //  }
+  //  // end test
+  //
+  //  // Resize the number of queues according the number of clusters
+  //  concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count,
+  //                                                          clusters.size());
+  //
+  //  // Set the cluster result to scheduler. When enqueue, the new coming txn
+  //  // compares the big region with each cluster
+  //  concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
 
   // These new queries are for TPCC executions
   for (uint64_t i = 0; i < count; i++) {
@@ -140,7 +141,28 @@ void LoadQuery(uint64_t count) {
   concurrency::TransactionScheduler::GetInstance().DebugPrint();
 }
 
-#define PRELOAD 1000  // 2000,000
+void LoadLogTable() {
+  if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    // load file
+    if (!state.offline) {
+      std::ifstream infile(LOGTABLE);
+      std::string condition;
+      int conflict;
+
+      // Put condition and conflict into log_table
+      while (infile >> condition >> conflict) {
+        concurrency::TransactionScheduler::GetInstance().LoadLog(condition,
+                                                                 conflict);
+      }
+
+      // Close file
+      infile.close();
+
+      // Debug
+      concurrency::TransactionScheduler::GetInstance().DumpLogTable();
+    }
+  }
+}
 
 // Main Entry Point
 void RunBenchmark() {
@@ -153,6 +175,10 @@ void RunBenchmark() {
   // Load the database
   LoadTPCCDatabase();
 
+  // If OOHASH, load Log Table File
+  LoadLogTable();
+
+  // Load queries/txns
   LoadQuery(PRELOAD);
 
   // Run the workload

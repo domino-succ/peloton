@@ -116,6 +116,8 @@ class configuration {
   // enable client affinity
   bool run_affinity;
 
+  bool offline;
+
   //
   SchedulerType scheduler;
 

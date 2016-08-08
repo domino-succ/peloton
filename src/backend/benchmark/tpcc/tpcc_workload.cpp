@@ -138,7 +138,6 @@ std::vector<Region> ClusterAnalysis() {
 
     // Transform the query into a region
     Region *region = query->RegionTransform();
-    // query->RegionTransform();
     txn_regions.push_back(*region);
   }
 
@@ -146,13 +145,13 @@ std::vector<Region> ClusterAnalysis() {
 
   // Cluster all txn_regions
   DBScan dbs(txn_regions, 60);
-  // dbs.DebugPrintRegion();
+
   LOG_INFO("Finish generate dbscan, begin to PreProcess");
 
   // Transform the regions into a graph. That is to mark each region's
   // neighbors
   dbs.PreProcess();
-  dbs.DebugPrintRegion();
+  // dbs.DebugPrintRegion();
 
   int re = dbs.Clustering();
 
@@ -186,6 +185,13 @@ bool EnqueueCachedUpdate() {
   // index_executor should be deleted, then query itself should be deleted
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
     concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
+  } else if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    if (state.offline) {  // OFFLINE means just simple method to record the
+                          // conflict
+      concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+    } else {  // otherwise use OOHASH method
+      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query);
+    }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
     // concurrency::TransactionScheduler::GetInstance().Enqueue(query);
@@ -253,6 +259,18 @@ void RunBackend(oid_t thread_id) {
                 ret_query, thread_id);
         break;
       }
+      case SCHEDULER_TYPE_HASH: {
+        if (state.offline) {  // If OFFLINE, same with control
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().SingleDequeue(
+                  ret_query);
+        } else {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().CounterDequeue(
+                  ret_query, thread_id);
+        }
+        break;
+      }
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
@@ -287,7 +305,20 @@ void RunBackend(oid_t thread_id) {
     //////////////////////////////////////////
 
     if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
+      // Increase the counter
       execution_count_ref++;
+
+      // If this is for offline analysis, record this txn's conditions
+      if (state.offline) {
+        // Extract txn conditions include 4 conditions:
+        // S_I_ID  S_W_ID D_ID D_W_ID
+        // the corresponding values can be found from:
+        // warehouse_id_; district_id_; i_ids_
+        // For simplicity, the column name is hard coding here
+
+        ret_query->UpdateLogTable();
+      }
+
       if (is_running == false) {
         break;
       }
@@ -295,7 +326,7 @@ void RunBackend(oid_t thread_id) {
 
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
-          // Since we discard the txn, donot record the throughput and delay
+          // Since we discard the txn, do not record the throughput and delay
           reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
           delete ret_query;
           break;
@@ -306,6 +337,7 @@ void RunBackend(oid_t thread_id) {
                  false) {
             // If still fail, the counter increase, then enter loop again
             execution_count_ref++;
+
             if (is_running == false) {
               break;
             }
@@ -336,7 +368,18 @@ void RunBackend(oid_t thread_id) {
               ret_query);
           break;
         }
-
+        case SCHEDULER_TYPE_HASH: {
+          if (state.offline) {
+            // We do nothing in this case.Just delete the query
+            reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+            delete ret_query;
+            break;
+          } else {
+            concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+                ret_query);
+          }
+          break;
+        }
         case SCHEDULER_TYPE_CONFLICT_LEANING: {
           // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
           //    ret_query);
@@ -366,6 +409,14 @@ void RunBackend(oid_t thread_id) {
       // First compute the delay
       RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
                   delay_max_ref, delay_min_ref);
+
+      // clean up the hash table
+      if (state.scheduler == SCHEDULER_TYPE_HASH) {
+        // Only when real executing, we clean up the Run Table info
+        if (!state.offline) {
+          ret_query->DecreaseRunTable();
+        }
+      }
 
       // Second, clean up
       reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
@@ -573,6 +624,14 @@ void RunWorkload() {
   }
 
   is_running = false;
+
+  // If this is offline analysis, write Log Table into a file. It is just a
+  // int-->int map
+  if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    if (state.offline) {
+      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
+    }
+  }
 
   // Join the threads with the main thread
   for (oid_t thread_itr = 0; thread_itr < num_threads + num_generate;

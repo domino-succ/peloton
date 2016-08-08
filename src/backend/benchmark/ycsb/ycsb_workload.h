@@ -162,14 +162,26 @@ class UpdateQuery : public concurrency::TransactionQuery {
     // Compute how large of the whole space
 
     // Generate the space with a vector
-    std::vector<uint32> cover(0, 0);
+    // std::vector<uint32> cover(0, 0);
 
     // Generate region and return
     // std::shared_ptr<Region> region(new Region(cover));
-    return new Region(cover);
+    return new Region();
   }
 
   virtual Region& GetRegion() { return region_; }
+
+  // For Log Table
+  virtual void UpdateLogTable() {}
+
+  // For Run Table
+  virtual int LookupRunTable() { return 0; }
+  virtual void UpdateRunTable(int queue_no) { std::cout << queue_no; }
+  virtual void DecreaseRunTable() {}
+
+  // For metadata
+  virtual void SetQueueNo(int queue_no) { std::cout << queue_no; }
+  virtual int GetQueueNo() { return 0; }
 
  private:
   executor::IndexScanExecutor* index_scan_executor_;

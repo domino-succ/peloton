@@ -58,6 +58,7 @@ static struct option opts[] = {
     {"order_range", optional_argument, NULL, 'r'},
     {"exp_backoff", no_argument, NULL, 'e'},
     {"affinity", no_argument, NULL, 'a'},
+    {"offline", no_argument, NULL, 'l'},
     {"protocol", optional_argument, NULL, 'p'},
     {"scheduler", optional_argument, NULL, 'q'},
     {"gc_protocol", optional_argument, NULL, 'g'},
@@ -176,6 +177,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.order_range = 20;
   state.run_affinity = false;
   state.run_backoff = false;
+  state.offline = false;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -186,7 +188,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   while (1) {
     int idx = 0;
     int c =
-        getopt_long(argc, argv, "aeh:r:k:w:z:v:d:s:q:b:p:g:i:t:", opts, &idx);
+        getopt_long(argc, argv, "aelh:r:k:w:z:v:d:s:q:b:p:g:i:t:", opts, &idx);
 
     if (c == -1) break;
 
@@ -224,6 +226,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'e':
         state.run_backoff = true;
         break;
+      case 'l':
+        state.offline = true;
+        break;
       case 'q': {
         char *scheduler = optarg;
         if (strcmp(scheduler, "none") == 0) {
@@ -234,6 +239,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.scheduler = SCHEDULER_TYPE_ABORT_QUEUE;
         } else if (strcmp(scheduler, "detect") == 0) {
           state.scheduler = SCHEDULER_TYPE_CONFLICT_DETECT;
+        } else if (strcmp(scheduler, "hash") == 0) {
+          state.scheduler = SCHEDULER_TYPE_HASH;
         } else if (strcmp(scheduler, "ml") == 0) {
           state.scheduler = SCHEDULER_TYPE_CONFLICT_LEANING;
         } else if (strcmp(scheduler, "range") == 0) {
@@ -338,6 +345,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
 
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
+  LOG_TRACE("%s : %d", "Run offline analysis", state.offline);
 }
 
 }  // namespace tpcc
