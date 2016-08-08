@@ -391,7 +391,7 @@ class NewOrder : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().GetQueueCount();
 
     std::vector<int> queue_map(queue_count, 0);
-    int max_conflict = 600;
+    int max_conflict = 700;
     int return_queue = -1;
 
     //////////////////////////////////////////////////////////////////////
