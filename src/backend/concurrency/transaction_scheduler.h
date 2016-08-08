@@ -170,6 +170,18 @@ class TransactionScheduler {
   }
 
   /*
+   * Randomly enqueue
+   */
+  void RandomEnqueue(TransactionQuery* query) {
+
+    // Get a random number from 0 to queue_counts
+    int queue_number = random_generator_.GetSample();
+
+    queues_[queue_number].Enqueue(query);
+    // queues_.at(queue_number).Enqueue(query);
+  }
+
+  /*
    * Hash function: Range Hash
    */
   void RangeEnqueue(TransactionQuery* query) {

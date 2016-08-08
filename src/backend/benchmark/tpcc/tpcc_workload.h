@@ -401,30 +401,34 @@ class NewOrder : public concurrency::TransactionQuery {
     std::string key =
         std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
 
-    // Get the number of conflict for this condition
+    // Get conflict from Log Table for the given condition
     int conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-    // Get the queues for the given condition. The queues are contained in a
-    // map. Besides queues the counter also included: <queueNo. count>
+    // Get the queues from Run Table for the given condition.
+    // Each queue: <queueNo. reference>
     std::unordered_map<int, int>* queue_info =
         concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
 
     if (queue_info != nullptr) {
       for (auto queue : (*queue_info)) {
-        // Get the queue No.
-        int queue_no = queue.first;
 
-        // accumulate the conflict for this queue
-        queue_map[queue_no] += conflict;
+        // reference = 0 means there is txn (of this condition) executing
+        if (queue.second > 0) {
+          // Get the queue No.
+          int queue_no = queue.first;
 
-        // Get the latest conflict
-        int queue_conflict = queue_map[queue_no];
+          // accumulate the conflict for this queue
+          queue_map[queue_no] += conflict;
 
-        // Compare with the max, if current queue has larger conflict
-        if (queue_conflict > max_conflict) {
-          return_queue = queue_no;
-          max_conflict = queue_conflict;
+          // Get the latest conflict
+          int queue_conflict = queue_map[queue_no];
+
+          // Compare with the max, if current queue has larger conflict
+          if (queue_conflict > max_conflict) {
+            return_queue = queue_no;
+            max_conflict = queue_conflict;
+          }
         }
       }
     }
@@ -443,19 +447,23 @@ class NewOrder : public concurrency::TransactionQuery {
 
     if (queue_info != nullptr) {
       for (auto queue : (*queue_info)) {
-        // Get the queue No.
-        int queue_no = queue.first;
 
-        // accumulate the conflict for this queue
-        queue_map[queue_no] += conflict;
+        // reference = 0 means there is txn (of this condition) executing
+        if (queue.second > 0) {
+          // Get the queue No.
+          int queue_no = queue.first;
 
-        // Get the latest conflict
-        int queue_conflict = queue_map[queue_no];
+          // accumulate the conflict for this queue
+          queue_map[queue_no] += conflict;
 
-        // Compare with the max, if current queue has larger conflict
-        if (queue_conflict > max_conflict) {
-          return_queue = queue_no;
-          max_conflict = queue_conflict;
+          // Get the latest conflict
+          int queue_conflict = queue_map[queue_no];
+
+          // Compare with the max, if current queue has larger conflict
+          if (queue_conflict > max_conflict) {
+            return_queue = queue_no;
+            max_conflict = queue_conflict;
+          }
         }
       }
     }
@@ -473,19 +481,23 @@ class NewOrder : public concurrency::TransactionQuery {
 
     if (queue_info != nullptr) {
       for (auto queue : (*queue_info)) {
-        // Get the queue No.
-        int queue_no = queue.first;
 
-        // accumulate the conflict for this queue
-        queue_map[queue_no] += conflict;
+        // reference = 0 means there is txn (of this condition) executing
+        if (queue.second > 0) {
+          // Get the queue No.
+          int queue_no = queue.first;
 
-        // Get the latest conflict
-        int queue_conflict = queue_map[queue_no];
+          // accumulate the conflict for this queue
+          queue_map[queue_no] += conflict;
 
-        // Compare with the max, if current queue has larger conflict
-        if (queue_conflict > max_conflict) {
-          return_queue = queue_no;
-          max_conflict = queue_conflict;
+          // Get the latest conflict
+          int queue_conflict = queue_map[queue_no];
+
+          // Compare with the max, if current queue has larger conflict
+          if (queue_conflict > max_conflict) {
+            return_queue = queue_no;
+            max_conflict = queue_conflict;
+          }
         }
       }
     }
@@ -504,19 +516,23 @@ class NewOrder : public concurrency::TransactionQuery {
 
       if (queue_info != nullptr) {
         for (auto queue : (*queue_info)) {
-          // Get the queue No.
-          int queue_no = queue.first;
 
-          // accumulate the conflict for this queue
-          queue_map[queue_no] += conflict;
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > 0) {
+            // Get the queue No.
+            int queue_no = queue.first;
 
-          // Get the latest conflict
-          int queue_conflict = queue_map[queue_no];
+            // accumulate the conflict for this queue
+            queue_map[queue_no] += conflict;
 
-          // Compare with the max, if current queue has larger conflict
-          if (queue_conflict > max_conflict) {
-            return_queue = queue_no;
-            max_conflict = queue_conflict;
+            // Get the latest conflict
+            int queue_conflict = queue_map[queue_no];
+
+            // Compare with the max, if current queue has larger conflict
+            if (queue_conflict > max_conflict) {
+              return_queue = queue_no;
+              max_conflict = queue_conflict;
+            }
           }
         }
       }

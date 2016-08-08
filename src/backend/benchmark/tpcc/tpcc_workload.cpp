@@ -188,7 +188,8 @@ bool EnqueueCachedUpdate() {
   } else if (state.scheduler == SCHEDULER_TYPE_HASH) {
     if (state.offline) {  // OFFLINE means just simple method to record the
                           // conflict
-      concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+      // concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().RandomEnqueue(query);
     } else {  // otherwise use OOHASH method
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query);
     }
