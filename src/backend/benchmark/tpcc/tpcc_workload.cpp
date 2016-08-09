@@ -262,9 +262,12 @@ void RunBackend(oid_t thread_id) {
       }
       case SCHEDULER_TYPE_HASH: {
         if (state.offline) {  // If OFFLINE, same with control
+          // ret_pop =
+          //    concurrency::TransactionScheduler::GetInstance().SingleDequeue(
+          //        ret_query);
           ret_pop =
-              concurrency::TransactionScheduler::GetInstance().SingleDequeue(
-                  ret_query);
+              concurrency::TransactionScheduler::GetInstance().CounterDequeue(
+                  ret_query, thread_id);
         } else {
           ret_pop =
               concurrency::TransactionScheduler::GetInstance().CounterDequeue(
@@ -371,10 +374,8 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_HASH: {
           if (state.offline) {
-            // We do nothing in this case.Just delete the query
-            reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-            delete ret_query;
-            break;
+            concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+                ret_query);
           } else {
             concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
                 ret_query);
@@ -413,10 +414,7 @@ void RunBackend(oid_t thread_id) {
 
       // clean up the hash table
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
-        // Only when real executing, we clean up the Run Table info
-        if (!state.offline) {
-          ret_query->DecreaseRunTable();
-        }
+        ret_query->DecreaseRunTable();
       }
 
       // Second, clean up
@@ -589,6 +587,7 @@ void RunWorkload() {
   delay_mins = new uint64_t[num_threads];
   std::fill_n(delay_mins, num_threads, 1000000);
 
+  // snapshot_duration = 1 by defaul
   size_t snapshot_round = (size_t)(state.duration / state.snapshot_duration);
 
   oid_t **abort_counts_snapshots = new oid_t *[snapshot_round];
@@ -612,7 +611,23 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(QueryBackend, thread_itr)));
   }
 
-  for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
+  for (size_t round_id = 0; round_id < snapshot_round / 3; ++round_id) {
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+    memcpy(abort_counts_snapshots[round_id], abort_counts,
+           sizeof(oid_t) * num_threads);
+    memcpy(commit_counts_snapshots[round_id], commit_counts,
+           sizeof(oid_t) * num_threads);
+    auto &manager = catalog::Manager::GetInstance();
+
+    state.snapshot_memory.push_back(manager.GetLastTileGroupId());
+  }
+  /*
+    LOG_INFO("Change mode to OOHASH");
+    state.offline = false;
+  */
+  for (size_t round_id = snapshot_round / 3; round_id < snapshot_round;
+       ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
     memcpy(abort_counts_snapshots[round_id], abort_counts,
@@ -629,9 +644,7 @@ void RunWorkload() {
   // If this is offline analysis, write Log Table into a file. It is just a
   // int-->int map
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    if (state.offline) {
-      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
-    }
+    concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
   }
 
   // Join the threads with the main thread
@@ -667,7 +680,7 @@ void RunWorkload() {
   state.snapshot_throughput.push_back(total_commit_count * 1.0 /
                                       state.snapshot_duration);
   state.snapshot_abort_rate.push_back(total_abort_count * 1.0 /
-                                      total_commit_count);
+                                      (total_commit_count + total_abort_count));
 
   // calculate the throughput and abort rate for the remaining rounds.
   for (size_t round_id = 0; round_id < snapshot_round - 1; ++round_id) {
@@ -685,8 +698,8 @@ void RunWorkload() {
 
     state.snapshot_throughput.push_back(total_commit_count * 1.0 /
                                         state.snapshot_duration);
-    state.snapshot_abort_rate.push_back(total_abort_count * 1.0 /
-                                        total_commit_count);
+    state.snapshot_abort_rate.push_back(
+        total_abort_count * 1.0 / (total_commit_count + total_abort_count));
   }
 
   // calculate the aggregated throughput and abort rate.

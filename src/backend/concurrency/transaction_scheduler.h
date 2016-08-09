@@ -175,10 +175,17 @@ class TransactionScheduler {
   void RandomEnqueue(TransactionQuery* query) {
 
     // Get a random number from 0 to queue_counts
-    int queue_number = random_generator_.GetSample();
+    int queue = random_generator_.GetSample();
 
-    queues_[queue_number].Enqueue(query);
-    // queues_.at(queue_number).Enqueue(query);
+    // Update Run Table with the queue. That is to increasing the queue
+    // reference in Run Table
+    query->UpdateRunTable(queue);
+
+    // Set queue No. then when clean run table queue No. will be used
+    query->SetQueueNo(queue);
+
+    // Finally, enqueue this query
+    queues_[queue].Enqueue(query);
   }
 
   /*
