@@ -23,25 +23,28 @@ namespace peloton {
 
 class Region {
  public:
-  // Give two bitsets, just copy them
-  Region(Bitset &wid, Bitset &iid)
+  // Give two bitsets, just copy them. This is only used to create/set a cluster
+  // region. So the 'cluster' passed by should always be true
+  Region(Bitset &wid, Bitset &iid, bool cluster)
       : wid_bitset_(wid),
         iid_bitset_(iid),
         core_(false),
         noise_(false),
         sum_overlap_(0),
-        cluster_(0),
+        cluster_no_(0),
+        cluster_flag_(cluster),
         marked_(false),
-        item_count_(0) {}
+        txn_count_(0) {}
 
   Region(int wid_scale, std::vector<int> wids, int iid_scale,
          std::vector<int> iids)
       : core_(false),
         noise_(false),
         sum_overlap_(0),
-        cluster_(0),
+        cluster_no_(0),
+        cluster_flag_(false),
         marked_(false),
-        item_count_(0) {
+        txn_count_(0) {
     // Resize bitset
     wid_bitset_.Resize(wid_scale);
     iid_bitset_.Resize(iid_scale);
@@ -51,13 +54,16 @@ class Region {
     iid_bitset_.Set(iids);
   }
 
+  // This is only used to create cluster region. cluster_flag should be true,
+  // when set the first txn to it
   Region()
       : core_(false),
         noise_(false),
         sum_overlap_(0),
-        cluster_(0),
+        cluster_no_(0),
+        cluster_flag_(false),
         marked_(false),
-        item_count_(0) {}
+        txn_count_(0) {}
 
   ~Region() {}
 
@@ -89,6 +95,7 @@ class Region {
   bool IsMarked() { return marked_; }
   void SetMarked() { marked_ = true; }
 
+  // The overlap value is the multiply for wid and iid
   int OverlapValue(Region &rh_region) {
     // convert rh_region to RegionTpcc. We should refactor this later
     int wid_overlap = GetWid().CountAnd(rh_region.GetWid());
@@ -97,13 +104,14 @@ class Region {
     return wid_overlap * iid_overlap;
   }
 
-  // Computer the overlay (OP operation) and return a new Region.
+  // Compute the overlay (OR operation) and return a new Region.
   // FIXME: make sure default copy is right (for return)
   Region Overlay(Region &rh_region) {
     Bitset wid_overlay = GetWid().OR(rh_region.GetWid());
     Bitset iid_overlay = GetIid().OR(rh_region.GetIid());
 
-    return Region(wid_overlay, iid_overlay);
+    // Return a cluster region
+    return Region(wid_overlay, iid_overlay, true);
   }
 
   Bitset &GetWid() { return wid_bitset_; }
@@ -117,13 +125,16 @@ class Region {
   }
 
   // Only used for cluster
-  void SetCluster(int cluster) { cluster_ = cluster; }
-  int GetCluster() { return cluster_; }
+  void SetClusterNo(int cluster) { cluster_no_ = cluster; }
+  int GetClusterNo() { return cluster_no_; }
+
+  void SetClusterFlag(bool b_cluster) { cluster_flag_ = b_cluster; }
+  int IsCluster() { return cluster_flag_; }
 
   int GetSumOverlap() { return sum_overlap_; }
 
-  void IncreaseMemberCount() { item_count_++; }
-  int GetMemberCount() { return item_count_; }
+  void IncreaseMemberCount() { txn_count_++; }
+  int GetMemberCount() { return txn_count_; }
 
  private:
   // The vector expression for this region
@@ -144,14 +155,17 @@ class Region {
   // sum overlap for all neighbors
   int sum_overlap_;
 
-  // Cluster tag
-  int cluster_;
+  // Cluster No.
+  int cluster_no_;
+
+  // Cluster flag to show whether it is a cluster or a normal region (query)
+  bool cluster_flag_;
 
   // tag this region whether it has been processed
   bool marked_;
 
   // If this region is a cluster, item_count_ is how many txns in the cluster
-  int item_count_;
+  int txn_count_;
 };
 
 class DBScan {
@@ -204,6 +218,12 @@ class DBScan {
         if (overlap != 0) {
           regions_.at(region).AddNeighbor(compare_region, overlap);
           regions_.at(compare_region).AddNeighbor(region, overlap);
+
+          //          // for test
+          //          std::cout << "Region" << region << ": Neighbor" <<
+          // compare_region
+          //                    << "--Overlap: " << overlap << std::endl;
+          //          // end test
         }
       }
     }
@@ -223,7 +243,7 @@ class DBScan {
     } else {
 
       region.SetCore();
-      region.SetCluster(cluster);
+      region.SetClusterNo(cluster);
       region.SetMarked();
 
       for (auto &neighbor : region.GetNeighbors()) {
@@ -234,7 +254,7 @@ class DBScan {
         if (neighbor_region.IsMarked()) continue;
 
         // Otherwise, mark the neighbor as the same cluster
-        neighbor_region.SetCluster(cluster);
+        neighbor_region.SetClusterNo(cluster);
         neighbor_region.SetMarked();
 
         // If the neighbor is also a core, expand it
@@ -249,33 +269,46 @@ class DBScan {
 
   // Iterate all regions, see which cluster this region belongs to
   // Perform union operation between this region and the cluster
+  // After Expand, we already get the cluster for each region.
+  // This is for further cluster analysis and must be used after Expand
+  // execution.
   void SetClusterRegion() {
     // First create the regions corresponding to the clusters
-    clusters_region_.resize(cluster_count_);
+    clusters_.resize(cluster_count_);
 
     // Iterate all txns
     for (auto &region : regions_) {
       // Get the cluster tag
-      int cluster = region.GetCluster();
+      int cluster = region.GetClusterNo();
 
-      // Skip the noise nodes
+      // Skip the noise nodes (cluster starts from 1)
       if (cluster < 1) continue;
 
       // Compute the overall region for each cluster
       // Note: cluster tag starts from 1, so the index should be cluster-1
-      Region r = region.Overlay(clusters_region_[cluster - 1]);
-      clusters_region_[cluster - 1].SetCover(r);
+
+      // If the cluster already has txns, just compute the overlay
+      if (clusters_[cluster - 1].IsCluster()) {
+        Region r = region.Overlay(clusters_[cluster - 1]);
+        clusters_[cluster - 1].SetCover(r);
+      }
+      // If the corresponding cluster has no txns yet, first should set
+      // the region to it
+      else {
+        clusters_[cluster - 1].SetCover(region);
+        clusters_[cluster - 1].SetClusterFlag(true);
+      }
 
       // Increase the total txns in this cluster
-      clusters_region_[cluster - 1].IncreaseMemberCount();
+      clusters_[cluster - 1].IncreaseMemberCount();
 
       // Set the cluster NO. (We don't need this, but in order to keep
       // insistence)
-      clusters_region_[cluster - 1].SetCluster(cluster);
+      clusters_[cluster - 1].SetClusterNo(cluster);
     }
   }
 
-  std::vector<Region> &GetClustersRegion() { return clusters_region_; }
+  std::vector<Region> &GetClusters() { return clusters_; }
 
   void DebugPrintRegion() {
     // The number of all the regions
@@ -286,7 +319,7 @@ class DBScan {
       Region &region = regions_.at(region_index);
 
       std::cout << "Region: " << region_index
-                << "belongs to cluster: " << region.GetCluster()
+                << "belongs to cluster: " << region.GetClusterNo()
                 << ". Its neighbors are: ";
 
       for (auto &neighbor : region.GetNeighbors()) {
@@ -304,7 +337,7 @@ class DBScan {
     // Print all
     for (int cluster_index = 0; cluster_index < cluster_count_;
          cluster_index++) {
-      Region &region = clusters_region_.at(cluster_index);
+      Region &region = clusters_.at(cluster_index);
 
       std::cout << "Cluster: " << cluster_index
                 << ". Its members are: " << region.GetMemberCount();
@@ -315,11 +348,10 @@ class DBScan {
 
  private:
   std::vector<Region> regions_;
-  std::vector<int> labels_;
   int minPts_;
 
   int cluster_count_;
-  std::vector<Region> clusters_region_;
+  std::vector<Region> clusters_;
 };
 
 }  // end namespace peloton

@@ -95,6 +95,10 @@ class configuration {
   // number of txn / second
   int generate_speed;
 
+  // For cluster analysis
+  int min_pts;
+  int analysis_txns;
+
   std::vector<double> snapshot_throughput;
 
   std::vector<double> snapshot_abort_rate;

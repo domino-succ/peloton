@@ -183,18 +183,26 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.gc_protocol = GC_TYPE_OFF;
   state.index = INDEX_TYPE_HASH;
   state.gc_thread_count = 1;
+  state.min_pts = 1;
+  state.analysis_txns = 10000;
 
   // Parse args
   while (1) {
     int idx = 0;
-    int c =
-        getopt_long(argc, argv, "aelh:r:k:w:z:v:d:s:q:b:p:g:i:t:", opts, &idx);
+    int c = getopt_long(argc, argv, "aelh:r:m:y:k:w:z:v:d:s:q:b:p:g:i:t:", opts,
+                        &idx);
 
     if (c == -1) break;
 
     switch (c) {
       case 't':
         state.gc_thread_count = atoi(optarg);
+        break;
+      case 'm':
+        state.min_pts = atof(optarg);
+        break;
+      case 'y':
+        state.analysis_txns = atof(optarg);
         break;
       case 'k':
         state.scale_factor = atof(optarg);
@@ -243,6 +251,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.scheduler = SCHEDULER_TYPE_HASH;
         } else if (strcmp(scheduler, "ml") == 0) {
           state.scheduler = SCHEDULER_TYPE_CONFLICT_LEANING;
+        } else if (strcmp(scheduler, "cluster") == 0) {
+          state.scheduler = SCHEDULER_TYPE_CLUSTER;
         } else if (strcmp(scheduler, "range") == 0) {
           state.scheduler = SCHEDULER_TYPE_CONFLICT_RANGE;
         } else {
@@ -346,6 +356,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
   LOG_TRACE("%s : %d", "Run offline analysis", state.offline);
+  LOG_TRACE("%s : %d", "Run cluster min_pts", state.min_pts);
+  LOG_TRACE("%s : %d", "Run cluster analysis txns", state.analysis_txns);
 }
 
 }  // namespace tpcc

@@ -84,45 +84,49 @@ static void WriteOutput() {
 
 void LoadQuery(uint64_t count) {
   // The number of queues is equal to the threads (backend_count)
-  concurrency::TransactionScheduler::GetInstance().Resize(
-      state.backend_count, state.warehouse_count);
+  if (state.scheduler != SCHEDULER_TYPE_CLUSTER) {
+    concurrency::TransactionScheduler::GetInstance().Resize(
+        state.backend_count, state.warehouse_count);
+  }
 
-  //  // These queries are for clustering
-  //  for (uint64_t i = 0; i < count; i++) {
-  //    GenerateAndCacheQuery();
-  //  }
-  //
-  //  std::cout << "Enter cluster analysis" << std::endl;
-  //
-  //  // Get clustering result. Each cluster is a big region (vector) including
-  // the
-  //  // cluster NO.
-  //  std::vector<Region> clusters = ClusterAnalysis();
-  //
-  //  if (clusters.size() == 0) {
-  //    LOG_INFO(
-  //        "The parameter can not cluster data! Pls change parameter can try "
-  //        "again");
-  //
-  //    return;
-  //  }
-  //  // Test
-  //  std::cout << "===========Print debug info =================" << std::endl;
-  //  for (auto &cluster : clusters) {
-  //
-  //    std::cout << "Cluster: " << cluster.GetCluster()
-  //              << ". Its members are: " << cluster.GetMemberCount();
-  //    std::cout << std::endl;
-  //  }
-  //  // end test
-  //
-  //  // Resize the number of queues according the number of clusters
-  //  concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count,
-  //                                                          clusters.size());
-  //
-  //  // Set the cluster result to scheduler. When enqueue, the new coming txn
-  //  // compares the big region with each cluster
-  //  concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
+  // If use CLUSTER method, we should analyze the query/txns when load query.
+  if (state.scheduler == SCHEDULER_TYPE_CLUSTER) {
+    // These queries are for clustering
+    for (uint64_t i = 0; i < state.analysis_txns; i++) {
+      GenerateAndCacheQuery();
+    }
+
+    std::cout << "Enter cluster analysis" << std::endl;
+
+    // Get clustering result. Each cluster is a big region (vector) including
+    // cluster NO.
+    std::vector<Region> clusters = ClusterAnalysis();
+
+    if (clusters.size() == 0) {
+      LOG_INFO(
+          "The parameter can not cluster data! Pls change parameter can try "
+          "again");
+
+      return;
+    }
+    // Test
+    std::cout << "===========Print debug info =================" << std::endl;
+    for (auto &cluster : clusters) {
+
+      std::cout << "Cluster: " << cluster.GetClusterNo()
+                << ". Its members are: " << cluster.GetMemberCount();
+      std::cout << std::endl;
+    }
+    // end test
+
+    // Resize the number of queues according the number of clusters
+    concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count,
+                                                            clusters.size());
+
+    // Set the cluster result to scheduler. When enqueue, the new coming txn
+    // compares the big region with each cluster
+    concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
+  }
 
   // These new queries are for TPCC executions
   for (uint64_t i = 0; i < count; i++) {

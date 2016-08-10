@@ -263,7 +263,7 @@ class TransactionScheduler {
       // If the current overlap is larger than the max, keep it
       if (overlap > max) {
         max = overlap;
-        cluster_idx = cluster.GetCluster();
+        cluster_idx = cluster.GetClusterNo();
       }
     }
 

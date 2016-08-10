@@ -399,7 +399,8 @@ enum SchedulerType {
   SCHEDULER_TYPE_CONFLICT_DETECT = 3,   // new txn detects conflict
   SCHEDULER_TYPE_CONFLICT_LEANING = 4,  // new txn detects conflict using ml
   SCHEDULER_TYPE_CONFLICT_RANGE = 5,
-  SCHEDULER_TYPE_HASH = 6  // OOHASH mechanism
+  SCHEDULER_TYPE_HASH = 6,  // OOHASH mechanism
+  SCHEDULER_TYPE_CLUSTER = 7
 };
 
 //===--------------------------------------------------------------------===//

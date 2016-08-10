@@ -647,7 +647,7 @@ bool RunNewOrder(NewOrder *new_order) {
   orders_tuple->SetValue(5, ValueFactory::GetIntegerValue(0), nullptr);
   // O_OL_CNT
   orders_tuple->SetValue(6, ValueFactory::GetIntegerValue(o_ol_cnt), nullptr);
-  // O_ALL_LOCAL
+  // O_ALL_LOCALTransactionQuery
   orders_tuple->SetValue(7, ValueFactory::GetIntegerValue(o_all_local),
                          nullptr);
 

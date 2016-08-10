@@ -126,6 +126,7 @@ std::vector<Region> ClusterAnalysis() {
 
   concurrency::TransactionQuery *query = nullptr;
 
+  // Pop all txns and transform them into regions
   for (int i = 0; i < size; i++) {
     bool ret =
         concurrency::TransactionScheduler::GetInstance().DequeueCache(query);
@@ -144,7 +145,7 @@ std::vector<Region> ClusterAnalysis() {
   LOG_INFO("Finish transform, begin to clustering");
 
   // Cluster all txn_regions
-  DBScan dbs(txn_regions, 60);
+  DBScan dbs(txn_regions, state.min_pts);
 
   LOG_INFO("Finish generate dbscan, begin to PreProcess");
 
@@ -161,7 +162,7 @@ std::vector<Region> ClusterAnalysis() {
   // dbs.DebugPrintRegion();
   dbs.DebugPrintCluster();
 
-  return dbs.GetClustersRegion();
+  return dbs.GetClusters();
 }
 
 bool EnqueueCachedUpdate() {
@@ -195,7 +196,8 @@ bool EnqueueCachedUpdate() {
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
-    // concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+    concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+  } else if (state.scheduler == SCHEDULER_TYPE_CLUSTER) {
     concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(query);
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
     // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
@@ -276,6 +278,12 @@ void RunBackend(oid_t thread_id) {
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                ret_query, thread_id);
+        break;
+      }
+      case SCHEDULER_TYPE_CLUSTER: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                 ret_query, thread_id);
@@ -385,12 +393,14 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_CONFLICT_LEANING: {
           // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
           //    ret_query);
-          // concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
+          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
+          break;
+        }
+        case SCHEDULER_TYPE_CLUSTER: {
           concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(
               ret_query);
           break;
         }
-
         case SCHEDULER_TYPE_CONFLICT_RANGE: {
           concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
           break;

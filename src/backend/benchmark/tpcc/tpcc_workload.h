@@ -33,6 +33,7 @@ namespace benchmark {
 namespace tpcc {
 
 #define PRELOAD 300000  // 2000,000
+#define CLUSTER_ANALYSIS_TXN 10000
 #define LOGTABLE "logtable"
 
 enum TxnType {

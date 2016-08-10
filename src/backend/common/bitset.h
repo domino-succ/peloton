@@ -20,11 +20,17 @@
 #include <x86intrin.h>
 
 #define SIMD_SIZE 128
-#define ALIGNED_SIZE 16
+#define ALIGNED_SIZE \
+  (SIMD_SIZE / CHAR_SIZE)  // For 128-bit SIMD, ALIGNED_SIZE is 16 bytes
 #define CHAR_SIZE 8
 
 namespace peloton {
 
+// Note: We provide a constructor that can pass char* bits and we just copy this
+// pointer to bits_, there is no deep copy because we donot wanna too much
+// memory copy. If bitset involves copy between each other, you should control
+// it yourself. Due to the same reason, the AND OR operator also return char*
+// rather than Bitset.
 class Bitset {
  public:
   // Support a given char*, but must specify the size
@@ -32,16 +38,7 @@ class Bitset {
       : bits_(bits), num_bits_(num_bit), num_bytes_(num_byte) {}
 
   // Bitset is using char* to store data
-  Bitset(int size) : num_bits_(size) {
-    // The total memory is larger than # of bits
-    num_bytes_ = (num_bits_ / CHAR_SIZE) + 1;
-
-    // bits must be aligned. For 128-bit SIMD, it is 16
-    bits_ = (char*)aligned_alloc(ALIGNED_SIZE, num_bytes_);
-
-    // Init the memory with zero
-    memset(bits_, 0, num_bytes_);
-  }
+  Bitset(int size) { Resize(size); }
 
   // Support null bitset.
   Bitset() : bits_(nullptr), num_bits_(0), num_bytes_(0) {}
@@ -59,8 +56,20 @@ class Bitset {
 
     num_bits_ = size;
 
-    // The total memory is larger than # of bits
-    num_bytes_ = (num_bits_ / CHAR_SIZE) + 1;
+    // Note: aligned_alloc requires an integral multiple of alignment for
+    // allocated size
+    int integral = num_bits_ / SIMD_SIZE;
+    int remainder = num_bits_ % SIMD_SIZE;
+
+    // If remainder = 0, that means the current size of bit is the integral
+    // of alignment. The allocated size is just the integral multiple
+    if (remainder == 0) {
+      num_bytes_ = integral * ALIGNED_SIZE;
+    }
+    // If remainder is not 0, that means the size exceed 1 ALIGNED_SIZE
+    else {
+      num_bytes_ = (integral + 1) * ALIGNED_SIZE;
+    }
 
     // bits must be aligned. For 128-bit SIMD, it is 16
     bits_ = (char*)aligned_alloc(ALIGNED_SIZE, num_bytes_);
@@ -83,14 +92,18 @@ class Bitset {
       char offset = 0x01;
       offset = offset << offbit;
 
-      // std::cout << "bit--" << bit << ":: idx--" << idx << " offbit--" <<
+      //      std::cout << "bit--" << bit << ":: idx--" << idx << " offbit--" <<
       // offbit
-      //          << " offset--" << (unsigned short)offset << std::endl;
+      //                << " offset--" << (unsigned short)offset << " char*--"
+      //                << (unsigned short)*bits_;
 
       bits_[idx] |= offset;
+
+      // std::cout << "--" << (unsigned short)*bits_ << std::endl;
     }
   }
 
+  // Note: the bit starts from 0
   void Set(int bit) {
     // Ensure the bitset has already inited
     assert(num_bits_ > 0);
@@ -107,9 +120,9 @@ class Bitset {
     bits_[idx] |= offset;
   }
 
-  // Just return char*
-  // Not return bitset due to we do not wanna deep copy between bitset instance
-  // The caller can use the return char* create a new bitset
+  // TODO: Return Bitset where its value to value copying. But for char* it only
+  // copies address, not deep copy. So in destructor, we do not free it. We
+  // should fix this in the future
   Bitset AND(Bitset& rh_bitset) {
     // The SIMD vector
     __m128 A, B, C;
@@ -136,9 +149,9 @@ class Bitset {
     return Bitset(result, num_bits_, num_bytes_);
   }
 
-  // Just return char*
-  // Not return bitset due to we do not wanna deep copy between bitset instance
-  // The caller can use the return char* create a new bitset
+  // TODO: Return Bitset where its value to value copying. But for char* it only
+  // copies address, not deep copy. So in destructor, we do not free it. We
+  // should fix this in the future
   Bitset OR(Bitset& rh_bitset) {
     // The SIMD vector
     __m128 A, B, C;
@@ -159,7 +172,7 @@ class Bitset {
       _mm_store_ps((float*)&result[i], C);
     }
 
-    // TODO: just use default assigner there. should we implement that?
+    // TODO: just use default assigner there.
     return Bitset(result, num_bits_, num_bytes_);
   }
 
@@ -177,6 +190,8 @@ class Bitset {
     for (int i = 0; i < num_bytes_; i += span) {
       A = _mm_load_ps((float*)&bits_[i]);
       count += popcnt128((__m128i)A);
+
+      std::cout << "count: " << count << std::endl;
     }
 
     return count;
