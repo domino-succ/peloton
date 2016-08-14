@@ -16,8 +16,10 @@
 #include "backend/common/bitset.h"
 
 #include <stdint.h>
-#include <vector>
-#include <boost/numeric/ublas/matrix.hpp>
+#include <unordered_map>
+#include <map>
+#include <sstream>
+#include <fstream>
 
 namespace peloton {
 
@@ -25,67 +27,130 @@ class Region {
  public:
   // Give two bitsets, just copy them. This is only used to create/set a cluster
   // region. So the 'cluster' passed by should always be true
-  Region(Bitset &wid, Bitset &iid, bool cluster)
-      : wid_bitset_(wid),
-        iid_bitset_(iid),
-        core_(false),
-        noise_(false),
-        sum_overlap_(0),
-        cluster_no_(0),
-        cluster_flag_(cluster),
-        marked_(false),
-        txn_count_(0) {}
+  Region(Bitset &bitset)
+      : bitset_(bitset), cluster_no_(0), x_scale_(0), y_scale_(0) {}
 
   Region(int wid_scale, std::vector<int> wids, int iid_scale,
          std::vector<int> iids)
-      : core_(false),
-        noise_(false),
-        sum_overlap_(0),
-        cluster_no_(0),
-        cluster_flag_(false),
-        marked_(false),
-        txn_count_(0) {
-    // Resize bitset
-    wid_bitset_.Resize(wid_scale);
-    iid_bitset_.Resize(iid_scale);
-
-    // Set bit
-    wid_bitset_.Set(wids);
-    iid_bitset_.Set(iids);
+      : cluster_no_(0), x_scale_(wid_scale), y_scale_(iid_scale) {
+    // Set the bits
+    SetCover(wid_scale, wids, iid_scale, iids);
   }
 
-  // This is only used to create cluster region. cluster_flag should be true,
-  // when set the first txn to it
-  Region()
-      : core_(false),
-        noise_(false),
-        sum_overlap_(0),
-        cluster_no_(0),
-        cluster_flag_(false),
-        marked_(false),
-        txn_count_(0) {}
-
+  Region() : cluster_no_(0), x_scale_(0), y_scale_(0) {}
   ~Region() {}
 
   // Just copy bitset, involves char* copy, but no deep copying here
-  void SetCover(Region &rh_region) {
-    wid_bitset_ = rh_region.GetWid();
-    iid_bitset_ = rh_region.GetIid();
-  }
+  void SetCover(Region &rh_region) { bitset_ = rh_region.GetBitset(); }
 
   // Set two bitsets: the scale and bits
-  void SetCover(int wid_scale, std::vector<int> wids, int iid_scale,
-                std::vector<int> iids) {
-    // Resize bitset
-    wid_bitset_.Resize(wid_scale);
-    iid_bitset_.Resize(iid_scale);
+  void SetCover(int wid_scale, std::vector<int> &wids, int iid_scale,
+                std::vector<int> &iids) {
 
-    // Set bit
-    wid_bitset_.Set(wids);
-    iid_bitset_.Set(iids);
+    // Allocate bitset
+    bitset_.Resize(wid_scale * iid_scale);
+
+    // make sure wids and iids have the same size
+    assert(wids.size() == iids.size());
+
+    for (uint32_t i = 0; i < wids.size(); i++) {
+
+      // Compute the bit
+      int x = wids[i];
+      int y = iids[i];
+
+      int bit = LocateBit(x, y);
+
+      // Set bit
+      bitset_.Set(bit);
+    }
   }
 
-  std::vector<std::pair<uint32_t, int>> &GetNeighbors() { return neighbors_; }
+  // The overlap value is the multiply for wid and iid
+  int OverlapValue(Region &rh_region) {
+    // convert rh_region to RegionTpcc.
+    return GetBitset().CountAnd(rh_region.GetBitset());
+  }
+
+  // Compute the overlay (OR operation) and return a new Region.
+  // FIXME: make sure default copy is right (for return)
+  Region Overlay(Region &rh_region) {
+    Bitset overlay = GetBitset().OR(rh_region.GetBitset());
+
+    // Return a cluster region
+    return Region(overlay);
+  }
+
+  Bitset &GetBitset() { return bitset_; }
+
+  void SetClusterNo(int cluster) { cluster_no_ = cluster; }
+  int GetClusterNo() { return cluster_no_; }
+
+ private:
+  // Note: x and y start from 0
+  int LocateBit(int x, int y) { return x + (y * x_scale_); }
+
+ private:
+  // The vector expression for this region
+  // std::vector<uint32_t> cover_;
+  // For simplicity, only consider two conditions: wid and iid
+  Bitset bitset_;
+
+  // Cluster No.
+  int cluster_no_;
+
+  // For simplicity, we only support two dimension for now
+  int x_scale_;
+  int y_scale_;
+};
+
+class ClusterRegion : public Region {
+ public:
+  // This is only used to create cluster region. cluster_flag should be true,
+  // when set the first txn to it
+  ClusterRegion() : txn_count_(0), init_(false) {}
+
+ public:
+  int IsInit() { return init_; }
+  void SetInit() { init_ = true; }
+
+  void IncreaseMemberCount() { txn_count_++; }
+  int GetMemberCount() { return txn_count_; }
+
+ private:
+  // If this region is a cluster, item_count_ is how many txns in the cluster
+  int txn_count_;
+
+  // whether has been set bitset
+  bool init_;
+};
+
+class SingleRegion : public Region {
+ public:
+  SingleRegion(int wid_scale, std::vector<int> wids, int iid_scale,
+               std::vector<int> iids, bool local, int warehouse)
+      : Region(wid_scale, wids, iid_scale, iids),
+        core_(false),
+        noise_(false),
+        sum_overlap_(0),
+        marked_(false),
+        local_(local),
+        warehouse_id_(warehouse) {
+    neighbor_region_.SetCover(*this);
+    neighbor_region_.SetInit();
+  }
+
+  // TODO: SHOULD be deleted later. Just let ycsb pass compile
+  SingleRegion()
+      : core_(false),
+        noise_(false),
+        sum_overlap_(0),
+        marked_(false),
+        local_(true),
+        warehouse_id_(-1) {}
+
+ public:
+  std::unordered_map<uint32_t, int> &GetNeighbors() { return neighbors_; }
   bool IsCore() { return core_; }
   void SetCore() { core_ = true; }
 
@@ -95,56 +160,52 @@ class Region {
   bool IsMarked() { return marked_; }
   void SetMarked() { marked_ = true; }
 
-  // The overlap value is the multiply for wid and iid
-  int OverlapValue(Region &rh_region) {
-    // convert rh_region to RegionTpcc. We should refactor this later
-    int wid_overlap = GetWid().CountAnd(rh_region.GetWid());
-    int iid_overlap = GetIid().CountAnd(rh_region.GetIid());
+  bool IsLocal() { return local_; }
+  void SetRemote() { local_ = false; }
 
-    return wid_overlap * iid_overlap;
-  }
-
-  // Compute the overlay (OR operation) and return a new Region.
-  // FIXME: make sure default copy is right (for return)
-  Region Overlay(Region &rh_region) {
-    Bitset wid_overlay = GetWid().OR(rh_region.GetWid());
-    Bitset iid_overlay = GetIid().OR(rh_region.GetIid());
-
-    // Return a cluster region
-    return Region(wid_overlay, iid_overlay, true);
-  }
-
-  Bitset &GetWid() { return wid_bitset_; }
-  Bitset &GetIid() { return iid_bitset_; }
+  void SetWarehouseId(int id) { warehouse_id_ = id; }
+  int GetWarehouseId() { return warehouse_id_; }
 
   void AddNeighbor(uint32_t region_idx, int overlap) {
     auto item = std::make_pair(region_idx, overlap);
-    neighbors_.push_back(item);
+    neighbors_.insert(item);
 
     sum_overlap_ = sum_overlap_ + overlap;
   }
 
-  // Only used for cluster
-  void SetClusterNo(int cluster) { cluster_no_ = cluster; }
-  int GetClusterNo() { return cluster_no_; }
+  int RemoveNeighbor(uint32_t region_idx) {
 
-  void SetClusterFlag(bool b_cluster) { cluster_flag_ = b_cluster; }
-  int IsCluster() { return cluster_flag_; }
+    int overlap = neighbors_.find(region_idx)->second;
+
+    sum_overlap_ = sum_overlap_ - overlap;
+
+    return neighbors_.erase(region_idx);
+  }
+
+  std::unordered_map<uint32_t, int>::iterator RemoveNeighbor(
+      std::unordered_map<uint32_t, int>::iterator region_idx) {
+
+    int overlap = region_idx->second;
+
+    sum_overlap_ = sum_overlap_ - overlap;
+
+    return neighbors_.erase(region_idx);
+  }
 
   int GetSumOverlap() { return sum_overlap_; }
 
-  void IncreaseMemberCount() { txn_count_++; }
-  int GetMemberCount() { return txn_count_; }
+  ClusterRegion &GetNeighborRegion() { return neighbor_region_; }
 
  private:
-  // The vector expression for this region
-  // std::vector<uint32_t> cover_;
-  // For simplicity, only consider two conditions: wid and iid
-  Bitset wid_bitset_;
-  Bitset iid_bitset_;
-
   // Neighbors of this region: region_index: overlap
-  std::vector<std::pair<uint32_t, int>> neighbors_;
+  std::unordered_map<uint32_t, int> neighbors_;
+
+  // neigbor_region_ is used to compute the overlap between two node's neighbors
+  // For tpcc remote node only have one or two overlap? But normaly the overlap
+  // for two node wthin the same warehouse is large. So there is a threshold, if
+  // if the overlap between two neigbor_region_ is smaller than the threshold,
+  // this node should not be considered when clustering
+  ClusterRegion neighbor_region_;
 
   // Core
   bool core_;
@@ -155,22 +216,17 @@ class Region {
   // sum overlap for all neighbors
   int sum_overlap_;
 
-  // Cluster No.
-  int cluster_no_;
-
-  // Cluster flag to show whether it is a cluster or a normal region (query)
-  bool cluster_flag_;
-
   // tag this region whether it has been processed
   bool marked_;
 
-  // If this region is a cluster, item_count_ is how many txns in the cluster
-  int txn_count_;
+  // Only for test and analysis. Same with local warehouse or not
+  bool local_;
+  int warehouse_id_;
 };
 
 class DBScan {
  public:
-  DBScan(std::vector<Region> &input_regions, int input_min_pts)
+  DBScan(std::vector<SingleRegion> &input_regions, int input_min_pts)
       : regions_(input_regions), minPts_(input_min_pts), cluster_count_(0) {}
 
   int Clustering() {
@@ -183,7 +239,7 @@ class DBScan {
     // Iterate all regions
     for (int region_index = 0; region_index < region_count; region_index++) {
 
-      Region &region = regions_.at(region_index);
+      SingleRegion &region = regions_.at(region_index);
 
       // If the region is marked, continue to process the next region
       if (region.IsMarked()) continue;
@@ -200,7 +256,8 @@ class DBScan {
 
   // Iterate all original regions, find out the neighbors and compute the
   // overlap with the neighbors
-  void PreProcess() {
+  void PreProcess(int range) {
+    // Get neighbors for each region to form a graph
     // Iterate all regions
     for (uint32_t region = 0; region < regions_.size() - 1; region++) {
       // For a region, iterate each region from the beginning of the original
@@ -224,12 +281,211 @@ class DBScan {
           // compare_region
           //                    << "--Overlap: " << overlap << std::endl;
           //          // end test
+
+          // Accumulate region
+          Region overlay = regions_.at(region).GetNeighborRegion().Overlay(
+              regions_.at(compare_region));
+          // Set the new overlay
+          regions_.at(region).GetNeighborRegion().SetCover(overlay);
+
+          // Accumulate region for neighbor
+          Region remote_overlay =
+              regions_.at(compare_region).GetNeighborRegion().Overlay(
+                  regions_.at(region));
+          // Set the new overlay
+          regions_.at(compare_region).GetNeighborRegion().SetCover(
+              remote_overlay);
         }
       }
     }
+
+    std::cout << "Finish neighbor compute, entering remote node analysis..."
+              << std::endl;
+
+    //////////////////////////////////////
+    // Dominate overlap analysis
+    //////////////////////////////////////
+
+    // Dominate means a node and its neighbors. Dominate overlay is the union
+    // region for this node and all its neighbors GetNeighborRegion().
+    //
+    // Computer the overlap for each node's dominate. Put each overlap in the
+    // corresponding slot.
+    //
+    // A slot is a number range, which is 50 by default. So which slot a number
+    // x falls in love is: x/range
+
+    // Create number slot
+    int remote = 0;
+    std::map<int, std::vector<int>> slots;
+    std::map<int, int> slots_count;
+    int max_slot = -1;
+    int max_count = 0;
+
+    std::stringstream oss;
+    oss << "overlap";
+    std::ofstream out(oss.str(), std::ofstream::out);
+
+    for (uint32_t region = 0; region < regions_.size() - 1; region++) {
+      for (std::unordered_map<uint32_t, int>::iterator iter =
+               regions_.at(region).GetNeighbors().begin();
+           iter != regions_.at(region).GetNeighbors().end(); iter++) {
+
+        // Get neighbor id
+        int neighbor_idx = iter->first;
+
+        // Compute the overlap
+        int overlap = regions_.at(region).GetNeighborRegion().OverlapValue(
+            regions_.at(neighbor_idx).GetNeighborRegion());
+
+        if (overlap != 0) {
+
+          // log file
+          // Write LogTable into a file
+          out << overlap << "\n";
+
+          int entry = overlap / range;
+
+          slots[entry].push_back(overlap);
+          slots_count[entry]++;
+
+          assert((uint32_t)slots_count[entry] == slots[entry].size());
+
+          if (slots_count[entry] > max_count) {
+            max_count = slots_count[entry];
+            max_slot = entry;
+          }
+        }
+      }
+    }
+
+    out.flush();
+    out.close();
+
+    std::cout << "max slot is : " << max_slot
+              << " and max cout is : " << max_count << std::endl;
+
+    std::cout << "The slot info: " << std::endl;
+    for (std::map<int, int>::iterator iter = slots_count.begin();
+         iter != slots_count.end(); iter++) {
+      std::cout << iter->first << "---" << iter->second << std::endl;
+    }
+
+    // Now, we already get the number for all slots. Let's see which slot is
+    // empty. Iterate the map from the largest slot
+    for (std::map<int, std::vector<int>>::reverse_iterator iter =
+             slots.rbegin();
+         iter != slots.rend(); iter++) {
+
+      if (iter->first != max_slot) {
+        continue;
+      }
+
+      std::map<int, std::vector<int>>::reverse_iterator nxt =
+          std::next(iter, 1);
+
+      if (nxt == slots.rend()) {
+        break;
+      }
+
+      int idx_next = nxt->first;
+
+      // sort the overlap in this slot
+      std::sort(slots[idx_next].begin(), slots[idx_next].end(),
+                std::greater<int>());
+
+      std::cout << "find out: ";
+      for (auto &item : slots[idx_next]) {
+        std::cout << item << " ";
+      }
+      std::cout << std::endl;
+
+      // pick the first overlap
+      remote = slots[idx_next].front();
+    }
+
+    std::cout << "Finish remote: , entering neighbor remove..." << remote
+              << std::endl;
+    // Delete the remote relationship (like the remote warehouse)
+    // For each node (region), compute the overlap for:
+    // neighbor_region_ with each neighbor's neighbor_region_
+    // If the result (overlap) is smaller than the threshold, remove the
+    // neighbor relationship
+    for (uint32_t region = 0; region < regions_.size() - 1; region++) {
+
+      for (std::unordered_map<uint32_t, int>::iterator iter =
+               regions_.at(region).GetNeighbors().begin();
+           iter != regions_.at(region).GetNeighbors().end();) {
+
+        // Get neighbor id
+        int neighbor_idx = iter->first;
+
+        // Compute the overlap
+        int overlap = regions_.at(region).GetNeighborRegion().OverlapValue(
+            regions_.at(neighbor_idx).GetNeighborRegion());
+
+        // Cut off the neighbor relationship.
+        if (overlap <= remote) {
+          iter = regions_.at(region).RemoveNeighbor(iter);
+          regions_.at(neighbor_idx).RemoveNeighbor(region);
+
+          // std::cout << "overlap: " << overlap << std::endl;
+        } else {
+          iter++;
+        }
+
+        // For test
+        if (regions_.at(region).GetWarehouseId() !=
+            regions_.at(neighbor_idx).GetWarehouseId()) {
+
+          // std::cout << "overlap-----------------: " << overlap << std::endl;
+        }
+
+        // std::cout << "overlap: " << overlap << std::endl;
+      }
+
+      if (regions_.at(region).IsLocal() == false) {
+
+        // std::cout << "===================================" << std::endl;
+      }
+      // end test
+    }
+
+    // For test
+    oss << "remote";
+    std::ofstream outr(oss.str(), std::ofstream::out);
+
+    std::cout << "entering checking..." << std::endl;
+    for (uint32_t region = 0; region < regions_.size() - 1; region++) {
+
+      for (std::unordered_map<uint32_t, int>::iterator iter =
+               regions_.at(region).GetNeighbors().begin();
+           iter != regions_.at(region).GetNeighbors().end(); iter++) {
+
+        // Get neighbor id
+        int neighbor_idx = iter->first;
+
+        if (regions_.at(region).GetWarehouseId() !=
+            regions_.at(neighbor_idx).GetWarehouseId()) {
+          // Compute the overlap
+          int overlap = regions_.at(region).GetNeighborRegion().OverlapValue(
+              regions_.at(neighbor_idx).GetNeighborRegion());
+
+          // log file
+          // Write LogTable into a file
+          outr << overlap << "\n";
+
+          std::cout << "overlap-----------------: " << overlap << std::endl;
+        }
+      }
+    }
+
+    outr.flush();
+    outr.close();
+    // end test
   }
 
-  bool ExpandCluster(Region &region, int cluster) {
+  bool ExpandCluster(SingleRegion &region, int cluster) {
 
     if (region.GetSumOverlap() < minPts_) {
 
@@ -248,7 +504,7 @@ class DBScan {
 
       for (auto &neighbor : region.GetNeighbors()) {
         uint32_t idx = neighbor.first;
-        Region &neighbor_region = regions_.at(idx);
+        SingleRegion &neighbor_region = regions_.at(idx);
 
         // If this region has been processed, skip it
         if (neighbor_region.IsMarked()) continue;
@@ -288,7 +544,7 @@ class DBScan {
       // Note: cluster tag starts from 1, so the index should be cluster-1
 
       // If the cluster already has txns, just compute the overlay
-      if (clusters_[cluster - 1].IsCluster()) {
+      if (clusters_[cluster - 1].IsInit()) {
         Region r = region.Overlay(clusters_[cluster - 1]);
         clusters_[cluster - 1].SetCover(r);
       }
@@ -296,7 +552,7 @@ class DBScan {
       // the region to it
       else {
         clusters_[cluster - 1].SetCover(region);
-        clusters_[cluster - 1].SetClusterFlag(true);
+        clusters_[cluster - 1].SetInit();
       }
 
       // Increase the total txns in this cluster
@@ -308,7 +564,7 @@ class DBScan {
     }
   }
 
-  std::vector<Region> &GetClusters() { return clusters_; }
+  std::vector<ClusterRegion> &GetClusters() { return clusters_; }
 
   void DebugPrintRegion() {
     // The number of all the regions
@@ -316,11 +572,11 @@ class DBScan {
 
     // Print all regions
     for (int region_index = 0; region_index < region_count; region_index++) {
-      Region &region = regions_.at(region_index);
+      SingleRegion &region = regions_.at(region_index);
 
       std::cout << "Region: " << region_index
                 << "belongs to cluster: " << region.GetClusterNo()
-                << ". Its neighbors are: ";
+                << ". Neighbors are" << region.GetNeighbors().size() << ": ";
 
       for (auto &neighbor : region.GetNeighbors()) {
         uint32_t idx = neighbor.first;
@@ -337,7 +593,7 @@ class DBScan {
     // Print all
     for (int cluster_index = 0; cluster_index < cluster_count_;
          cluster_index++) {
-      Region &region = clusters_.at(cluster_index);
+      ClusterRegion &region = clusters_.at(cluster_index);
 
       std::cout << "Cluster: " << cluster_index
                 << ". Its members are: " << region.GetMemberCount();
@@ -347,11 +603,11 @@ class DBScan {
   }
 
  private:
-  std::vector<Region> regions_;
+  std::vector<SingleRegion> regions_;
   int minPts_;
 
   int cluster_count_;
-  std::vector<Region> clusters_;
+  std::vector<ClusterRegion> clusters_;
 };
 
 }  // end namespace peloton

@@ -355,13 +355,15 @@ void SetNewOrder(NewOrder *new_order) {
 
   for (auto ol_itr = 0; ol_itr < new_order->o_ol_cnt_; ol_itr++) {
     i_ids.push_back(GetRandomInteger(0, state.item_count - 1));
-    bool remote = GetRandomBoolean(new_order_remote_txns);
     ol_w_ids.push_back(new_order->warehouse_id_);
+
+    bool remote = GetRandomBoolean(new_order_remote_txns);
     if (remote == true) {
       ol_w_ids[ol_itr] = GetRandomIntegerExcluding(0, state.warehouse_count - 1,
                                                    new_order->warehouse_id_);
       o_all_local = false;
     }
+
     ol_qtys.push_back(GetRandomInteger(0, order_line_max_ol_quantity));
   }
 
@@ -888,7 +890,7 @@ bool RunNewOrder(NewOrder *new_order) {
     LOG_TRACE("abort txn, thread_id = %d, d_id = %d, next_o_id = %d",
               (int)thread_id, (int)district_id,
               (int)ValuePeeker::PeekAsInteger(d_next_o_id));
-    return true;
+    // return true;
     return false;
   }
 }
@@ -1678,7 +1680,6 @@ bool RunNewOrder(NewOrderPlans &new_order_plans, const size_t &thread_id) {
     LOG_TRACE("abort txn, thread_id = %d, d_id = %d, next_o_id = %d",
               (int)thread_id, (int)district_id,
               (int)ValuePeeker::PeekAsInteger(d_next_o_id));
-    return true;
     return false;
   }
 }

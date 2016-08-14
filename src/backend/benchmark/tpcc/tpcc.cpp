@@ -92,7 +92,7 @@ void LoadQuery(uint64_t count) {
   // If use CLUSTER method, we should analyze the query/txns when load query.
   if (state.scheduler == SCHEDULER_TYPE_CLUSTER) {
     // These queries are for clustering
-    for (uint64_t i = 0; i < state.analysis_txns; i++) {
+    for (int i = 0; i < state.analysis_txns; i++) {
       GenerateAndCacheQuery();
     }
 
@@ -100,16 +100,8 @@ void LoadQuery(uint64_t count) {
 
     // Get clustering result. Each cluster is a big region (vector) including
     // cluster NO.
-    std::vector<Region> clusters = ClusterAnalysis();
+    std::vector<ClusterRegion> clusters = ClusterAnalysis();
 
-    if (clusters.size() == 0) {
-      LOG_INFO(
-          "The parameter can not cluster data! Pls change parameter can try "
-          "again");
-
-      return;
-    }
-    // Test
     std::cout << "===========Print debug info =================" << std::endl;
     for (auto &cluster : clusters) {
 
@@ -180,7 +172,7 @@ void RunBenchmark() {
   LoadTPCCDatabase();
 
   // If OOHASH, load Log Table File
-  LoadLogTable();
+  // LoadLogTable();
 
   // Load queries/txns
   LoadQuery(PRELOAD);

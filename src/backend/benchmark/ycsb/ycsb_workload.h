@@ -158,7 +158,7 @@ class UpdateQuery : public concurrency::TransactionQuery {
     return peloton::PLAN_NODE_TYPE_UPDATE;
   };
 
-  virtual Region* RegionTransform() {
+  virtual SingleRegion* RegionTransform() {
     // Compute how large of the whole space
 
     // Generate the space with a vector
@@ -166,16 +166,18 @@ class UpdateQuery : public concurrency::TransactionQuery {
 
     // Generate region and return
     // std::shared_ptr<Region> region(new Region(cover));
-    return new Region();
+    std::vector<int> test;
+    return new SingleRegion(0, test, 0, test, true, 0);
   }
 
-  virtual Region& GetRegion() { return region_; }
+  virtual SingleRegion& GetRegion() { return region_; }
 
   // For Log Table
   virtual void UpdateLogTable() {}
 
   // For Run Table
   virtual int LookupRunTable() { return 0; }
+  virtual int LookupRunTableMax() { return 0; }
   virtual void UpdateRunTable(int queue_no) { std::cout << queue_no; }
   virtual void DecreaseRunTable() {}
 
@@ -196,7 +198,7 @@ class UpdateQuery : public concurrency::TransactionQuery {
 
   bool first_pop_;
 
-  Region region_;
+  SingleRegion region_;
 };
 
 UpdatePlans PrepareUpdatePlan();

@@ -61,15 +61,16 @@ class TransactionQuery {
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() = 0;
 
-  virtual Region* RegionTransform() = 0;
-
-  virtual Region& GetRegion() = 0;
+  // For clustering
+  virtual SingleRegion* RegionTransform() = 0;
+  virtual SingleRegion& GetRegion() = 0;
 
   // For Log Table
   virtual void UpdateLogTable() = 0;
 
   // For Run Table
   virtual int LookupRunTable() = 0;
+  virtual int LookupRunTableMax() = 0;
   virtual void UpdateRunTable(int queue_no) = 0;
   virtual void DecreaseRunTable() = 0;
 
@@ -419,10 +420,14 @@ class TransactionScheduler {
 
   std::atomic<int> g_queue_no;
 
-  void OOHashEnqueue(TransactionQuery* query) {
-
+  void OOHashEnqueue(TransactionQuery* query, bool simple) {
+    int queue = -1;
     // Find out the corresponding queue
-    int queue = query->LookupRunTable();
+    if (simple) {
+      queue = query->LookupRunTableMax();
+    } else {
+      queue = query->LookupRunTable();
+    }
 
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
@@ -492,6 +497,13 @@ class TransactionScheduler {
 
     // Return false if every queue is empty
     return false;
+  }
+
+  // The different between this and Dequeue is SimpleDequeue do not steal txns
+  // from other threads when its thread is empty
+  bool SimpleDequeue(TransactionQuery*& query, uint64_t thread_id) {
+    // Return false if every queue is empty
+    return queues_[thread_id % queue_counts_].Dequeue(query);
   }
 
   int SingleDetect(TransactionQuery* query) {
@@ -565,7 +577,9 @@ class TransactionScheduler {
 
   int GetCacheSize() { return query_cache_queue_.Size(); }
 
-  void SetClusters(std::vector<Region>& clusters) { clusters_ = clusters; }
+  void SetClusters(std::vector<ClusterRegion>& clusters) {
+    clusters_ = clusters;
+  }
 
   int GetQueueCount() { return queue_counts_; }
   //////////////////////////////////////////////////////////////////////
@@ -611,7 +625,15 @@ class TransactionScheduler {
 
     if (queue_info != nullptr) {
       // Increase the reference for this queue
-      ++(*queue_info)[queue_no];
+      auto entry = queue_info->find(queue_no);
+
+      if (entry != queue_info->end()) {
+        ++(*queue_info)[queue_no];
+      }
+      // If there is no such entry, create it
+      else {
+        queue_info->insert(std::make_pair(queue_no, 1));
+      }
     }
     // If there is no such entry, create it
     else {
@@ -758,7 +780,7 @@ class TransactionScheduler {
   UniformIntGenerator random_cluster_;
 
   // Only used when use clustering
-  std::vector<Region> clusters_;
+  std::vector<ClusterRegion> clusters_;
 
   //////////////////////////////////////////////
   // The condition format (string): 'columnname' + '-' + 'value', such as wid-4

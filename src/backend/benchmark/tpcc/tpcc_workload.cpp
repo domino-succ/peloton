@@ -119,8 +119,8 @@ void GenerateAndCacheQuery() {
   concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
 }
 
-std::vector<Region> ClusterAnalysis() {
-  std::vector<Region> txn_regions;
+std::vector<ClusterRegion> ClusterAnalysis() {
+  std::vector<SingleRegion> txn_regions;
 
   int size = concurrency::TransactionScheduler::GetInstance().GetCacheSize();
 
@@ -138,7 +138,7 @@ std::vector<Region> ClusterAnalysis() {
     // LOG_INFO("Dequeue a query %d and begin to transform", i);
 
     // Transform the query into a region
-    Region *region = query->RegionTransform();
+    SingleRegion *region = query->RegionTransform();
     txn_regions.push_back(*region);
   }
 
@@ -151,7 +151,7 @@ std::vector<Region> ClusterAnalysis() {
 
   // Transform the regions into a graph. That is to mark each region's
   // neighbors
-  dbs.PreProcess();
+  dbs.PreProcess(100);
   // dbs.DebugPrintRegion();
 
   int re = dbs.Clustering();
@@ -190,9 +190,12 @@ bool EnqueueCachedUpdate() {
     if (state.offline) {  // OFFLINE means just simple method to record the
                           // conflict
       // concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
-      concurrency::TransactionScheduler::GetInstance().RandomEnqueue(query);
+      // concurrency::TransactionScheduler::GetInstance().RandomEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query,
+                                                                     true);
     } else {  // otherwise use OOHASH method
-      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query,
+                                                                     false);
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
@@ -263,18 +266,14 @@ void RunBackend(oid_t thread_id) {
         break;
       }
       case SCHEDULER_TYPE_HASH: {
-        if (state.offline) {  // If OFFLINE, same with control
-          // ret_pop =
-          //    concurrency::TransactionScheduler::GetInstance().SingleDequeue(
-          //        ret_query);
-          ret_pop =
-              concurrency::TransactionScheduler::GetInstance().CounterDequeue(
-                  ret_query, thread_id);
-        } else {
-          ret_pop =
-              concurrency::TransactionScheduler::GetInstance().CounterDequeue(
-                  ret_query, thread_id);
-        }
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().CounterDequeue(
+                ret_query, thread_id);
+
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //                ret_query, thread_id);
+
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
@@ -319,17 +318,6 @@ void RunBackend(oid_t thread_id) {
     if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
       // Increase the counter
       execution_count_ref++;
-
-      // If this is for offline analysis, record this txn's conditions
-      if (state.offline) {
-        // Extract txn conditions include 4 conditions:
-        // S_I_ID  S_W_ID D_ID D_W_ID
-        // the corresponding values can be found from:
-        // warehouse_id_; district_id_; i_ids_
-        // For simplicity, the column name is hard coding here
-
-        ret_query->UpdateLogTable();
-      }
 
       if (is_running == false) {
         break;
@@ -381,13 +369,20 @@ void RunBackend(oid_t thread_id) {
           break;
         }
         case SCHEDULER_TYPE_HASH: {
+
+          // Record the conflict condition
+          ret_query->UpdateLogTable();
+
           if (state.offline) {
-            concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-                ret_query);
+            // concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+            //                ret_query);
+            concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+                ret_query, true);
           } else {
             concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query);
+                ret_query, false);
           }
+
           break;
         }
         case SCHEDULER_TYPE_CONFLICT_LEANING: {
@@ -621,7 +616,7 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(QueryBackend, thread_itr)));
   }
 
-  for (size_t round_id = 0; round_id < snapshot_round / 3; ++round_id) {
+  for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
     memcpy(abort_counts_snapshots[round_id], abort_counts,
@@ -635,7 +630,7 @@ void RunWorkload() {
   /*
     LOG_INFO("Change mode to OOHASH");
     state.offline = false;
-  */
+
   for (size_t round_id = snapshot_round / 3; round_id < snapshot_round;
        ++round_id) {
     std::this_thread::sleep_for(
@@ -648,7 +643,7 @@ void RunWorkload() {
 
     state.snapshot_memory.push_back(manager.GetLastTileGroupId());
   }
-
+  */
   is_running = false;
 
   // If this is offline analysis, write Log Table into a file. It is just a
