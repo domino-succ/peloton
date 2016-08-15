@@ -454,6 +454,7 @@ class DBScan {
 
     std::cout << "Finish remote: , entering neighbor remove..." << remote
               << std::endl;
+
     // Delete the remote relationship (like the remote warehouse)
     // For each node (region), compute the overlap for:
     // neighbor_region_ with each neighbor's neighbor_region_
