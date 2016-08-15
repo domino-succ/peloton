@@ -119,7 +119,7 @@ void GenerateAndCacheQuery() {
   concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
 }
 
-std::vector<ClusterRegion> ClusterAnalysis() {
+std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
   std::vector<SingleRegion> txn_regions;
 
   int size = concurrency::TransactionScheduler::GetInstance().GetCacheSize();
@@ -161,6 +161,10 @@ std::vector<ClusterRegion> ClusterAnalysis() {
   dbs.SetClusterRegion();
   // dbs.DebugPrintRegion();
   dbs.DebugPrintCluster();
+
+  std::cout << "Meta:" << std::endl;
+
+  dbs.DebugPrintClusterMeta();
 
   return dbs.GetClusters();
 }

@@ -964,7 +964,7 @@ bool RunStockLevel(const size_t& thread_id, const int& order_range);
 /////////////////////////////////////////////////////////
 void GenerateAndCacheQuery();
 bool EnqueueCachedUpdate();
-std::vector<ClusterRegion> ClusterAnalysis();
+std::unordered_map<int, ClusterRegion> ClusterAnalysis();
 NewOrder* GenerateNewOrder();
 
 /////////////////////////////////////////////////////////

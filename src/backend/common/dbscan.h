@@ -84,6 +84,7 @@ class Region {
   Bitset &GetBitset() { return bitset_; }
 
   void SetClusterNo(int cluster) { cluster_no_ = cluster; }
+  void ClearClusterNo() { cluster_no_ = 0; }
   int GetClusterNo() { return cluster_no_; }
 
  private:
@@ -245,12 +246,14 @@ class DBScan {
       if (region.IsMarked()) continue;
 
       // Start a new cluster
-      if (ExpandCluster(region, cluster)) {
+      if (ExpandCluster(region, region_index, cluster)) {
         cluster++;
       }
     }
 
-    cluster_count_ = cluster - 1;
+    // Clean the noise cluster
+    ClearNoiseCluster(10);
+
     return cluster_count_;
   }
 
@@ -322,10 +325,6 @@ class DBScan {
     int max_slot = -1;
     int max_count = 0;
 
-    std::stringstream oss;
-    oss << "overlap";
-    std::ofstream out(oss.str(), std::ofstream::out);
-
     for (uint32_t region = 0; region < regions_.size() - 1; region++) {
       for (std::unordered_map<uint32_t, int>::iterator iter =
                regions_.at(region).GetNeighbors().begin();
@@ -340,23 +339,35 @@ class DBScan {
 
         if (overlap != 0) {
 
-          // log file
-          // Write LogTable into a file
-          out << overlap << "\n";
-
           int entry = overlap / range;
 
           slots[entry].push_back(overlap);
           slots_count[entry]++;
 
+          //          // log file
+          //          // Write LogTable into a file
+          //          out << overlap << "\n";
+
           assert((uint32_t)slots_count[entry] == slots[entry].size());
 
+          // Record the largest overlap
           if (slots_count[entry] > max_count) {
             max_count = slots_count[entry];
             max_slot = entry;
           }
         }
       }
+    }
+
+    std::stringstream oss;
+    oss << "overlap";
+    std::ofstream out(oss.str(), std::ofstream::out);
+
+    for (auto &entry : slots_count) {
+      // log file
+      // Write LogTable into a file
+      out << entry.first << " ";
+      out << entry.second << "\n";
     }
 
     out.flush();
@@ -394,15 +405,52 @@ class DBScan {
       std::sort(slots[idx_next].begin(), slots[idx_next].end(),
                 std::greater<int>());
 
-      std::cout << "find out: ";
-      for (auto &item : slots[idx_next]) {
-        std::cout << item << " ";
-      }
-      std::cout << std::endl;
-
       // pick the first overlap
       remote = slots[idx_next].front();
     }
+
+    // For test
+    std::map<int, int> slots_count2;
+
+    std::cout << "entering checking..." << std::endl;
+    for (uint32_t region = 0; region < regions_.size() - 1; region++) {
+
+      for (std::unordered_map<uint32_t, int>::iterator iter =
+               regions_.at(region).GetNeighbors().begin();
+           iter != regions_.at(region).GetNeighbors().end(); iter++) {
+
+        // Get neighbor id
+        int neighbor_idx = iter->first;
+
+        if (regions_.at(region).GetWarehouseId() !=
+            regions_.at(neighbor_idx).GetWarehouseId()) {
+          // Compute the overlap
+          int overlap = regions_.at(region).GetNeighborRegion().OverlapValue(
+              regions_.at(neighbor_idx).GetNeighborRegion());
+
+          if (overlap != 0) {
+
+            int entry = overlap / range;
+
+            slots_count2[entry]++;
+          }
+        }
+      }
+    }
+    std::stringstream oss2;
+    oss2 << "remote";
+    std::ofstream out2(oss2.str(), std::ofstream::out);
+
+    for (auto &entry : slots_count2) {
+      // log file
+      // Write LogTable into a file
+      out2 << entry.first << " ";
+      out2 << entry.second << "\n";
+    }
+
+    out2.flush();
+    out2.close();
+    // end test
 
     std::cout << "Finish remote: , entering neighbor remove..." << remote
               << std::endl;
@@ -434,58 +482,19 @@ class DBScan {
           iter++;
         }
 
-        // For test
-        if (regions_.at(region).GetWarehouseId() !=
-            regions_.at(neighbor_idx).GetWarehouseId()) {
-
-          // std::cout << "overlap-----------------: " << overlap << std::endl;
-        }
-
-        // std::cout << "overlap: " << overlap << std::endl;
-      }
-
-      if (regions_.at(region).IsLocal() == false) {
-
-        // std::cout << "===================================" << std::endl;
-      }
-      // end test
-    }
-
-    // For test
-    oss << "remote";
-    std::ofstream outr(oss.str(), std::ofstream::out);
-
-    std::cout << "entering checking..." << std::endl;
-    for (uint32_t region = 0; region < regions_.size() - 1; region++) {
-
-      for (std::unordered_map<uint32_t, int>::iterator iter =
-               regions_.at(region).GetNeighbors().begin();
-           iter != regions_.at(region).GetNeighbors().end(); iter++) {
-
-        // Get neighbor id
-        int neighbor_idx = iter->first;
-
-        if (regions_.at(region).GetWarehouseId() !=
-            regions_.at(neighbor_idx).GetWarehouseId()) {
-          // Compute the overlap
-          int overlap = regions_.at(region).GetNeighborRegion().OverlapValue(
-              regions_.at(neighbor_idx).GetNeighborRegion());
-
-          // log file
-          // Write LogTable into a file
-          outr << overlap << "\n";
-
-          std::cout << "overlap-----------------: " << overlap << std::endl;
-        }
+        //        // For test
+        //        if (regions_.at(region).GetWarehouseId() !=
+        //            regions_.at(neighbor_idx).GetWarehouseId()) {
+        //
+        //          std::cout << "overlap-----------------: " << overlap <<
+        // std::endl;
+        //        }
+        //        // end test
       }
     }
-
-    outr.flush();
-    outr.close();
-    // end test
   }
 
-  bool ExpandCluster(SingleRegion &region, int cluster) {
+  bool ExpandCluster(SingleRegion &region, int region_idx, int cluster) {
 
     if (region.GetSumOverlap() < minPts_) {
 
@@ -502,6 +511,9 @@ class DBScan {
       region.SetClusterNo(cluster);
       region.SetMarked();
 
+      // Update this region into cluster_meta
+      UpdateClusterMeta(region_idx, cluster);
+
       for (auto &neighbor : region.GetNeighbors()) {
         uint32_t idx = neighbor.first;
         SingleRegion &neighbor_region = regions_.at(idx);
@@ -509,13 +521,18 @@ class DBScan {
         // If this region has been processed, skip it
         if (neighbor_region.IsMarked()) continue;
 
-        // Otherwise, mark the neighbor as the same cluster
-        neighbor_region.SetClusterNo(cluster);
-        neighbor_region.SetMarked();
-
         // If the neighbor is also a core, expand it
         if (neighbor_region.GetSumOverlap() >= minPts_) {
-          ExpandCluster(neighbor_region, cluster);
+          ExpandCluster(neighbor_region, idx, cluster);
+        }
+        // Just mark this node with cluster and update meta
+        else {
+          // Otherwise, mark the neighbor as the same cluster
+          neighbor_region.SetClusterNo(cluster);
+          neighbor_region.SetMarked();
+
+          // Update this region into cluster_meta
+          UpdateClusterMeta(idx, cluster);
         }
       }
     }
@@ -529,13 +546,22 @@ class DBScan {
   // This is for further cluster analysis and must be used after Expand
   // execution.
   void SetClusterRegion() {
-    // First create the regions corresponding to the clusters
-    clusters_.resize(cluster_count_);
+
+    // For test
+    int count = 0;
 
     // Iterate all txns
     for (auto &region : regions_) {
       // Get the cluster tag
       int cluster = region.GetClusterNo();
+
+      // For test
+      if (cluster == 7 || cluster == 8) {
+        std::cout << "Region: " << count << " cluster: " << cluster
+                  << std::endl;
+      }
+      count++;
+      // end test
 
       // Skip the noise nodes (cluster starts from 1)
       if (cluster < 1) continue;
@@ -544,27 +570,28 @@ class DBScan {
       // Note: cluster tag starts from 1, so the index should be cluster-1
 
       // If the cluster already has txns, just compute the overlay
-      if (clusters_[cluster - 1].IsInit()) {
-        Region r = region.Overlay(clusters_[cluster - 1]);
-        clusters_[cluster - 1].SetCover(r);
+      if (clusters_.find(cluster) != clusters_.end()) {
+        Region r = region.Overlay(clusters_[cluster]);
+        clusters_[cluster].SetCover(r);
       }
-      // If the corresponding cluster has no txns yet, first should set
-      // the region to it
+      // Create
       else {
-        clusters_[cluster - 1].SetCover(region);
-        clusters_[cluster - 1].SetInit();
+        ClusterRegion c_region;
+        c_region.SetCover(region);
+        clusters_.emplace(cluster, c_region);
+        clusters_[cluster].SetInit();
       }
 
       // Increase the total txns in this cluster
-      clusters_[cluster - 1].IncreaseMemberCount();
+      clusters_[cluster].IncreaseMemberCount();
 
       // Set the cluster NO. (We don't need this, but in order to keep
       // insistence)
-      clusters_[cluster - 1].SetClusterNo(cluster);
+      clusters_[cluster].SetClusterNo(cluster);
     }
   }
 
-  std::vector<ClusterRegion> &GetClusters() { return clusters_; }
+  std::unordered_map<int, ClusterRegion> &GetClusters() { return clusters_; }
 
   void DebugPrintRegion() {
     // The number of all the regions
@@ -591,15 +618,68 @@ class DBScan {
   void DebugPrintCluster() {
 
     // Print all
-    for (int cluster_index = 0; cluster_index < cluster_count_;
-         cluster_index++) {
-      ClusterRegion &region = clusters_.at(cluster_index);
+    for (auto &cluster : clusters_) {
 
-      std::cout << "Cluster: " << cluster_index
-                << ". Its members are: " << region.GetMemberCount();
+      std::cout << "Cluster: " << cluster.first
+                << ". Its members are: " << cluster.second.GetMemberCount();
 
       std::cout << std::endl;
     }
+  }
+
+  void DebugPrintClusterMeta() {
+
+    // Print all
+    for (auto &cluster : cluster_meta_) {
+
+      std::cout << "Cluster: " << cluster.first
+                << ". Its members are: " << cluster.second.size();
+
+      std::cout << std::endl;
+    }
+  }
+
+ private:
+  void UpdateClusterMeta(int region_idx, int cluster) {
+    // Insert this region into cluster_meta
+    std::unordered_map<int, std::vector<int>>::iterator iter =
+        cluster_meta_.find(cluster);
+
+    // Increase
+    if (iter != cluster_meta_.end()) {
+      iter->second.push_back(region_idx);
+    }
+    // Create
+    else {
+      cluster_meta_.emplace(cluster, std::vector<int>(1, region_idx));
+    }
+  }
+
+  void ClearNoiseCluster(int noise) {
+    for (std::unordered_map<int, std::vector<int>>::iterator iter =
+             cluster_meta_.begin();
+         iter != cluster_meta_.end();) {
+
+      // Handle noise cluster
+      if (iter->second.size() < (uint32_t)noise) {
+        // remove cluster tag from each region
+        for (auto &region_idx : iter->second) {
+          regions_.at(region_idx).ClearClusterNo();
+
+          // Test
+          int c = regions_.at(region_idx).GetClusterNo();
+          std::cout << "remove cluster " << iter->first << ": region "
+                    << region_idx << "After remove cluster No. is: " << c
+                    << std::endl;
+        }
+        // remove this cluster
+        iter = cluster_meta_.erase(iter);
+      } else {
+        iter++;
+      }
+    }
+
+    cluster_count_ = cluster_meta_.size();
   }
 
  private:
@@ -607,7 +687,11 @@ class DBScan {
   int minPts_;
 
   int cluster_count_;
-  std::vector<ClusterRegion> clusters_;
+  // std::vector<ClusterRegion> clusters_;
+  std::unordered_map<int, ClusterRegion> clusters_;
+
+  // For example: cluster1: <region2, region3, region19....>
+  std::unordered_map<int, std::vector<int>> cluster_meta_;
 };
 
 }  // end namespace peloton

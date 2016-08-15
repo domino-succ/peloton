@@ -100,13 +100,13 @@ void LoadQuery(uint64_t count) {
 
     // Get clustering result. Each cluster is a big region (vector) including
     // cluster NO.
-    std::vector<ClusterRegion> clusters = ClusterAnalysis();
+    std::unordered_map<int, ClusterRegion> clusters = ClusterAnalysis();
 
     std::cout << "===========Print debug info =================" << std::endl;
     for (auto &cluster : clusters) {
 
-      std::cout << "Cluster: " << cluster.GetClusterNo()
-                << ". Its members are: " << cluster.GetMemberCount();
+      std::cout << "Cluster: " << cluster.first
+                << ". Its members are: " << cluster.second.GetMemberCount();
       std::cout << std::endl;
     }
     // end test

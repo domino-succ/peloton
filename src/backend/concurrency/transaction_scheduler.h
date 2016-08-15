@@ -577,8 +577,10 @@ class TransactionScheduler {
 
   int GetCacheSize() { return query_cache_queue_.Size(); }
 
-  void SetClusters(std::vector<ClusterRegion>& clusters) {
-    clusters_ = clusters;
+  void SetClusters(std::unordered_map<int, ClusterRegion>& clusters) {
+    for (auto& entry : clusters) {
+      clusters_.push_back(entry.second);
+    }
   }
 
   int GetQueueCount() { return queue_counts_; }
