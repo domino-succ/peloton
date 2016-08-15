@@ -151,7 +151,7 @@ std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
 
   // Transform the regions into a graph. That is to mark each region's
   // neighbors
-  dbs.PreProcess(1);
+  dbs.PreProcess(100);
   // dbs.DebugPrintRegion();
 
   int re = dbs.Clustering();
