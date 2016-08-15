@@ -63,7 +63,7 @@ for i in range(4, 12):
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
- in range(4, 12):
+for i in range(4, 12):
     cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + "-q hash -l -z 1"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
