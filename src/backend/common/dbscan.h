@@ -43,6 +43,12 @@ class Region {
   // Just copy bitset, involves char* copy, but no deep copying here
   void SetCover(Region &rh_region) { bitset_ = rh_region.GetBitset(); }
 
+  // Set empty bitset, but with dimension
+  void SetCover(int wid_scale, int iid_scale) {
+    // Allocate bitset
+    bitset_.Resize(wid_scale * iid_scale);
+  }
+
   // Set two bitsets: the scale and bits
   void SetCover(int wid_scale, std::vector<int> &wids, int iid_scale,
                 std::vector<int> &iids) {
@@ -137,7 +143,7 @@ class SingleRegion : public Region {
         marked_(false),
         local_(local),
         warehouse_id_(warehouse) {
-    neighbor_region_.SetCover(*this);
+    neighbor_region_.SetCover(wid_scale, iid_scale);
     neighbor_region_.SetInit();
   }
 
@@ -548,21 +554,10 @@ class DBScan {
   // execution.
   void SetClusterRegion() {
 
-    // For test
-    int count = 0;
-
     // Iterate all txns
     for (auto &region : regions_) {
       // Get the cluster tag
       int cluster = region.GetClusterNo();
-
-      // For test
-      if (cluster == 7 || cluster == 8) {
-        std::cout << "Region: " << count << " cluster: " << cluster
-                  << std::endl;
-      }
-      count++;
-      // end test
 
       // Skip the noise nodes (cluster starts from 1)
       if (cluster < 1) continue;

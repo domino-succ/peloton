@@ -132,15 +132,14 @@ bool OptimisticTxnManager::AcquireOwnership(
   return true;
 }
 
-
 // release write lock on a tuple.
 // one example usage of this method is when a tuple is acquired, but operation
-// (insert,update,delete) can't proceed, the executor needs to yield the 
+// (insert,update,delete) can't proceed, the executor needs to yield the
 // ownership before return false to upper layer.
 // It should not be called if the tuple is in the write set as commit and abort
 // will release the write lock anyway.
 void OptimisticTxnManager::YieldOwnership(const oid_t &tile_group_id,
-  const oid_t &tuple_id) {
+                                          const oid_t &tuple_id) {
 
   auto &manager = catalog::Manager::GetInstance();
   auto tile_group_header = manager.GetTileGroup(tile_group_id)->GetHeader();
@@ -181,16 +180,19 @@ bool OptimisticTxnManager::PerformInsert(const ItemPointer &location) {
 // a certain version (either old or new) of a tuple must be visible.
 // this function is invoked when it is the first time to update the tuple.
 // the tuple passed into this function is the global version.
-void OptimisticTxnManager::PerformUpdate(const ItemPointer &old_location,
-                                         const ItemPointer &new_location, UNUSED_ATTRIBUTE const bool is_blind_write) {
-  LOG_TRACE("PerformUpdate (%u, %u)->(%u, %u)\n", old_location.block, old_location.offset,
-             new_location.block, new_location.offset );
+void OptimisticTxnManager::PerformUpdate(
+    const ItemPointer &old_location, const ItemPointer &new_location,
+    UNUSED_ATTRIBUTE const bool is_blind_write) {
+  LOG_TRACE("PerformUpdate (%u, %u)->(%u, %u)\n", old_location.block,
+            old_location.offset, new_location.block, new_location.offset);
   auto transaction_id = current_txn->GetTransactionId();
 
   auto tile_group_header = catalog::Manager::GetInstance()
-      .GetTileGroup(old_location.block)->GetHeader();
+                               .GetTileGroup(old_location.block)
+                               ->GetHeader();
   auto new_tile_group_header = catalog::Manager::GetInstance()
-      .GetTileGroup(new_location.block)->GetHeader();
+                                   .GetTileGroup(new_location.block)
+                                   ->GetHeader();
 
   // if we can perform update, then we must have already locked the older
   // version.
@@ -239,13 +241,15 @@ void OptimisticTxnManager::PerformDelete(const ItemPointer &old_location,
                                          const ItemPointer &new_location) {
   auto transaction_id = current_txn->GetTransactionId();
 
-  LOG_TRACE("PerformDelete (%u, %u)->(%u, %u)\n", old_location.block, old_location.offset,
-                                                 new_location.block, new_location.offset );
+  LOG_TRACE("PerformDelete (%u, %u)->(%u, %u)\n", old_location.block,
+            old_location.offset, new_location.block, new_location.offset);
 
   auto tile_group_header = catalog::Manager::GetInstance()
-      .GetTileGroup(old_location.block)->GetHeader();
+                               .GetTileGroup(old_location.block)
+                               ->GetHeader();
   auto new_tile_group_header = catalog::Manager::GetInstance()
-      .GetTileGroup(new_location.block)->GetHeader();
+                                   .GetTileGroup(new_location.block)
+                                   ->GetHeader();
 
   // if we can perform update, then we must have already locked the older
   // version.
@@ -303,37 +307,37 @@ Result OptimisticTxnManager::CommitTransaction() {
 
   //*****************************************************
   // we can optimize read-only transaction.
-  if (current_txn->IsReadOnly() == true) {
-    // validate read set.
-    for (auto &tile_group_entry : rw_set) {
-      oid_t tile_group_id = tile_group_entry.first;
-      auto tile_group = manager.GetTileGroup(tile_group_id);
-      auto tile_group_header = tile_group->GetHeader();
-      for (auto &tuple_entry : tile_group_entry.second) {
-        auto tuple_slot = tuple_entry.first;
-        // if this tuple is not newly inserted.
-        if (tuple_entry.second == RW_TYPE_READ) {
-          if (tile_group_header->GetTransactionId(tuple_slot) ==
-                  INITIAL_TXN_ID &&
-              tile_group_header->GetBeginCommitId(tuple_slot) <=
-                  current_txn->GetBeginCommitId() &&
-              tile_group_header->GetEndCommitId(tuple_slot) >=
-                  current_txn->GetBeginCommitId()) {
-            // the version is not owned by other txns and is still visible.
-            continue;
-          }
-          // otherwise, validation fails. abort transaction.
-          return AbortTransaction();
-        } else {
-          assert(tuple_entry.second == RW_TYPE_INS_DEL);
-        }
-      }
-    }
-    // is it always true???
-    Result ret = current_txn->GetResult();
-    EndTransaction();
-    return ret;
-  }
+  //  if (current_txn->IsReadOnly() == true) {
+  //    // validate read set.
+  //    for (auto &tile_group_entry : rw_set) {
+  //      oid_t tile_group_id = tile_group_entry.first;
+  //      auto tile_group = manager.GetTileGroup(tile_group_id);
+  //      auto tile_group_header = tile_group->GetHeader();
+  //      for (auto &tuple_entry : tile_group_entry.second) {
+  //        auto tuple_slot = tuple_entry.first;
+  //        // if this tuple is not newly inserted.
+  //        if (tuple_entry.second == RW_TYPE_READ) {
+  //          if (tile_group_header->GetTransactionId(tuple_slot) ==
+  //                  INITIAL_TXN_ID &&
+  //              tile_group_header->GetBeginCommitId(tuple_slot) <=
+  //                  current_txn->GetBeginCommitId() &&
+  //              tile_group_header->GetEndCommitId(tuple_slot) >=
+  //                  current_txn->GetBeginCommitId()) {
+  //            // the version is not owned by other txns and is still visible.
+  //            continue;
+  //          }
+  //          // otherwise, validation fails. abort transaction.
+  //          return AbortTransaction();
+  //        } else {
+  //          assert(tuple_entry.second == RW_TYPE_INS_DEL);
+  //        }
+  //      }
+  //    }
+  //    // is it always true???
+  //    Result ret = current_txn->GetResult();
+  //    EndTransaction();
+  //    return ret;
+  //  }
   //*****************************************************
 
   // generate transaction id.
@@ -357,8 +361,9 @@ Result OptimisticTxnManager::CommitTransaction() {
           continue;
         } else {
           if (tile_group_header->GetTransactionId(tuple_slot) ==
-                  INITIAL_TXN_ID && tile_group_header->GetBeginCommitId(
-                                        tuple_slot) <= end_commit_id &&
+                  INITIAL_TXN_ID &&
+              tile_group_header->GetBeginCommitId(tuple_slot) <=
+                  end_commit_id &&
               tile_group_header->GetEndCommitId(tuple_slot) >= end_commit_id) {
             // the version is not owned by other txns and is still visible.
             continue;
@@ -372,6 +377,9 @@ Result OptimisticTxnManager::CommitTransaction() {
                   tile_group_header->GetEndCommitId(tuple_slot));
         // otherwise, validation fails. abort transaction.
         AddOneReadAbort();
+
+        std::cout << "This is abort and return...." << std::endl;
+
         return AbortTransaction();
       }
     }
@@ -391,7 +399,7 @@ Result OptimisticTxnManager::CommitTransaction() {
         // logging.
         ItemPointer new_version =
             tile_group_header->GetNextItemPointer(tuple_slot);
-        //ItemPointer old_version(tile_group_id, tuple_slot);
+        // ItemPointer old_version(tile_group_id, tuple_slot);
 
         // logging.
         // log_manager.LogUpdate(current_txn, end_commit_id, old_version,
@@ -518,7 +526,8 @@ Result OptimisticTxnManager::AbortTransaction() {
 
         // reset the item pointers.
         tile_group_header->SetNextItemPointer(tuple_slot, INVALID_ITEMPOINTER);
-        new_tile_group_header->SetPrevItemPointer(new_version.offset, INVALID_ITEMPOINTER);
+        new_tile_group_header->SetPrevItemPointer(new_version.offset,
+                                                  INVALID_ITEMPOINTER);
 
         COMPILER_MEMORY_FENCE;
 
@@ -548,7 +557,8 @@ Result OptimisticTxnManager::AbortTransaction() {
 
         // reset the item pointers.
         tile_group_header->SetNextItemPointer(tuple_slot, INVALID_ITEMPOINTER);
-        new_tile_group_header->SetPrevItemPointer(new_version.offset, INVALID_ITEMPOINTER);
+        new_tile_group_header->SetPrevItemPointer(new_version.offset,
+                                                  INVALID_ITEMPOINTER);
 
         COMPILER_MEMORY_FENCE;
 
@@ -566,7 +576,7 @@ Result OptimisticTxnManager::AbortTransaction() {
         tile_group_header->SetTransactionId(tuple_slot, INVALID_TXN_ID);
 
         // GC recycle
-        //RecycleInvalidTupleSlot(tile_group_id, tuple_slot);
+        // RecycleInvalidTupleSlot(tile_group_id, tuple_slot);
 
       } else if (tuple_entry.second == RW_TYPE_INS_DEL) {
         tile_group_header->SetEndCommitId(tuple_slot, MAX_CID);
@@ -578,7 +588,6 @@ Result OptimisticTxnManager::AbortTransaction() {
 
         // GC recycle
         RecycleInvalidTupleSlot(tile_group_id, tuple_slot);
-
       }
     }
   }

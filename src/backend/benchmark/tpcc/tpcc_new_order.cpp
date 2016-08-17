@@ -890,7 +890,8 @@ bool RunNewOrder(NewOrder *new_order) {
     LOG_TRACE("abort txn, thread_id = %d, d_id = %d, next_o_id = %d",
               (int)thread_id, (int)district_id,
               (int)ValuePeeker::PeekAsInteger(d_next_o_id));
-    // return true;
+
+    std::cout << "Commit fail..." << std::endl;
     return false;
   }
 }

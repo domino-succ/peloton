@@ -120,6 +120,9 @@ class Bitset {
     bits_[idx] |= offset;
   }
 
+  // Set all bits with 0
+  void Clear() { memset(bits_, 0, num_bytes_); }
+
   // TODO: Return Bitset where its value to value copying. But for char* it only
   // copies address, not deep copy. So in destructor, we do not free it. We
   // should fix this in the future
