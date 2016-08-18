@@ -174,12 +174,17 @@ class UpdateQuery : public concurrency::TransactionQuery {
 
   // For Log Table
   virtual void UpdateLogTable() {}
+  virtual void UpdateLogTableFullConflict() {}
+  virtual void UpdateLogTableFullSuccess() {}
 
   // For Run Table
   virtual int LookupRunTable() { return 0; }
   virtual int LookupRunTableMax() { return 0; }
   virtual void UpdateRunTable(int queue_no) { std::cout << queue_no; }
   virtual void DecreaseRunTable() {}
+
+  virtual int LookupRunTableFull() { return 0; }
+  virtual int LookupRunTableMaxFull() { return 0; }
 
   // For metadata
   virtual void SetQueueNo(int queue_no) { std::cout << queue_no; }

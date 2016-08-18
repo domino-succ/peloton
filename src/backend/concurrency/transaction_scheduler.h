@@ -67,12 +67,17 @@ class TransactionQuery {
 
   // For Log Table
   virtual void UpdateLogTable() = 0;
+  virtual void UpdateLogTableFullConflict() = 0;
+  virtual void UpdateLogTableFullSuccess() = 0;
 
   // For Run Table
   virtual int LookupRunTable() = 0;
   virtual int LookupRunTableMax() = 0;
   virtual void UpdateRunTable(int queue_no) = 0;
   virtual void DecreaseRunTable() = 0;
+
+  virtual int LookupRunTableFull() = 0;
+  virtual int LookupRunTableMaxFull() = 0;
 
   // For metadata
   virtual void SetQueueNo(int queue_no) = 0;
@@ -420,13 +425,25 @@ class TransactionScheduler {
 
   std::atomic<int> g_queue_no;
 
-  void OOHashEnqueue(TransactionQuery* query, bool simple) {
+  void OOHashEnqueue(TransactionQuery* query, bool offline, bool online) {
     int queue = -1;
     // Find out the corresponding queue
-    if (simple) {
-      queue = query->LookupRunTableMax();
-    } else {
-      queue = query->LookupRunTable();
+
+    // MAX
+    if (online) {
+      if (offline) {
+        queue = query->LookupRunTableMaxFull();
+      } else {
+        queue = query->LookupRunTableMax();
+      }
+    }
+    // SUM
+    else {
+      if (offline) {
+        queue = query->LookupRunTableFull();
+      } else {
+        queue = query->LookupRunTable();
+      }
     }
 
     // These is no queue matched. Randomly select a queue
@@ -591,7 +608,17 @@ class TransactionScheduler {
   // support multi-thread
   void LogTableIncrease(std::string& key) {
     counter_lock_.Lock();
-    ++log_table_[key];
+
+    auto entry = log_table_.find(key);
+
+    if (entry != log_table_.end()) {
+      ++log_table_[key];
+    }
+    // Create
+    else {
+      log_table_.emplace(key, 1);
+    }
+
     counter_lock_.Unlock();
   }
 
@@ -601,6 +628,51 @@ class TransactionScheduler {
     auto entry = log_table_.find(key);
     if (entry != log_table_.end()) {
       return entry->second;
+    }
+
+    return 0;
+  }
+
+  // support multi-thread
+  void LogTableFullConflictIncrease(std::string& key) {
+    counter_lock_.Lock();
+
+    auto entry = log_table_full_.find(key);
+
+    if (entry != log_table_full_.end()) {
+      entry->second.first++;
+    }
+    // Create
+    else {
+      log_table_full_.emplace(key, std::make_pair(1, 0));
+    }
+
+    counter_lock_.Unlock();
+  }
+
+  void LogTableFullSuccessIncrease(std::string& key) {
+    counter_lock_.Lock();
+
+    auto entry = log_table_full_.find(key);
+
+    if (entry != log_table_full_.end()) {
+      entry->second.second++;
+    }
+    // Create
+    else {
+      log_table_full_.emplace(key, std::make_pair(0, 1));
+    }
+
+    counter_lock_.Unlock();
+  }
+
+  // Return the condition conflict rate
+  double LogTableFullGet(std::string& key) {
+
+    auto entry = log_table_full_.find(key);
+    if (entry != log_table_full_.end()) {
+      return ((entry->second.first * 1.0) /
+              (entry->second.first + entry->second.second));
     }
 
     return 0;
@@ -813,12 +885,16 @@ class TransactionScheduler {
   // Log Table: a Hash table that records condition-->count for conflict txns.
   // For example, txnA conflict with another txnB. TxnA has three conditions:
   // wid=3, iid=100, did=10. It increase these three conditions in LogTable:
+  // condition conflict success
   // |----------------
-  // | wid=3   --> 3001
-  // | iid=100 --> 101
-  // | did=10  --> 11
+  // | wid=3   --> 3001 1234
+  // | iid=100 --> 101  5678
+  // | did=10  --> 11   6789
   // |----------------
   std::unordered_map<std::string, int> log_table_;
+
+  // log_table_full_ records not only conflict but also success
+  std::unordered_map<std::string, std::pair<int, int>> log_table_full_;
 };
 
 // UINT64_MAX;

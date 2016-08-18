@@ -178,6 +178,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.run_affinity = false;
   state.run_backoff = false;
   state.offline = false;
+  state.online = false;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -189,8 +190,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aelh:r:m:y:k:w:z:v:d:s:q:b:p:g:i:t:", opts,
-                        &idx);
+    int c = getopt_long(argc, argv, "aeofh:r:m:y:k:w:z:v:d:s:q:b:p:g:i:t:",
+                        opts, &idx);
 
     if (c == -1) break;
 
@@ -234,7 +235,10 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'e':
         state.run_backoff = true;
         break;
-      case 'l':
+      case 'o':
+        state.online = true;
+        break;
+      case 'f':
         state.offline = true;
         break;
       case 'q': {
@@ -356,6 +360,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
   LOG_TRACE("%s : %d", "Run offline analysis", state.offline);
+  LOG_TRACE("%s : %d", "Run online analysis", state.online);
   LOG_TRACE("%s : %d", "Run cluster min_pts", state.min_pts);
   LOG_TRACE("%s : %d", "Run cluster analysis txns", state.analysis_txns);
 }

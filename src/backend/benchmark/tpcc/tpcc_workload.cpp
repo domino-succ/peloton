@@ -191,15 +191,14 @@ bool EnqueueCachedUpdate() {
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
     concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
   } else if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    if (state.offline) {  // OFFLINE means just simple method to record the
-                          // conflict
+    if (state.online) {  // ONLINE means Run table
       // concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
       // concurrency::TransactionScheduler::GetInstance().RandomEnqueue(query);
-      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query,
-                                                                     true);
+      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+          query, state.offline, true);
     } else {  // otherwise use OOHASH method
-      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(query,
-                                                                     false);
+      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+          query, state.offline, false);
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
@@ -374,17 +373,22 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_HASH: {
 
-          // Record the conflict condition
-          ret_query->UpdateLogTable();
+          // Log Table: record the conflict condition
+          if (state.offline) {  // OFFLINE = true means using JUST MAX
+            ret_query->UpdateLogTable();
+          } else {
+            ret_query->UpdateLogTableFullConflict();
+          }
 
-          if (state.offline) {
+          // Run Table: record txn
+          if (state.online) {
             // concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
             //                ret_query);
             concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query, true);
+                ret_query, state.offline, true);
           } else {
             concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query, false);
+                ret_query, state.offline, false);
           }
 
           break;
@@ -423,6 +427,13 @@ void RunBackend(oid_t thread_id) {
 
       // clean up the hash table
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
+
+        // If ONLINE == FALSE means we should record SUCCESS txns
+        if (!state.offline) {
+          ret_query->UpdateLogTableFullSuccess();
+        }
+
+        // Remove the txn from Run Table
         ret_query->DecreaseRunTable();
       }
 
