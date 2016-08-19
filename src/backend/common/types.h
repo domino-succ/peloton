@@ -59,7 +59,8 @@ enum GCType {
   GC_TYPE_OFF = 0,
   GC_TYPE_CO,
   GC_TYPE_VACUUM,
-  GC_TYPE_N2O
+  GC_TYPE_N2O,
+  GC_TYPE_N2O_TXN,
 };
 
 //===--------------------------------------------------------------------===//
@@ -154,24 +155,31 @@ extern int DEFAULT_TUPLES_PER_TILEGROUP;
 enum PostgresValueType {
   POSTGRES_VALUE_TYPE_INVALID = -1,
   POSTGRES_VALUE_TYPE_BOOLEAN = 16,
+
   POSTGRES_VALUE_TYPE_SMALLINT = 21,
   POSTGRES_VALUE_TYPE_INTEGER = 23,
   POSTGRES_VALUE_TYPE_BIGINT = 20,
   POSTGRES_VALUE_TYPE_REAL = 700,
   POSTGRES_VALUE_TYPE_DOUBLE = 701,
+
   POSTGRES_VALUE_TYPE_TEXT = 25,
+
   POSTGRES_VALUE_TYPE_BPCHAR = 1042,
   POSTGRES_VALUE_TYPE_BPCHAR2 = 1014,
+
   POSTGRES_VALUE_TYPE_VARCHAR = 1015,
   POSTGRES_VALUE_TYPE_VARCHAR2 = 1043,
+
   POSTGRES_VALUE_TYPE_DATE = 1082,
   POSTGRES_VALUE_TYPE_TIMESTAMPS = 1114,
   POSTGRES_VALUE_TYPE_TIMESTAMPS2 = 1184,
+
   POSTGRES_VALUE_TYPE_TEXT_ARRAY = 1009,     // TEXTARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_INT2_ARRAY = 1005,     // INT2ARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_INT4_ARRAY = 1007,     // INT4ARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_OID_ARRAY = 1028,      // OIDARRAYOID in postgres code
   POSTGRES_VALUE_TYPE_FLOADT4_ARRAY = 1021,  // FLOADT4ARRAYOID in postgres code
+
   POSTGRES_VALUE_TYPE_DECIMAL = 1700
 };
 
@@ -366,12 +374,14 @@ enum ConcurrencyType {
   CONCURRENCY_TYPE_TO = 4,                // timestamp ordering
   CONCURRENCY_TYPE_SSI = 5,               // serializable snapshot isolation
   CONCURRENCY_TYPE_OCC_RB = 6,            // optimistic + rollback segment
-  CONCURRENCY_TYPE_OCC_N2O = 7,  // optimisitic with new to old version chain
-  CONCURRENCY_TYPE_TO_RB = 8,    // timestamp ordering + rollback segment
-  CONCURRENCY_TYPE_TO_N2O =
-      9,  // timestamp ordering with new to old version chain
+  CONCURRENCY_TYPE_OCC_N2O = 7,           // optimisitic with new to old version chain
+  CONCURRENCY_TYPE_TO_RB = 8,             // timestamp ordering + rollback segment
+  CONCURRENCY_TYPE_TO_N2O = 9,            // timestamp ordering with new to old version chain
   CONCURRENCY_TYPE_PESSIMISTIC_OPT = 10,  // pessimistic with optimization
-  CONCURRENCY_TYPE_TO_FULL_RB = 11  // rollback segment with full tuple storage
+  CONCURRENCY_TYPE_TO_FULL_RB = 11,       // rollback segment with full tuple storage
+  CONCURRENCY_TYPE_OCC_CENTRAL_RB = 12,   // optimistic + central rb
+  CONCURRENCY_TYPE_TO_CENTRAL_RB = 13,    // timestamp ordering + central delta rb
+  CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB = 14 // timestamp ordering + full + central rb
 };
 
 enum IsolationLevelType {
@@ -426,6 +436,11 @@ enum IndexType {
   INDEX_TYPE_RBHASH = 6        // rollback segment hash index
 };
 
+enum SecondaryIndexType {
+  SECONDARY_INDEX_TYPE_VERSION = 0,
+  SECONDARY_INDEX_TYPE_TUPLE = 1
+};
+
 enum IndexConstraintType {
   INDEX_CONSTRAINT_TYPE_INVALID = 0,  // invalid index constraint type
   INDEX_CONSTRAINT_TYPE_DEFAULT =
@@ -474,6 +489,7 @@ enum PlanNodeType {
   PLAN_NODE_TYPE_DISTINCT = 57,
   PLAN_NODE_TYPE_SETOP = 58,   // set operation
   PLAN_NODE_TYPE_APPEND = 59,  // append
+
   PLAN_NODE_TYPE_AGGREGATE_V2 = 61,
   PLAN_NODE_TYPE_HASH = 62,
 
@@ -758,7 +774,9 @@ static const txn_id_t INVALID_TXN_ID = 0;
 
 static const txn_id_t INITIAL_TXN_ID = 1;
 
-static const txn_id_t START_TXN_ID = 2;
+static const txn_id_t READONLY_TXN_ID = 2;
+
+static const txn_id_t START_TXN_ID = 3;
 
 static const txn_id_t MAX_TXN_ID = std::numeric_limits<txn_id_t>::max();
 
@@ -768,7 +786,9 @@ typedef uint64_t cid_t;
 
 static const cid_t INVALID_CID = 0;
 
-static const cid_t START_CID = 1;
+static const cid_t READ_ONLY_START_CID = 1;
+
+static const cid_t START_CID = 2;
 
 static const cid_t MAX_CID = std::numeric_limits<cid_t>::max();
 

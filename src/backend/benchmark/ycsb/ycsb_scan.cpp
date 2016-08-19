@@ -51,6 +51,7 @@
 #include "backend/executor/update_executor.h"
 #include "backend/executor/index_scan_executor.h"
 #include "backend/executor/insert_executor.h"
+#include "backend/executor/seq_scan_executor.h"
 
 #include "backend/expression/abstract_expression.h"
 #include "backend/expression/constant_value_expression.h"
@@ -72,82 +73,53 @@
 #include "backend/storage/data_table.h"
 #include "backend/storage/table_factory.h"
 
-
-
 namespace peloton {
 namespace benchmark {
 namespace ycsb {
 
-ReadPlans PrepareReadPlan() {
+bool RunScan() {
+  if (state.scan_mock_duration != 0) {
+    auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
+    txn_manager.BeginReadonlyTransaction();
+    std::this_thread::sleep_for(std::chrono::seconds(state.scan_mock_duration));
+    txn_manager.EndReadonlyTransaction();
+  }
 
   std::unique_ptr<executor::ExecutorContext> context(
       new executor::ExecutorContext(nullptr));
-
-  std::vector<oid_t> key_column_ids;
-  std::vector<ExpressionType> expr_types;
-  key_column_ids.push_back(0);
-  expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
-
-  std::vector<Value> values;
-
-  std::vector<expression::AbstractExpression *> runtime_keys;
-
-  auto ycsb_pkey_index = user_table->GetIndexWithOid(user_table_pkey_index_oid);
-
-  planner::IndexScanPlan::IndexScanDesc index_scan_desc(
-      ycsb_pkey_index, key_column_ids, expr_types, values, runtime_keys);
-
-  // Create plan node.
-  auto predicate = nullptr;
-
+  
   // Column ids to be added to logical tile after scan.
-  std::vector<oid_t> column_ids;
-  oid_t column_count = state.column_count + 1;
 
-  for (oid_t col_itr = 0; col_itr < column_count; col_itr++) {
-    column_ids.push_back(col_itr);
-  }  
-
-  planner::IndexScanPlan index_scan_node(
-      user_table, predicate, column_ids, index_scan_desc);
-
-
-  executor::IndexScanExecutor *index_scan_executor =
-      new executor::IndexScanExecutor(&index_scan_node, context.get());
-
-  index_scan_executor->Init();
-
-  ReadPlans read_plans;
-  read_plans.index_scan_executor_ = index_scan_executor;
+  oid_t begin_read_column_id = 1;
+  oid_t end_read_column_id = begin_read_column_id + state.read_column_count - 1;
   
-  return read_plans;
-}
+  std::vector<oid_t> read_column_ids;
+  for (oid_t col_itr = begin_read_column_id; col_itr <= end_read_column_id; col_itr++) {
+    read_column_ids.push_back(col_itr);
+  }
 
+  // std::vector<oid_t> column_ids;
+  // oid_t column_count = state.column_count + 1;
 
-bool RunRead(ReadPlans &read_plans, ZipfDistribution &zipf) {
+  // for (oid_t col_itr = 0; col_itr < column_count; col_itr++) {
+  //   column_ids.push_back(col_itr);
+  // }
   
-
+  // Create plan node.
+  planner::SeqScanPlan node(user_table, nullptr, read_column_ids);
+  
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   
-  auto txn = txn_manager.BeginTransaction();
+  auto txn = txn_manager.BeginReadonlyTransaction();
 
-  read_plans.ResetState();
-
-  std::vector<Value> values;
-
-  auto lookup_key = zipf.GetNextNumber();
-
-  values.push_back(ValueFactory::GetIntegerValue(lookup_key));
-
-  // printf("perform read, key = %d\n", (int)lookup_key);
-  
-  read_plans.index_scan_executor_->SetValues(values);
+  executor::SeqScanExecutor executor(&node, context.get());
 
   /////////////////////////////////////////////////////////
   // EXECUTE
   /////////////////////////////////////////////////////////
 
-  auto ret_result = ExecuteReadTest(read_plans.index_scan_executor_);
+  executor.Init();
+  auto ret_result = ExecuteReadTest(&executor);
 
   if (txn->GetResult() != Result::RESULT_SUCCESS) {
     txn_manager.AbortTransaction();
@@ -159,10 +131,16 @@ bool RunRead(ReadPlans &read_plans, ZipfDistribution &zipf) {
     assert(false);
   }
 
+  if ((int) ret_result.size() != state.scale_factor * 1000) {
+    LOG_ERROR("Read only result in correct: table_size = %d, res_size = %d",
+    state.scale_factor * 1000, (int) ret_result.size());
+    assert(false);
+  }
+
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
-
-  auto result = txn_manager.CommitTransaction();
+  auto result = txn_manager.EndReadonlyTransaction();
+  // auto result = txn_manager.CommitTransaction();
 
   if (result == Result::RESULT_SUCCESS) {
     return true;

@@ -27,13 +27,13 @@ namespace tpcc {
 static const oid_t tpcc_database_oid = 100;
 
 static const oid_t warehouse_table_oid = 1001;
-static const oid_t warehouse_table_pkey_index_oid = 20010;  // W_ID
+static const oid_t warehouse_table_pkey_index_oid = 20010; // W_ID
 
 static const oid_t district_table_oid = 1002;
-static const oid_t district_table_pkey_index_oid = 20021;  // D_ID, D_W_ID
+static const oid_t district_table_pkey_index_oid = 20021; // D_ID, D_W_ID
 
 static const oid_t item_table_oid = 1003;
-static const oid_t item_table_pkey_index_oid = 20030;  // I_ID
+static const oid_t item_table_pkey_index_oid = 20030; // I_ID
 
 static const oid_t customer_table_oid = 1004;
 static const oid_t customer_table_pkey_index_oid =
@@ -89,6 +89,9 @@ class configuration {
   // number of backends
   int backend_count;
 
+  // number of scan backends
+  int scan_backend_count;
+  
   // number of query thread
   int generate_count;
 
@@ -114,6 +117,20 @@ class configuration {
   double delay_max;
   double delay_min;
 
+  double payment_throughput;
+
+  double payment_abort_rate;
+
+  double new_order_throughput;
+
+  double new_order_abort_rate;
+
+  double stock_level_latency;
+
+  double order_status_latency;
+
+  double scan_stock_latency;
+  
   // enable exponential backoff
   bool run_backoff;
 
@@ -134,6 +151,9 @@ class configuration {
 
   // index type
   IndexType index;
+  
+  // secondary index type
+  SecondaryIndexType sindex;
 
   // number of threads used in GC,
   // Only available when gc type is n2o and va

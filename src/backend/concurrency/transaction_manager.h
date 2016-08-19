@@ -36,6 +36,7 @@ namespace peloton {
 namespace concurrency {
 
 extern thread_local Transaction *current_txn;
+extern thread_local cid_t latest_read_ts;
 
 #define RUNNING_TXN_BUCKET_NUM 10
 
@@ -112,7 +113,9 @@ class TransactionManager {
 
   void RecycleOldTupleSlot(const oid_t &tile_group_id, const oid_t &tuple_id,
                            const cid_t &tuple_end_cid) {
-    if(gc::GCManagerFactory::GetGCType() == GC_TYPE_VACUUM || gc::GCManagerFactory::GetGCType() == GC_TYPE_N2O) {
+    if(gc::GCManagerFactory::GetGCType() == GC_TYPE_VACUUM
+    || gc::GCManagerFactory::GetGCType() == GC_TYPE_N2O
+    || gc::GCManagerFactory::GetGCType() == GC_TYPE_N2O_TXN) {
   
       LOG_TRACE("recycle old tuple slot: %u, %u", tile_group_id, tuple_id);
 
@@ -141,7 +144,31 @@ class TransactionManager {
   //for use by recovery
   void SetNextCid(cid_t cid) { next_cid_ = cid; }
 
+  Transaction *BeginReadonlyTransaction() {
+    txn_id_t txn_id = READONLY_TXN_ID;
+    auto &epoch_manager = EpochManagerFactory::GetInstance();
+    cid_t begin_cid = epoch_manager.GetReadOnlyTxnCid();
+    Transaction *txn = new Transaction(txn_id, true, begin_cid);
+
+    latest_read_ts = begin_cid;
+
+    auto eid = epoch_manager.EnterReadOnlyEpoch(begin_cid);
+    txn->SetEpochId(eid);
+
+    current_txn = txn;
+    return txn;
+  }
+
   virtual Transaction *BeginTransaction() = 0;
+
+  Result EndReadonlyTransaction() {
+    EpochManagerFactory::GetInstance().ExitReadOnlyEpoch(current_txn->GetEpochId());
+
+    delete current_txn;
+    current_txn = nullptr;
+
+    return RESULT_SUCCESS;
+  }
 
   virtual void EndTransaction() = 0;
 

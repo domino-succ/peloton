@@ -35,6 +35,8 @@ static const oid_t user_table_pkey_index_oid = 2001;
 
 static const oid_t ycsb_field_length = 100;
 
+static const oid_t ycsb_table_sindex_begin_oid = 3000;
+
 class configuration {
  public:
   // size of the table
@@ -52,6 +54,15 @@ class configuration {
   // operation count
   int operation_count;
 
+  // number of scan backends
+  int scan_backend_count;
+
+  // scan mock duration
+  int scan_mock_duration;
+
+  // number of read-only backends
+  int ro_backend_count;
+
   // update ratio
   double update_ratio;
 
@@ -66,6 +77,9 @@ class configuration {
   // number of backends
   int backend_count;
 
+  // number of secondary index
+  int sindex_count;
+  
   // number of query thread
   int generate_count;
 
@@ -75,9 +89,15 @@ class configuration {
 
   std::vector<int> snapshot_memory;
 
-  double throughput;
+  double throughput = 0;
 
-  double abort_rate;
+  double abort_rate = 0;
+
+  double ro_throughput = 0;
+
+  double ro_abort_rate = 0;
+
+  double scan_latency = 0;
 
   double generate_rate;
   double delay_ave;
@@ -87,8 +107,8 @@ class configuration {
   // Theta in zipf distribution to control skewness
   double zipf_theta;
 
-  // Run mix workload or not
-  bool run_mix;
+  // enable declared read-only transaction
+  bool declared;
 
   // enable exponential backoff
   bool run_backoff;
@@ -96,6 +116,9 @@ class configuration {
   // enable blind write
   bool blind_write;
 
+  // use secondary index to scan
+  bool sindex_scan;
+  
   //
   SchedulerType scheduler;
 
@@ -107,6 +130,9 @@ class configuration {
 
   // index type
   IndexType index;
+
+  // secondary index type
+  SecondaryIndexType sindex;
 
   // number of threads used in GC,
   // Only available when gc type is n2o and va
@@ -130,6 +156,8 @@ void ValidateOperationCount(const configuration &state);
 void ValidateUpdateRatio(const configuration &state);
 
 void ValidateBackendCount(const configuration &state);
+
+void ValidateScanMockDuration(const configuration &state);
 
 void ValidateDuration(const configuration &state);
 

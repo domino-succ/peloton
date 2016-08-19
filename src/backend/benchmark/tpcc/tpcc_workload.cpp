@@ -78,6 +78,10 @@ namespace tpcc {
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
+#define STOCK_LEVEL_RATIO     0.04
+#define ORDER_STATUS_RATIO    0.04
+#define PAYMENT_RATIO         0.46
+
 volatile bool is_running = true;
 
 oid_t *abort_counts;
@@ -87,6 +91,35 @@ oid_t *generate_counts;
 uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
+
+oid_t *payment_abort_counts;
+oid_t *payment_commit_counts;
+
+oid_t *new_order_abort_counts;
+oid_t *new_order_commit_counts;
+
+oid_t stock_level_count;
+double stock_level_avg_latency;
+
+oid_t order_status_count;
+double order_status_avg_latency;
+
+oid_t scan_stock_count;
+double scan_stock_avg_latency;
+
+oid_t *payment_abort_counts;
+oid_t *payment_commit_counts;
+
+oid_t *new_order_abort_counts;
+oid_t *new_order_commit_counts;
+
+oid_t stock_level_count;
+double stock_level_avg_latency;
+
+oid_t order_status_count;
+double order_status_avg_latency;
+oid_t scan_stock_count;
+double scan_stock_avg_latency;
 
 size_t GenerateWarehouseId(const size_t &thread_id) {
   if (state.run_affinity) {
@@ -231,6 +264,35 @@ void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
   }
 }
 
+void RunScanBackend(oid_t thread_id) {
+  PinToCore(thread_id);
+
+  bool slept = false;
+  auto SLEEP_TIME = std::chrono::milliseconds(500);
+
+  // backoff
+  while (true) {
+    if (is_running == false) {
+      break;
+    }
+    if (!slept) {
+      slept = true;
+      std::this_thread::sleep_for(SLEEP_TIME);
+    }
+    std::chrono::steady_clock::time_point start_time;
+    if (thread_id == 0) {
+      start_time = std::chrono::steady_clock::now();
+    }
+    RunScanStock();
+    if (thread_id == 0) {
+      std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+      double diff = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+      scan_stock_avg_latency = (scan_stock_avg_latency * scan_stock_count + diff) / (scan_stock_count + 1);
+      scan_stock_count++;
+    }
+  }
+}
+
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -240,6 +302,28 @@ void RunBackend(oid_t thread_id) {
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
+
+  // backoff
+  uint32_t backoff_shifts = 0;
+
+  bool slept = false;
+  auto SLEEP_TIME = std::chrono::milliseconds(100);
+
+  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
+  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
+
+  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
+  oid_t &new_order_transaction_count_ref = new_order_commit_counts[thread_id];
+
+
+  bool slept = false;
+  auto SLEEP_TIME = std::chrono::milliseconds(100);
+
+  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
+  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
+
+  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
+  oid_t &new_order_transaction_count_ref = new_order_commit_counts[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -586,6 +670,7 @@ void RunWorkload() {
   // Execute the workload to build the log
   std::vector<std::thread> thread_group;
   oid_t num_threads = state.backend_count;
+  oid_t num_scan_threads = state.scan_backend_count;
   oid_t num_generate = state.generate_count;
 
   abort_counts = new oid_t[num_threads];
@@ -593,6 +678,27 @@ void RunWorkload() {
 
   commit_counts = new oid_t[num_threads];
   memset(commit_counts, 0, sizeof(oid_t) * num_threads);
+
+  payment_abort_counts = new oid_t[num_threads];
+  memset(payment_abort_counts, 0, sizeof(oid_t) * num_threads);
+
+  payment_commit_counts = new oid_t[num_threads];
+  memset(payment_commit_counts, 0, sizeof(oid_t) * num_threads);
+
+  new_order_abort_counts = new oid_t[num_threads];
+  memset(new_order_abort_counts, 0, sizeof(oid_t) * num_threads);
+
+  new_order_commit_counts = new oid_t[num_threads];
+  memset(new_order_commit_counts, 0, sizeof(oid_t) * num_threads);
+
+  stock_level_count = 0;
+  stock_level_avg_latency = 0.0;
+
+  order_status_count = 0;
+  order_status_avg_latency = 0.0;
+
+  scan_stock_count = 0;
+  scan_stock_avg_latency = 0.0;
 
   total_counts = new oid_t[num_threads];
   memset(total_counts, 0, sizeof(oid_t) * num_threads);
@@ -621,7 +727,11 @@ void RunWorkload() {
   }
 
   // Launch a group of threads
-  for (oid_t thread_itr = 0; thread_itr < num_threads; ++thread_itr) {
+  for (oid_t thread_itr = 0; thread_itr < num_scan_threads; ++thread_itr) {
+    thread_group.push_back(std::move(std::thread(RunScanBackend, thread_itr)));
+  }
+
+  for (oid_t thread_itr = num_scan_threads; thread_itr < num_threads; ++thread_itr) {
     thread_group.push_back(std::move(std::thread(RunBackend, thread_itr)));
   }
 
@@ -631,6 +741,8 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(QueryBackend, thread_itr)));
   }
 
+  //////////////////////////////////////
+  oid_t last_tile_group_id = 0;
   for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
@@ -640,8 +752,14 @@ void RunWorkload() {
            sizeof(oid_t) * num_threads);
     auto &manager = catalog::Manager::GetInstance();
 
-    state.snapshot_memory.push_back(manager.GetLastTileGroupId());
+    oid_t current_tile_group_id = manager.GetLastTileGroupId();
+    if (round_id != 0) {
+      state.snapshot_memory.push_back(current_tile_group_id - last_tile_group_id);
+    }
+    last_tile_group_id = current_tile_group_id;
   }
+  state.snapshot_memory.push_back(state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+  
   /*
     LOG_INFO("Change mode to OOHASH");
     state.offline = false;
@@ -738,6 +856,36 @@ void RunWorkload() {
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
+  oid_t total_payment_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_payment_commit_count += payment_commit_counts[i];
+  }
+
+  oid_t total_payment_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_payment_abort_count += payment_abort_counts[i];
+  }
+
+  state.payment_throughput = total_payment_commit_count * 1.0 / state.duration;
+  state.payment_abort_rate = total_payment_abort_count * 1.0 / total_payment_commit_count;
+
+  oid_t total_new_order_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_new_order_commit_count += new_order_commit_counts[i];
+  }
+
+  oid_t total_new_order_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_new_order_abort_count += new_order_abort_counts[i];
+  }
+
+  state.new_order_throughput = total_new_order_commit_count * 1.0 / state.duration;
+  state.new_order_abort_rate = total_new_order_abort_count * 1.0 / total_new_order_commit_count;
+
+  state.stock_level_latency = stock_level_avg_latency;
+  state.order_status_latency = order_status_avg_latency;
+  state.scan_stock_latency = scan_stock_avg_latency;
+
   // calculate the average delay: ms
   uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -784,6 +932,16 @@ void RunWorkload() {
   delete[] commit_counts;
   commit_counts = nullptr;
 
+  delete[] payment_abort_counts;
+  payment_abort_counts = nullptr;
+  delete[] payment_commit_counts;
+  payment_commit_counts = nullptr;
+
+  delete[] new_order_abort_counts;
+  new_order_abort_counts = nullptr;
+  delete[] new_order_commit_counts;
+  new_order_commit_counts = nullptr;
+  
   delete[] generate_counts;
   generate_counts = nullptr;
 
@@ -845,15 +1003,13 @@ std::vector<std::vector<Value>> ExecuteReadTest(
 void ExecuteUpdateTest(executor::AbstractExecutor *executor) {
 
   // Execute stuff
-  while (executor->Execute() == true)
-    ;
+  while (executor->Execute() == true);
 }
 
 void ExecuteDeleteTest(executor::AbstractExecutor *executor) {
 
   // Execute stuff
-  while (executor->Execute() == true)
-    ;
+  while (executor->Execute() == true);
 }
 
 }  // namespace tpcc

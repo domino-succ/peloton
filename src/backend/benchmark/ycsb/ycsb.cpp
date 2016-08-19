@@ -63,6 +63,14 @@ DistributionAnalysis analysis;
 // std::ofstream out("outputfile.summary", std::ofstream::out);
 
 static void WriteOutput() {
+  oid_t total_snapshot_memory = 0;
+  for (auto &entry : state.snapshot_memory) {
+    total_snapshot_memory += entry;
+  }
+
+  LOG_INFO("%lf tps, %lf; %lf tps, %lf; %lf ms; %d",
+             state.throughput, state.abort_rate, state.ro_throughput, state.ro_abort_rate, state.scan_latency, total_snapshot_memory);
+
   // Create output directory
   struct stat st;
   if (stat("./ycsb-output", &st) == -1) {
@@ -104,6 +112,65 @@ static void WriteOutput() {
         << state.snapshot_memory[round_id] << "\n";
   }
 
+  out << "scalefactor=" << state.scale_factor << " ";
+  out << "skew=" << state.zipf_theta << " ";
+  out << "update=" << state.update_ratio << " ";
+  out << "opt=" << state.operation_count << " ";
+  if (state.protocol == CONCURRENCY_TYPE_OPTIMISTIC) {
+    out << "proto=occ ";
+  } else if (state.protocol == CONCURRENCY_TYPE_PESSIMISTIC) {
+    out << "proto=pcc ";
+  } else if (state.protocol == CONCURRENCY_TYPE_SSI) {
+    out << "proto=ssi ";
+  } else if (state.protocol == CONCURRENCY_TYPE_TO) {
+    out << "proto=to ";
+  } else if (state.protocol == CONCURRENCY_TYPE_EAGER_WRITE) {
+    out << "proto=ewrite ";
+  } else if (state.protocol == CONCURRENCY_TYPE_OCC_RB) {
+    out << "proto=occrb ";
+  } else if (state.protocol == CONCURRENCY_TYPE_OCC_CENTRAL_RB) {
+    out << "proto=occ_central_rb ";
+  } else if (state.protocol == CONCURRENCY_TYPE_TO_CENTRAL_RB) {
+    out << "proto=to_central_rb ";
+  } else if (state.protocol == CONCURRENCY_TYPE_SPECULATIVE_READ) {
+    out << "proto=sread ";
+  } else if (state.protocol == CONCURRENCY_TYPE_OCC_N2O) {
+    out << "proto=occn2o ";
+  } else if (state.protocol == CONCURRENCY_TYPE_TO_RB) {
+    out << "proto=torb ";
+  } else if (state.protocol == CONCURRENCY_TYPE_TO_N2O) {
+    out << "proto=ton2o ";
+  } else if (state.protocol == CONCURRENCY_TYPE_TO_FULL_RB) {
+    out << "proto=tofullrb ";
+  } else if (state.protocol == CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB) {
+    out << "proto=to_full_central_rb ";
+  }
+  if (state.gc_protocol == GC_TYPE_OFF) {
+    out << "gc=off ";
+  }else if (state.gc_protocol == GC_TYPE_VACUUM) {
+    out << "gc=va ";
+  }else if (state.gc_protocol == GC_TYPE_CO) {
+    out << "gc=co ";
+  }else if (state.gc_protocol == GC_TYPE_N2O) {
+    out << "gc=n2o ";
+  } else if (state.gc_protocol == GC_TYPE_N2O_TXN) {
+    out << "gc=n2otxn ";
+  }
+  out << "column=" << state.column_count << " ";
+  out << "read_column=" << state.read_column_count << " ";
+  out << "update_column=" << state.update_column_count << " ";
+  out << "core_cnt=" << state.backend_count << " ";
+  out << "ro_core_cnt=" << state.ro_backend_count << " ";
+  out << "scan_core_cnt=" << state.scan_backend_count << " ";
+  out << "scan_mock_duration=" << state.scan_mock_duration << " ";
+  out << "sindex_count=" << state.sindex_count << " ";
+  if (state.sindex == SECONDARY_INDEX_TYPE_VERSION) {
+    out << "sindex=version ";
+  } else {
+    out << "sindex=tuple ";
+  }
+  out << "\n";
+
   out << state.throughput << " ";
   out << state.abort_rate << " ";
   out << state.delay_ave << " ";
@@ -115,7 +182,15 @@ static void WriteOutput() {
   out << state.zipf_theta << " ";
   out << state.operation_count << " ";
   out << state.generate_rate << " ";
-  out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << "\n";
+  out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
+  
+  out << state.ro_throughput << " ";
+  out << state.ro_abort_rate << " ";
+
+  out << state.scan_latency << " ";
+
+  out << total_snapshot_memory <<"\n";
+  
   out.flush();
   out.close();
 }
@@ -286,6 +361,8 @@ void LoadQuery(uint64_t count) {
 void RunBenchmark() {
   gc::GCManagerFactory::Configure(state.gc_protocol, state.gc_thread_count);
   concurrency::TransactionManagerFactory::Configure(state.protocol);
+  index::IndexFactory::Configure(state.sindex);
+  
   // Create and load the user table
   CreateYCSBDatabase();
 
@@ -294,11 +371,9 @@ void RunBenchmark() {
   LoadQuery(PREQUERY);
 
   // Validate MVCC storage
-  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O &&
-      state.protocol != CONCURRENCY_TYPE_TO_N2O &&
-      state.protocol != CONCURRENCY_TYPE_OCC_RB &&
-      state.protocol != CONCURRENCY_TYPE_TO_RB &&
-      state.protocol != CONCURRENCY_TYPE_TO_FULL_RB) {
+  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O 
+    && state.protocol != CONCURRENCY_TYPE_TO_N2O 
+    && concurrency::TransactionManagerFactory::IsRB()) {
     ValidateMVCC();
   }
 
@@ -306,11 +381,9 @@ void RunBenchmark() {
   RunWorkload();
 
   // Validate MVCC storage
-  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O &&
-      state.protocol != CONCURRENCY_TYPE_TO_N2O &&
-      state.protocol != CONCURRENCY_TYPE_OCC_RB &&
-      state.protocol != CONCURRENCY_TYPE_TO_RB &&
-      state.protocol != CONCURRENCY_TYPE_TO_FULL_RB) {
+  if (state.protocol != CONCURRENCY_TYPE_OCC_N2O 
+    && state.protocol != CONCURRENCY_TYPE_TO_N2O 
+    && concurrency::TransactionManagerFactory::IsRB()) {
     ValidateMVCC();
   }
 
@@ -324,7 +397,6 @@ void RunBenchmark() {
 int main(int argc, char **argv) {
   peloton::benchmark::ycsb::ParseArguments(argc, argv,
                                            peloton::benchmark::ycsb::state);
-
   peloton::benchmark::ycsb::RunBenchmark();
 
   return 0;

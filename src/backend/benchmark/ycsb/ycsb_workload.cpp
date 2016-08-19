@@ -86,6 +86,12 @@ uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
 
+oid_t *ro_abort_counts;
+oid_t *ro_commit_counts;
+
+oid_t scan_count;
+double scan_avg_latency;
+
 // If return true and query is null, that means the queue is empty
 // If return true and query is not null, that means execute successfully
 // If return false, that means execute fail
@@ -217,10 +223,9 @@ void RecordDelay(UpdateQuery *query, uint64_t &delay_total_ref,
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
-  // auto update_ratio = state.update_ratio;
-  // auto operation_count = state.operation_count;
+  auto update_ratio = state.update_ratio;
+  auto operation_count = state.operation_count;
 
-  // auto update_ratio = state.update_ratio;
   oid_t &execution_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
@@ -398,12 +403,27 @@ void RunWorkload() {
   std::vector<std::thread> thread_group;
   oid_t num_threads = state.backend_count;
   oid_t num_generate = state.generate_count;
+  oid_t num_ro_threads = state.ro_backend_count;
+  oid_t num_scan_threads = state.scan_backend_count;
+  
   abort_counts = new oid_t[num_threads];
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
+  
   commit_counts = new oid_t[num_threads];
   memset(commit_counts, 0, sizeof(oid_t) * num_threads);
+  
+  ro_abort_counts = new oid_t[num_threads];
+  memset(ro_abort_counts, 0, sizeof(oid_t) * num_threads);
+
+  ro_commit_counts = new oid_t[num_threads];
+  memset(ro_commit_counts, 0, sizeof(oid_t) * num_threads);
+
+  scan_count = 0;
+  scan_avg_latency = 0.0;
+  
   total_counts = new oid_t[num_threads];
   memset(total_counts, 0, sizeof(oid_t) * num_threads);
+  
   generate_counts = new oid_t[num_generate];
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
@@ -438,6 +458,8 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(QueryBackend, thread_itr)));
   }
 
+  //////////////////////////////////////
+  oid_t last_tile_group_id = 0;
   for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
@@ -445,7 +467,16 @@ void RunWorkload() {
            sizeof(oid_t) * num_threads);
     memcpy(commit_counts_snapshots[round_id], commit_counts,
            sizeof(oid_t) * num_threads);
+
+    auto& manager = catalog::Manager::GetInstance();
+    
+    oid_t current_tile_group_id = manager.GetLastTileGroupId();
+    if (round_id != 0) {
+      state.snapshot_memory.push_back(current_tile_group_id - last_tile_group_id);
+    }
+    last_tile_group_id = current_tile_group_id;
   }
+  state.snapshot_memory.push_back(state.snapshot_memory.at(state.snapshot_memory.size() - 1));
 
   is_running = false;
 
@@ -518,6 +549,28 @@ void RunWorkload() {
   state.throughput = total_commit_count * 1.0 / state.duration;
   state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
+  //////////////////////////////////////////////////
+  if (num_ro_threads != 0) {
+    oid_t total_ro_commit_count = 0;
+    for (size_t i = 0; i < num_ro_threads; ++i) {
+      total_ro_commit_count += ro_commit_counts[i];
+    }
+
+    oid_t total_to_abort_count = 0;
+    for (size_t i = 0; i < num_ro_threads; ++i) {
+      total_to_abort_count += ro_abort_counts[i];
+    }
+
+    state.ro_throughput = total_ro_commit_count * 1.0 / state.duration;
+    state.ro_abort_rate = total_to_abort_count * 1.0 / total_ro_commit_count;
+  }
+  
+  //////////////////////////////////////////////////
+
+  state.scan_latency = scan_avg_latency;
+
+  //////////////////////////////////////////////////
+  
   LOG_INFO("Total_cout:%d, commit:%d, abort:%d, c+a:%d", total_exe_count,
            total_commit_count, total_abort_count,
            total_commit_count + total_abort_count);
@@ -567,6 +620,11 @@ void RunWorkload() {
   delete[] commit_counts;
   commit_counts = nullptr;
 
+  delete[] ro_abort_counts;
+  ro_abort_counts = nullptr;
+  delete[] ro_commit_counts;
+  ro_commit_counts = nullptr;
+  
   delete[] generate_counts;
   generate_counts = nullptr;
 
@@ -617,8 +675,7 @@ std::vector<std::vector<Value>> ExecuteReadTest(
 void ExecuteUpdateTest(executor::AbstractExecutor *executor) {
 
   // Execute stuff
-  while (executor->Execute() == true)
-    ;
+  while (executor->Execute() == true);
 }
 
 }  // namespace ycsb

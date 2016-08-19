@@ -31,6 +31,7 @@ void Usage(FILE *out) {
       "   -d --duration          :  execution duration \n"
       "   -s --snapshot_duration :  snapshot duration \n"
       "   -b --backend_count     :  # of backends \n"
+      "   -y --scan              :  # of scan backends \n"
       "   -w --warehouse_count   :  # of warehouses \n"
       "   -r --order_range       :  order range \n"
       "   -e --exp_backoff       :  enable exponential backoff \n"
@@ -42,7 +43,8 @@ void Usage(FILE *out) {
       "                             gc protocol could be off, co, va, and n2o\n"
       "   -t --gc_thread         :  number of thread used in gc, only used for "
       "gc type n2o/va\n"
-      "   -q --scheduler         :  control, queue, detect, ml\n"
+      "   -q --sindex_mode       :  secondary index mode: version or tuple\n"
+      "   -r --scheduler         :  control, queue, detect, ml\n"
       "   -z --enqueue thread    :  number of enqueue threads\n"
       "   -v --enqueue speed     :  number of txns per second \n");
   exit(EXIT_FAILURE);
@@ -54,15 +56,17 @@ static struct option opts[] = {
     {"duration", optional_argument, NULL, 'd'},
     {"snapshot_duration", optional_argument, NULL, 's'},
     {"backend_count", optional_argument, NULL, 'b'},
+    {"scan_backend_count", optional_argument, NULL, 'y'},
     {"warehouse_count", optional_argument, NULL, 'w'},
     {"order_range", optional_argument, NULL, 'r'},
     {"exp_backoff", no_argument, NULL, 'e'},
     {"affinity", no_argument, NULL, 'a'},
     {"offline", no_argument, NULL, 'l'},
     {"protocol", optional_argument, NULL, 'p'},
-    {"scheduler", optional_argument, NULL, 'q'},
+    {"scheduler", optional_argument, NULL, 'r'},
     {"gc_protocol", optional_argument, NULL, 'g'},
     {"gc_thread", optional_argument, NULL, 't'},
+    {"sindex_mode", optional_argument, NULL, 'q'},
     {"generate_count", optional_argument, NULL, 'z'},
     {"generate_speed", optional_argument, NULL, 'v'},
     {NULL, 0, NULL, 0}};
@@ -81,7 +85,10 @@ void ValidateBackendCount(const configuration &state) {
     LOG_ERROR("Invalid backend_count :: %d", state.backend_count);
     exit(EXIT_FAILURE);
   }
-
+  if (state.scan_backend_count > state.backend_count) {
+    LOG_ERROR("Invalid backend_count :: %d", state.scan_backend_count);
+    exit(EXIT_FAILURE);
+  }
   LOG_TRACE("%s : %d", "backend_count", state.backend_count);
 }
 
@@ -129,7 +136,8 @@ void ValidateProtocol(const configuration &state) {
       exit(EXIT_FAILURE);
     }
   } else {
-    if (state.gc_protocol != GC_TYPE_OFF && state.gc_protocol != GC_TYPE_N2O) {
+    if (state.gc_protocol != GC_TYPE_OFF && state.gc_protocol != GC_TYPE_N2O &&
+        state.gc_protocol != GC_TYPE_N2O_TXN) {
       LOG_ERROR("Invalid protocol");
       exit(EXIT_FAILURE);
     }
@@ -137,8 +145,9 @@ void ValidateProtocol(const configuration &state) {
 }
 
 void ValidateIndex(const configuration &state) {
-  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE &&
-      state.index != INDEX_TYPE_HASH) {
+  // if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE &&
+  // state.index != INDEX_TYPE_HASH) {
+  if (state.index != INDEX_TYPE_BWTREE && state.index != INDEX_TYPE_HASH) {
     LOG_ERROR("Invalid index");
     exit(EXIT_FAILURE);
   }
@@ -168,6 +177,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.duration = 10;
   state.snapshot_duration = 1;
   state.backend_count = 1;
+  state.scan_backend_count = 0;
   state.generate_count = 0;  // 0 means no query thread. only prepared queries
   state.generate_speed = 0;
   state.delay_ave = 0.0;
@@ -184,13 +194,14 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.gc_protocol = GC_TYPE_OFF;
   state.index = INDEX_TYPE_HASH;
   state.gc_thread_count = 1;
+  state.sindex = SECONDARY_INDEX_TYPE_VERSION;
   state.min_pts = 1;
   state.analysis_txns = 10000;
 
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aeofh:r:m:y:k:w:z:v:d:s:q:b:p:g:i:t:",
+    int c = getopt_long(argc, argv, "aeofh:r:m:x:k:w:z:v:d:s:r:b:p:g:i:t:q:y:",
                         opts, &idx);
 
     if (c == -1) break;
@@ -202,7 +213,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'm':
         state.min_pts = atof(optarg);
         break;
-      case 'y':
+      case 'x':
         state.analysis_txns = atof(optarg);
         break;
       case 'k':
@@ -229,6 +240,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'b':
         state.backend_count = atoi(optarg);
         break;
+      case 'y':
+        state.scan_backend_count = atoi(optarg);
+        break;
       case 'a':
         state.run_affinity = true;
         break;
@@ -241,7 +255,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'f':
         state.offline = true;
         break;
-      case 'q': {
+      case 'r': {
         char *scheduler = optarg;
         if (strcmp(scheduler, "none") == 0) {
           state.scheduler = SCHEDULER_TYPE_NONE;
@@ -291,6 +305,12 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.protocol = CONCURRENCY_TYPE_TO_FULL_RB;
         } else if (strcmp(protocol, "ton2o") == 0) {
           state.protocol = CONCURRENCY_TYPE_TO_N2O;
+        } else if (strcmp(protocol, "occ_central_rb") == 0) {
+          state.protocol = CONCURRENCY_TYPE_OCC_CENTRAL_RB;
+        } else if (strcmp(protocol, "to_central_rb") == 0) {
+          state.protocol = CONCURRENCY_TYPE_TO_CENTRAL_RB;
+        } else if (strcmp(protocol, "to_full_central_rb") == 0) {
+          state.protocol = CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB;
         } else {
           fprintf(stderr, "\nUnknown protocol: %s\n", protocol);
           exit(EXIT_FAILURE);
@@ -307,6 +327,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.gc_protocol = GC_TYPE_CO;
         } else if (strcmp(gc_protocol, "n2o") == 0) {
           state.gc_protocol = GC_TYPE_N2O;
+        } else if (strcmp(gc_protocol, "n2otxn") == 0) {
+          state.gc_protocol = GC_TYPE_N2O_TXN;
         } else {
           fprintf(stderr, "\nUnknown gc protocol: %s\n", gc_protocol);
           exit(EXIT_FAILURE);
@@ -315,14 +337,27 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       }
       case 'i': {
         char *index = optarg;
-        if (strcmp(index, "btree") == 0) {
-          state.index = INDEX_TYPE_BTREE;
-        } else if (strcmp(index, "bwtree") == 0) {
+        // if (strcmp(index, "btree") == 0) {
+        //   state.index = INDEX_TYPE_BTREE;
+        // } else
+        if (strcmp(index, "bwtree") == 0) {
           state.index = INDEX_TYPE_BWTREE;
         } else if (strcmp(index, "hash") == 0) {
           state.index = INDEX_TYPE_HASH;
         } else {
           fprintf(stderr, "\nUnknown index: %s\n", index);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
+      case 'q': {
+        char *sindex = optarg;
+        if (strcmp(sindex, "version") == 0) {
+          state.sindex = SECONDARY_INDEX_TYPE_VERSION;
+        } else if (strcmp(sindex, "tuple") == 0) {
+          state.sindex = SECONDARY_INDEX_TYPE_TUPLE;
+        } else {
+          fprintf(stderr, "\n Unknown sindex: %s\n", sindex);
           exit(EXIT_FAILURE);
         }
         break;

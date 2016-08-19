@@ -72,6 +72,7 @@
 #include "backend/storage/data_table.h"
 #include "backend/storage/table_factory.h"
 
+#define BEGIN_UPDATE_CID (state.sindex_count + 1)
 
 namespace peloton {
 namespace benchmark {
@@ -85,7 +86,15 @@ MixedPlans PrepareMixedPlan() {
 
   std::vector<oid_t> key_column_ids;
   std::vector<ExpressionType> expr_types;
-  key_column_ids.push_back(0);
+
+  index::Index *ycsb_skey_index = nullptr;
+  if (state.sindex_scan == true) {
+    key_column_ids.push_back(1);
+    ycsb_skey_index = user_table->GetIndexWithOid(ycsb_table_sindex_begin_oid + 1);
+  } else {
+    key_column_ids.push_back(0);
+  }
+
   expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
   std::vector<Value> values;
@@ -95,14 +104,15 @@ MixedPlans PrepareMixedPlan() {
   auto ycsb_pkey_index = user_table->GetIndexWithOid(user_table_pkey_index_oid);
 
   planner::IndexScanPlan::IndexScanDesc index_scan_desc(
-      ycsb_pkey_index, key_column_ids, expr_types, values, runtime_keys);
+    (state.sindex_scan ? ycsb_skey_index : ycsb_pkey_index),
+      key_column_ids, expr_types, values, runtime_keys);
 
   // Create plan node.
   auto predicate = nullptr;
 
   oid_t column_count = state.column_count + 1;
   
-  oid_t begin_read_column_id = 1;
+  oid_t begin_read_column_id = BEGIN_UPDATE_CID;
   oid_t end_read_column_id = begin_read_column_id + state.read_column_count - 1;
   
   std::vector<oid_t> read_column_ids;
@@ -123,7 +133,7 @@ MixedPlans PrepareMixedPlan() {
   // UPDATE
   /////////////////////////////////////////////////////////
 
-  oid_t begin_update_column_id = 1;
+  oid_t begin_update_column_id = BEGIN_UPDATE_CID;
   oid_t end_update_column_id = begin_update_column_id + state.update_column_count - 1;
 
   std::vector<oid_t> update_column_ids;
@@ -177,7 +187,7 @@ MixedPlans PrepareMixedPlan() {
   return mixed_plans;
 }
   
-bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng) {
+bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng, double update_ratio, int operation_count, bool is_read_only) {
 
   std::unique_ptr<executor::ExecutorContext> context(
       new executor::ExecutorContext(nullptr));
@@ -186,15 +196,21 @@ bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng)
 
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
-  auto txn = txn_manager.BeginTransaction();
+  concurrency::Transaction *txn = nullptr;
+  if (is_read_only == true) {
+    if (update_ratio != 0) {
+      LOG_ERROR("update ratio must be 0!");
+    }
+    txn = txn_manager.BeginReadonlyTransaction();
+  } else {
+    txn = txn_manager.BeginTransaction();
+  }
 
-
-
-  for (int i = 0; i < state.operation_count; i++) {
+  for (int i = 0; i < operation_count; i++) {
 
     auto rng_val = rng.next_uniform();
 
-    if (rng_val < state.update_ratio) {
+    if (rng_val < update_ratio) {
       /////////////////////////////////////////////////////////
       // PERFORM UPDATE
       /////////////////////////////////////////////////////////
@@ -212,18 +228,28 @@ bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng)
 
       TargetList target_list;
 
-      oid_t begin_update_column_id = 1;
-      oid_t end_update_column_id = begin_update_column_id + state.update_column_count - 1;
-
-      for (oid_t col_itr = begin_update_column_id; col_itr <= end_update_column_id; ++col_itr) {
-        int update_raw_value = col_itr;
-    
+      if (state.update_column_count == 0) {
+        // in this case, we randomly update a column.
+        oid_t update_column_id = BEGIN_UPDATE_CID + rng.next() % state.column_count;
+        int update_raw_value = update_column_id;
         Value update_val = ValueFactory::GetIntegerValue(update_raw_value);
-
         target_list.emplace_back(
-            col_itr, expression::ExpressionUtil::ConstantValueFactory(update_val));
-      }
+              update_column_id, expression::ExpressionUtil::ConstantValueFactory(update_val));
 
+      } else {
+        oid_t begin_update_column_id = BEGIN_UPDATE_CID;
+        oid_t end_update_column_id = begin_update_column_id + state.update_column_count - 1;
+
+        for (oid_t col_itr = begin_update_column_id; col_itr <= end_update_column_id; ++col_itr) {
+          int update_raw_value = col_itr;
+      
+          Value update_val = ValueFactory::GetIntegerValue(update_raw_value);
+
+          target_list.emplace_back(
+              col_itr, expression::ExpressionUtil::ConstantValueFactory(update_val));
+        }
+      }
+      
       mixed_plans.update_executor_->SetTargetList(target_list);
 
       ExecuteUpdateTest(mixed_plans.update_executor_);
@@ -256,8 +282,8 @@ bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng)
         return false;
       }
 
-      if (ret_result.size() != 1) {
-        LOG_ERROR("result size = %d", (int)ret_result.size());
+      if ((ret_result.size() > 1 && state.sindex_scan == false) || ret_result.size() < 1) {
+        LOG_ERROR("Error: result size = %d\n", (int)ret_result.size());
         assert(false);
       }
     }
@@ -265,6 +291,11 @@ bool RunMixed(MixedPlans &mixed_plans, ZipfDistribution &zipf, fast_random &rng)
 
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
+
+  if (is_read_only == true) {
+    txn_manager.EndReadonlyTransaction();
+    return true;
+  }
 
   auto result = txn_manager.CommitTransaction();
 

@@ -33,7 +33,11 @@ void Usage(FILE *out) {
       "   -d --duration          :  execution duration \n"
       "   -s --snapshot_duration :  snapshot duration \n"
       "   -b --backend_count     :  # of backends \n"
+      "   -y --scan              :  # of scan backends \n"
       "   -w --generate_count :  :  # of generate threads\n"
+      "   -v --read-only         :  # of read-only backends \n"
+      "   -a --declared          :  declared read-only \n"
+      "   -n --sindex_count      :  # of secondary index \n"
       "   -c --column_count      :  # of columns \n"
       "   -l --update_col_count  :  # of updated columns \n"
       "   -r --read_col_count    :  # of read columns \n"
@@ -50,7 +54,9 @@ void Usage(FILE *out) {
       "                             gc protocol could be off, co, va, and n2o\n"
       "   -t --gc_thread         :  number of thread used in gc, only used for "
       "gc type n2o/va\n"
-      "   -q --scheduler         :  control, queue, detect, ml\n");
+      "   -q --sindex_mode       :  mode of secondary index: version or tuple\n"
+      "   -j --sindex_scan       :  use secondary index to scan\n "
+      "   -f --scheduler         :  control, queue, detect, ml\n");
 
   exit(EXIT_FAILURE);
 }
@@ -64,16 +70,23 @@ static struct option opts[] = {
     {"update_col_count", optional_argument, NULL, 'l'},
     {"read_col_count", optional_argument, NULL, 'r'},
     {"operation_count", optional_argument, NULL, 'o'},
+    {"scan_mock_duration", optional_argument, NULL, 'w'},
+    {"scan_backend_count", optional_argument, NULL, 'y'},
+    {"ro_backend_count", optional_argument, NULL, 'v'},
     {"update_ratio", optional_argument, NULL, 'u'},
     {"backend_count", optional_argument, NULL, 'b'},
     {"zipf_theta", optional_argument, NULL, 'z'},
     {"exp_backoff", no_argument, NULL, 'e'},
     {"blind_write", no_argument, NULL, 'x'},
+    {"declared", no_argument, NULL, 'a'},
     {"mix_txn", no_argument, NULL, 'm'},
     {"protocol", optional_argument, NULL, 'p'},
     {"gc_protocol", optional_argument, NULL, 'g'},
     {"gc_thread", optional_argument, NULL, 't'},
-    {"scheduler", optional_argument, NULL, 'q'},
+    {"sindex_count", optional_argument, NULL, 'n'},
+    {"sindex_mode", optional_argument, NULL, 'q'},
+    {"sindex_scan", optional_argument, NULL, 'j'},
+    {"scheduler", optional_argument, NULL, 'f'},
     {"generate_count", optional_argument, NULL, 'w'},
     {NULL, 0, NULL, 0}};
 
@@ -96,7 +109,7 @@ void ValidateColumnCount(const configuration &state) {
 }
 
 void ValidateUpdateColumnCount(const configuration &state) {
-  if (state.update_column_count <= 0 ||
+  if (state.update_column_count < 0 ||
       state.update_column_count > state.column_count) {
     LOG_ERROR("Invalid update_column_count :: %d", state.update_column_count);
     exit(EXIT_FAILURE);
@@ -138,8 +151,20 @@ void ValidateBackendCount(const configuration &state) {
     LOG_ERROR("Invalid backend_count :: %d", state.backend_count);
     exit(EXIT_FAILURE);
   }
-
+  if (state.scan_backend_count + state.ro_backend_count > state.backend_count) {
+    LOG_ERROR("Invalid backend_count :: %d, %d", state.ro_backend_count, state.scan_backend_count);
+    exit(EXIT_FAILURE);
+  }
   LOG_TRACE("%s : %d", "backend_count", state.backend_count);
+}
+
+void ValidateScanMockDuration(const configuration &state) {
+  if (state.scan_mock_duration < 0) {
+    LOG_ERROR("Invalid duration :: %d", state.scan_mock_duration);
+    exit(EXIT_FAILURE);
+  }
+
+  LOG_TRACE("%s : %d", "scan mock duration", state.scan_mock_duration);
 }
 
 void ValidateDuration(const configuration &state) {
@@ -170,24 +195,43 @@ void ValidateZipfTheta(const configuration &state) {
 }
 
 void ValidateProtocol(const configuration &state) {
-  if (state.protocol != CONCURRENCY_TYPE_TO_N2O &&
-      state.protocol != CONCURRENCY_TYPE_OCC_N2O) {
+  if (state.protocol != CONCURRENCY_TYPE_TO_N2O && state.protocol != CONCURRENCY_TYPE_OCC_N2O) {
     if (state.gc_protocol == GC_TYPE_N2O) {
       LOG_ERROR("Invalid protocol");
       exit(EXIT_FAILURE);
     }
   } else {
-    if (state.gc_protocol != GC_TYPE_OFF && state.gc_protocol != GC_TYPE_N2O) {
+    if (state.gc_protocol != GC_TYPE_OFF
+    && state.gc_protocol != GC_TYPE_N2O
+    && state.gc_protocol != GC_TYPE_N2O_TXN) {
       LOG_ERROR("Invalid protocol");
       exit(EXIT_FAILURE);
     }
   }
 }
 
+void ValidateSecondaryIndexScan(const configuration &state) {
+  if (state.sindex_scan == true && (state.sindex_count < 1 || state.column_count < 2)) {
+    LOG_ERROR("Invalid scan type");
+    exit(EXIT_FAILURE);
+  }
+}
+
 void ValidateIndex(const configuration &state) {
-  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE &&
-      state.index != INDEX_TYPE_HASH) {
+  if (state.index != INDEX_TYPE_BTREE && state.index != INDEX_TYPE_BWTREE && state.index != INDEX_TYPE_HASH) {
     LOG_ERROR("Invalid index");
+    exit(EXIT_FAILURE);
+  }
+}
+
+void ValidateSecondaryIndex(const configuration &state) {
+  if (state.sindex_count < 0) {
+    LOG_ERROR("Secondary index number should >= 0");
+    exit(EXIT_FAILURE);
+  } else if (state.sindex_count > state.column_count) {
+    // Fixme (Runshen Zhu): <= column count - 1 ?
+    // const oid_t col_count = state.column_count + 1; in constructing table
+    LOG_ERROR("Secondary index number should <= column count");
     exit(EXIT_FAILURE);
   }
 }
@@ -209,10 +253,14 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.column_count = 10;
   state.update_column_count = 1;
   state.read_column_count = 1;
-  state.operation_count = 1;
+  state.operation_count = 10;
+  state.scan_backend_count = 0;
+  state.scan_mock_duration = 0;
+  state.ro_backend_count = 0;
   state.update_ratio = 0.5;
   state.backend_count = 2;
   state.zipf_theta = 0.0;
+  state.declared = false;
   state.generate_count = 0;  // 0 means no query thread. only prepared queries
   state.delay_ave = 0.0;
   state.delay_max = 0.0;
@@ -222,19 +270,28 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.blind_write = false;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
+  state.index = INDEX_TYPE_HASH;
   state.scheduler = SCHEDULER_TYPE_NONE;
-  state.index = INDEX_TYPE_BTREE;
   state.gc_thread_count = 1;
+  state.sindex_count = 0;
+  state.sindex = SECONDARY_INDEX_TYPE_VERSION;
+  state.sindex_scan = false;
 
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "ahmexk:d:s:q:c:l:r:o:u:b:w:z:p:g:i:t:",
+    int c = getopt_long(argc, argv, "ahmexjk:d:s:f:c:l:r:R:o:u:b:w:z:p:g:i:t:y:v:n:q:",
                         opts, &idx);
 
     if (c == -1) break;
 
     switch (c) {
+      case 'a':
+        state.declared = true;
+        break;
+      case 'n':
+        state.sindex_count = atoi(optarg);
+        break;
       case 't':
         state.gc_thread_count = atoi(optarg);
         break;
@@ -259,6 +316,15 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'r':
         state.read_column_count = atoi(optarg);
         break;
+      case 'y':
+        state.scan_backend_count = atoi(optarg);
+        break;
+      case 'w':
+        state.scan_mock_duration = atoi(optarg);
+        break;
+      case 'v':
+        state.ro_backend_count = atoi(optarg);
+        break;
       case 'u':
         state.update_ratio = atof(optarg);
         break;
@@ -277,10 +343,13 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'x':
         state.blind_write = true;
         break;
-      case 'w':
+      case 'j':
+        state.sindex_scan = true;
+        break;
+      case 'o':
         state.generate_count = atoi(optarg);
         break;
-      case 'q': {
+      case 'R': {
         char *scheduler = optarg;
         if (strcmp(scheduler, "none") == 0) {
           state.scheduler = SCHEDULER_TYPE_NONE;
@@ -314,6 +383,10 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.protocol = CONCURRENCY_TYPE_EAGER_WRITE;
         } else if (strcmp(protocol, "occrb") == 0) {
           state.protocol = CONCURRENCY_TYPE_OCC_RB;
+        } else if (strcmp(protocol, "occ_central_rb") == 0) {
+          state.protocol = CONCURRENCY_TYPE_OCC_CENTRAL_RB;
+        } else if (strcmp(protocol, "to_central_rb") == 0) {
+          state.protocol = CONCURRENCY_TYPE_TO_CENTRAL_RB;
         } else if (strcmp(protocol, "sread") == 0) {
           state.protocol = CONCURRENCY_TYPE_SPECULATIVE_READ;
         } else if (strcmp(protocol, "occn2o") == 0) {
@@ -326,6 +399,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.protocol = CONCURRENCY_TYPE_TO_N2O;
         } else if (strcmp(protocol, "tofullrb") == 0) {
           state.protocol = CONCURRENCY_TYPE_TO_FULL_RB;
+        } else if (strcmp(protocol, "to_full_central_rb") == 0) {
+          state.protocol = CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB;
         } else {
           fprintf(stderr, "\nUnknown protocol: %s\n", protocol);
           exit(EXIT_FAILURE);
@@ -336,12 +411,14 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         char *gc_protocol = optarg;
         if (strcmp(gc_protocol, "off") == 0) {
           state.gc_protocol = GC_TYPE_OFF;
-        } else if (strcmp(gc_protocol, "va") == 0) {
+        }else if (strcmp(gc_protocol, "va") == 0) {
           state.gc_protocol = GC_TYPE_VACUUM;
-        } else if (strcmp(gc_protocol, "co") == 0) {
+        }else if (strcmp(gc_protocol, "co") == 0) {
           state.gc_protocol = GC_TYPE_CO;
-        } else if (strcmp(gc_protocol, "n2o") == 0) {
+        }else if (strcmp(gc_protocol, "n2o") == 0) {
           state.gc_protocol = GC_TYPE_N2O;
+        } else if (strcmp(gc_protocol, "n2otxn") == 0) {
+          state.gc_protocol = GC_TYPE_N2O_TXN;
         } else {
           fprintf(stderr, "\nUnknown gc protocol: %s\n", gc_protocol);
           exit(EXIT_FAILURE);
@@ -358,6 +435,18 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
           state.index = INDEX_TYPE_HASH;
         } else {
           fprintf(stderr, "\nUnknown index: %s\n", index);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
+      case 'q': {
+        char *sindex = optarg;
+        if (strcmp(sindex, "version") == 0) {
+          state.sindex = SECONDARY_INDEX_TYPE_VERSION;
+        } else if (strcmp(sindex, "tuple") == 0) {
+          state.sindex = SECONDARY_INDEX_TYPE_TUPLE;
+        } else {
+          fprintf(stderr, "\n Unknown sindex: %s\n", sindex);
           exit(EXIT_FAILURE);
         }
         break;
@@ -381,17 +470,19 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateOperationCount(state);
   ValidateUpdateRatio(state);
   ValidateBackendCount(state);
-  ValidateOperationCount(state);
+  ValidateScanMockDuration(state);
   ValidateDuration(state);
   ValidateSnapshotDuration(state);
   ValidateZipfTheta(state);
   ValidateProtocol(state);
   ValidateIndex(state);
   ValidateGenerateCount(state);
+  ValidateSecondaryIndex(state);
+  ValidateSecondaryIndexScan(state);
 
-  LOG_TRACE("%s : %d", "Run mix query", state.run_mix);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
   LOG_TRACE("%s : %d", "Run blind write", state.blind_write);
+  LOG_TRACE("%s : %d", "Run declared read-only", state.declared);
 }
 
 }  // namespace ycsb

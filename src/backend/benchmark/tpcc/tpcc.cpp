@@ -39,6 +39,11 @@ static void WriteOutput() {
     mkdir("./tpcc-output", 0700);
   }
 
+  oid_t total_snapshot_memory = 0;
+  for (auto &entry : state.snapshot_memory) {
+    total_snapshot_memory += entry;
+  }
+  
   // Create file under output directory
   time_t tt;
   time(&tt);
@@ -77,7 +82,19 @@ static void WriteOutput() {
   out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
   out << state.backend_count << " ";
   out << state.warehouse_count << " ";
-  out << state.generate_rate << "\n";
+  out << state.generate_rate << " ";
+  out << state.payment_throughput << " ";
+  out << state.payment_abort_rate << " ";
+  
+  out << state.new_order_throughput << " ";
+  out << state.new_order_abort_rate << " ";
+
+  out << state.stock_level_latency << " ";
+  out << state.order_status_latency << " ";
+  out << state.scan_stock_latency << " ";
+  
+  out << total_snapshot_memory <<"\n";
+  
   out.flush();
   out.close();
 }
@@ -164,6 +181,7 @@ void LoadLogTable() {
 void RunBenchmark() {
   gc::GCManagerFactory::Configure(state.gc_protocol, state.gc_thread_count);
   concurrency::TransactionManagerFactory::Configure(state.protocol);
+  index::IndexFactory::Configure(state.sindex);
 
   // Create the database
   CreateTPCCDatabase();
