@@ -72,6 +72,24 @@ class Region {
     }
   }
 
+  // The default iid_scale is all set to 1. Before using this, make sure call
+  // setcover(dimension1_scale, dimention2_scale)
+  void SetCoverWithDefault(int wid, int iid_scale) {
+    assert(bitset_.Size() != 0);
+
+    for (int i = 0; i < iid_scale; i++) {
+
+      // Compute the bit
+      int x = wid;
+      int y = i;
+
+      int bit = LocateBit(x, y);
+
+      // Set bit
+      bitset_.Set(bit);
+    }
+  }
+
   // The overlap value is the multiply for wid and iid
   int OverlapValue(Region &rh_region) {
     // convert rh_region to RegionTpcc.

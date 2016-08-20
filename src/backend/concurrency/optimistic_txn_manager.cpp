@@ -378,8 +378,6 @@ Result OptimisticTxnManager::CommitTransaction() {
         // otherwise, validation fails. abort transaction.
         AddOneReadAbort();
 
-        std::cout << "This is abort and return...." << std::endl;
-
         return AbortTransaction();
       }
     }

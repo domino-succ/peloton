@@ -44,8 +44,8 @@ void Usage(FILE *out) {
       "   -t --gc_thread         :  number of thread used in gc, only used for "
       "gc type n2o/va\n"
       "   -q --sindex_mode       :  secondary index mode: version or tuple\n"
-      "   -r --scheduler         :  control, queue, detect, ml\n"
-      "   -z --enqueue thread    :  number of enqueue threads\n"
+      "   -z --scheduler         :  control, queue, detect, ml\n"
+      "   -n --enqueue thread    :  number of enqueue threads\n"
       "   -v --enqueue speed     :  number of txns per second \n");
   exit(EXIT_FAILURE);
 }
@@ -63,12 +63,14 @@ static struct option opts[] = {
     {"affinity", no_argument, NULL, 'a'},
     {"offline", no_argument, NULL, 'l'},
     {"protocol", optional_argument, NULL, 'p'},
-    {"scheduler", optional_argument, NULL, 'r'},
+    {"scheduler", optional_argument, NULL, 'z'},
     {"gc_protocol", optional_argument, NULL, 'g'},
     {"gc_thread", optional_argument, NULL, 't'},
     {"sindex_mode", optional_argument, NULL, 'q'},
-    {"generate_count", optional_argument, NULL, 'z'},
+    {"generate_count", optional_argument, NULL, 'n'},
     {"generate_speed", optional_argument, NULL, 'v'},
+    {"min_pts", optional_argument, NULL, 'm'},
+    {"analysis_txns", optional_argument, NULL, 'x'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -201,7 +203,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aeofh:r:m:x:k:w:z:v:d:s:r:b:p:g:i:t:q:y:",
+    int c = getopt_long(argc, argv, "aeofh:r:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:",
                         opts, &idx);
 
     if (c == -1) break;
@@ -222,7 +224,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'w':
         state.warehouse_count = atoi(optarg);
         break;
-      case 'z':
+      case 'n':
         state.generate_count = atoi(optarg);
         break;
       case 'v':
@@ -255,7 +257,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'f':
         state.offline = true;
         break;
-      case 'r': {
+      case 'z': {
         char *scheduler = optarg;
         if (strcmp(scheduler, "none") == 0) {
           state.scheduler = SCHEDULER_TYPE_NONE;
@@ -398,6 +400,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   LOG_TRACE("%s : %d", "Run online analysis", state.online);
   LOG_TRACE("%s : %d", "Run cluster min_pts", state.min_pts);
   LOG_TRACE("%s : %d", "Run cluster analysis txns", state.analysis_txns);
+
+  LOG_INFO("ParseArguments over");
 }
 
 }  // namespace tpcc

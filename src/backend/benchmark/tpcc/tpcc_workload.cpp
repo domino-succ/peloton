@@ -74,13 +74,16 @@ namespace peloton {
 namespace benchmark {
 namespace tpcc {
 
+NewOrder b;
+Payment a;
+
 /////////////////////////////////////////////////////////
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
-#define STOCK_LEVEL_RATIO     0.04
-#define ORDER_STATUS_RATIO    0.04
-#define PAYMENT_RATIO         0.46
+#define STOCK_LEVEL_RATIO 0.04
+#define ORDER_STATUS_RATIO 0.04
+#define PAYMENT_RATIO 0.46
 
 volatile bool is_running = true;
 
@@ -107,20 +110,6 @@ double order_status_avg_latency;
 oid_t scan_stock_count;
 double scan_stock_avg_latency;
 
-oid_t *payment_abort_counts;
-oid_t *payment_commit_counts;
-
-oid_t *new_order_abort_counts;
-oid_t *new_order_commit_counts;
-
-oid_t stock_level_count;
-double stock_level_avg_latency;
-
-oid_t order_status_count;
-double order_status_avg_latency;
-oid_t scan_stock_count;
-double scan_stock_avg_latency;
-
 size_t GenerateWarehouseId(const size_t &thread_id) {
   if (state.run_affinity) {
     if (state.warehouse_count <= state.backend_count) {
@@ -142,6 +131,7 @@ size_t GenerateWarehouseId() {
   return GetRandomInteger(0, state.warehouse_count - 1);
 }
 
+// Only generate New-Order
 void GenerateAndCacheQuery() {
   // Generate query
   NewOrder *new_order = GenerateNewOrder();
@@ -150,6 +140,21 @@ void GenerateAndCacheQuery() {
   // Call txn scheduler to queue this executor
   /////////////////////////////////////////////////////////
   concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
+}
+
+// Generate all kinds of txns: New-Order, Payment...
+void GenerateALLAndCache(bool new_order) {
+
+  // New-Order
+  if (new_order) {
+    NewOrder *new_order = GenerateNewOrder();
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
+  }
+  // Payment
+  else {
+    Payment *payment = GeneratePayment();
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(payment);
+  }
 }
 
 std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
@@ -215,7 +220,7 @@ bool EnqueueCachedUpdate() {
   }
 
   // Start counting the response time when entering the queue
-  (reinterpret_cast<NewOrder *>(query))->ReSetStartTime();
+  query->ReSetStartTime();
 
   // Push the query into the queue
   // Note: when popping the query and after executing it, the update_executor
@@ -285,9 +290,13 @@ void RunScanBackend(oid_t thread_id) {
     }
     RunScanStock();
     if (thread_id == 0) {
-      std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
-      double diff = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-      scan_stock_avg_latency = (scan_stock_avg_latency * scan_stock_count + diff) / (scan_stock_count + 1);
+      std::chrono::steady_clock::time_point end_time =
+          std::chrono::steady_clock::now();
+      double diff = std::chrono::duration_cast<std::chrono::microseconds>(
+          end_time - start_time).count();
+      scan_stock_avg_latency =
+          (scan_stock_avg_latency * scan_stock_count + diff) /
+          (scan_stock_count + 1);
       scan_stock_count++;
     }
   }
@@ -303,27 +312,18 @@ void RunBackend(oid_t thread_id) {
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
 
-  // backoff
-  uint32_t backoff_shifts = 0;
+  // // backoff
+  // uint32_t backoff_shifts = 0;
 
-  bool slept = false;
-  auto SLEEP_TIME = std::chrono::milliseconds(100);
-
-  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
-  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
-
-  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
-  oid_t &new_order_transaction_count_ref = new_order_commit_counts[thread_id];
-
-
-  bool slept = false;
-  auto SLEEP_TIME = std::chrono::milliseconds(100);
-
-  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
-  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
-
-  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
-  oid_t &new_order_transaction_count_ref = new_order_commit_counts[thread_id];
+  //  bool slept = false;
+  //  auto SLEEP_TIME = std::chrono::milliseconds(100);
+  //
+  //  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
+  //  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
+  //
+  //  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
+  //  oid_t &new_order_transaction_count_ref =
+  // new_order_commit_counts[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -402,7 +402,7 @@ void RunBackend(oid_t thread_id) {
     // Execute query
     //////////////////////////////////////////
 
-    if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
+    if (ret_query->Run() == false) {
       // Increase the counter
       execution_count_ref++;
 
@@ -420,8 +420,7 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_CONTROL: {
           // Control: The txn re-executed immediately
-          while (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) ==
-                 false) {
+          while (ret_query->Run() == false) {
             // If still fail, the counter increase, then enter loop again
             execution_count_ref++;
 
@@ -506,8 +505,7 @@ void RunBackend(oid_t thread_id) {
     /////////////////////////////////////////////////
     else {
       // First compute the delay
-      RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
-                  delay_max_ref, delay_min_ref);
+      ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
       // clean up the hash table
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
@@ -522,7 +520,7 @@ void RunBackend(oid_t thread_id) {
       }
 
       // Second, clean up
-      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+      ret_query->Cleanup();
       delete ret_query;
 
       // Increase the counter
@@ -731,7 +729,8 @@ void RunWorkload() {
     thread_group.push_back(std::move(std::thread(RunScanBackend, thread_itr)));
   }
 
-  for (oid_t thread_itr = num_scan_threads; thread_itr < num_threads; ++thread_itr) {
+  for (oid_t thread_itr = num_scan_threads; thread_itr < num_threads;
+       ++thread_itr) {
     thread_group.push_back(std::move(std::thread(RunBackend, thread_itr)));
   }
 
@@ -754,12 +753,14 @@ void RunWorkload() {
 
     oid_t current_tile_group_id = manager.GetLastTileGroupId();
     if (round_id != 0) {
-      state.snapshot_memory.push_back(current_tile_group_id - last_tile_group_id);
+      state.snapshot_memory.push_back(current_tile_group_id -
+                                      last_tile_group_id);
     }
     last_tile_group_id = current_tile_group_id;
   }
-  state.snapshot_memory.push_back(state.snapshot_memory.at(state.snapshot_memory.size() - 1));
-  
+  state.snapshot_memory.push_back(
+      state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+
   /*
     LOG_INFO("Change mode to OOHASH");
     state.offline = false;
@@ -867,7 +868,8 @@ void RunWorkload() {
   }
 
   state.payment_throughput = total_payment_commit_count * 1.0 / state.duration;
-  state.payment_abort_rate = total_payment_abort_count * 1.0 / total_payment_commit_count;
+  state.payment_abort_rate =
+      total_payment_abort_count * 1.0 / total_payment_commit_count;
 
   oid_t total_new_order_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -879,8 +881,10 @@ void RunWorkload() {
     total_new_order_abort_count += new_order_abort_counts[i];
   }
 
-  state.new_order_throughput = total_new_order_commit_count * 1.0 / state.duration;
-  state.new_order_abort_rate = total_new_order_abort_count * 1.0 / total_new_order_commit_count;
+  state.new_order_throughput =
+      total_new_order_commit_count * 1.0 / state.duration;
+  state.new_order_abort_rate =
+      total_new_order_abort_count * 1.0 / total_new_order_commit_count;
 
   state.stock_level_latency = stock_level_avg_latency;
   state.order_status_latency = order_status_avg_latency;
@@ -941,7 +945,7 @@ void RunWorkload() {
   new_order_abort_counts = nullptr;
   delete[] new_order_commit_counts;
   new_order_commit_counts = nullptr;
-  
+
   delete[] generate_counts;
   generate_counts = nullptr;
 
@@ -1003,13 +1007,15 @@ std::vector<std::vector<Value>> ExecuteReadTest(
 void ExecuteUpdateTest(executor::AbstractExecutor *executor) {
 
   // Execute stuff
-  while (executor->Execute() == true);
+  while (executor->Execute() == true)
+    ;
 }
 
 void ExecuteDeleteTest(executor::AbstractExecutor *executor) {
 
   // Execute stuff
-  while (executor->Execute() == true);
+  while (executor->Execute() == true)
+    ;
 }
 
 }  // namespace tpcc

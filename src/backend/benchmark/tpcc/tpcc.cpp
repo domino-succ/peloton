@@ -43,7 +43,7 @@ static void WriteOutput() {
   for (auto &entry : state.snapshot_memory) {
     total_snapshot_memory += entry;
   }
-  
+
   // Create file under output directory
   time_t tt;
   time(&tt);
@@ -85,16 +85,16 @@ static void WriteOutput() {
   out << state.generate_rate << " ";
   out << state.payment_throughput << " ";
   out << state.payment_abort_rate << " ";
-  
+
   out << state.new_order_throughput << " ";
   out << state.new_order_abort_rate << " ";
 
   out << state.stock_level_latency << " ";
   out << state.order_status_latency << " ";
   out << state.scan_stock_latency << " ";
-  
-  out << total_snapshot_memory <<"\n";
-  
+
+  out << total_snapshot_memory << "\n";
+
   out.flush();
   out.close();
 }
@@ -138,8 +138,16 @@ void LoadQuery(uint64_t count) {
   }
 
   // These new queries are for TPCC executions
+  bool new_order = true;
   for (uint64_t i = 0; i < count; i++) {
-    GenerateAndCacheQuery();
+    GenerateALLAndCache(new_order);
+
+    // change generating
+    if (new_order) {
+      new_order = false;
+    } else {
+      new_order = true;
+    }
   }
 
   if (state.generate_count == 0) {
@@ -181,6 +189,7 @@ void LoadLogTable() {
 void RunBenchmark() {
   gc::GCManagerFactory::Configure(state.gc_protocol, state.gc_thread_count);
   concurrency::TransactionManagerFactory::Configure(state.protocol);
+  LOG_INFO("Before configure index");
   index::IndexFactory::Configure(state.sindex);
 
   // Create the database

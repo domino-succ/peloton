@@ -55,6 +55,11 @@ class TransactionQuery {
   inline TransactionQuery() {}
   virtual inline ~TransactionQuery() {}
 
+  // Transaction run itself
+  virtual bool Run() = 0;
+
+  virtual void Cleanup() = 0;
+
   virtual PlanNodeType GetPlanType() = 0;
 
   virtual const std::vector<Value>& GetCompareKeys() const = 0;
@@ -82,6 +87,27 @@ class TransactionQuery {
   // For metadata
   virtual void SetQueueNo(int queue_no) = 0;
   virtual int GetQueueNo() = 0;
+
+  // For experiment
+  virtual void ReSetStartTime() = 0;
+  virtual std::chrono::system_clock::time_point& GetStartTime() = 0;
+  void RecordDelay(uint64_t& delay_total_ref, uint64_t& delay_max_ref,
+                   uint64_t& delay_min_ref) {
+    std::chrono::system_clock::time_point end_time =
+        std::chrono::system_clock::now();
+
+    uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
+        end_time - GetStartTime()).count();
+
+    delay_total_ref = delay_total_ref + delay;
+
+    if (delay > delay_max_ref) {
+      delay_max_ref = delay;
+    }
+    if (delay < delay_min_ref) {
+      delay_min_ref = delay;
+    }
+  }
 
   // virtual std::shared_ptr<Region> RegionTransform() = 0;
 

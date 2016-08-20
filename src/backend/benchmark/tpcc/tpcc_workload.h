@@ -233,7 +233,7 @@ class NewOrder : public concurrency::TransactionQuery {
     context_ = context;
   }
 
-  void Cleanup() {
+  virtual void Cleanup() {
 
     // Note: context is set in RunNewOrder, and it is unique_prt
     // delete context_;
@@ -267,7 +267,10 @@ class NewOrder : public concurrency::TransactionQuery {
     stock_update_executor_ = nullptr;
   }
 
-  void ReSetStartTime() {
+  // Run txn
+  virtual bool Run();
+
+  virtual void ReSetStartTime() {
     if (first_pop_ == true) {
       start_time_ = std::chrono::system_clock::now();
       first_pop_ = false;
@@ -1187,6 +1190,212 @@ class NewOrder : public concurrency::TransactionQuery {
   int queue_;
 };
 
+class Payment : public concurrency::TransactionQuery {
+ public:
+  Payment()
+      : customer_pindex_scan_executor_(nullptr),
+        customer_index_scan_executor_(nullptr),
+        customer_update_bc_index_scan_executor_(nullptr),
+        customer_update_bc_executor_(nullptr),
+        customer_update_gc_index_scan_executor_(nullptr),
+        customer_update_gc_executor_(nullptr),
+        warehouse_index_scan_executor_(nullptr),
+        warehouse_update_index_scan_executor_(nullptr),
+        warehouse_update_executor_(nullptr),
+        district_index_scan_executor_(nullptr),
+        district_update_index_scan_executor_(nullptr),
+        district_update_executor_(nullptr),
+        context_(nullptr),
+        start_time_(std::chrono::system_clock::now()),
+        first_pop_(true),
+        warehouse_id_(0),
+        district_id_(0),
+        customer_id_(0),
+        h_amount_(0),
+        customer_warehouse_id_(0),
+        customer_district_id_(0),
+        queue_(-1) {}
+
+  ~Payment() {}
+
+  void SetContext(executor::ExecutorContext* context) {
+    customer_pindex_scan_executor_->SetContext(context);
+    customer_index_scan_executor_->SetContext(context);
+    customer_update_bc_index_scan_executor_->SetContext(context);
+    customer_update_bc_executor_->SetContext(context);
+    customer_update_gc_index_scan_executor_->SetContext(context);
+    customer_update_gc_executor_->SetContext(context);
+
+    warehouse_index_scan_executor_->SetContext(context);
+    warehouse_update_index_scan_executor_->SetContext(context);
+    warehouse_update_executor_->SetContext(context);
+
+    district_index_scan_executor_->SetContext(context);
+    district_update_index_scan_executor_->SetContext(context);
+    district_update_executor_->SetContext(context);
+
+    context_ = context;
+  }
+
+  void Cleanup() {
+
+    // Note: context is set in RunNewOrder, and it is unique_prt
+    // delete context_;
+    // context_ = nullptr;
+
+    delete customer_pindex_scan_executor_;
+    customer_pindex_scan_executor_ = nullptr;
+    delete customer_index_scan_executor_;
+    customer_index_scan_executor_ = nullptr;
+    delete customer_update_bc_index_scan_executor_;
+    customer_update_bc_index_scan_executor_ = nullptr;
+    delete customer_update_bc_executor_;
+    customer_update_bc_executor_ = nullptr;
+    delete customer_update_gc_index_scan_executor_;
+    customer_update_gc_index_scan_executor_ = nullptr;
+    delete customer_update_gc_executor_;
+    customer_update_gc_executor_ = nullptr;
+
+    delete warehouse_index_scan_executor_;
+    warehouse_index_scan_executor_ = nullptr;
+    delete warehouse_update_index_scan_executor_;
+    warehouse_update_index_scan_executor_ = nullptr;
+    delete warehouse_update_executor_;
+    warehouse_update_executor_ = nullptr;
+
+    delete district_index_scan_executor_;
+    district_index_scan_executor_ = nullptr;
+    delete district_update_index_scan_executor_;
+    district_update_index_scan_executor_ = nullptr;
+    delete district_update_executor_;
+    district_update_executor_ = nullptr;
+  }
+
+  // Run txn
+  virtual bool Run();
+
+  void ReSetStartTime() {
+    if (first_pop_ == true) {
+      start_time_ = std::chrono::system_clock::now();
+      first_pop_ = false;
+    }
+  }
+  std::chrono::system_clock::time_point& GetStartTime() {
+    return start_time_;
+  };
+
+  virtual const std::vector<Value>& GetCompareKeys() const {
+    // Just make passing compile. Remove it later
+    std::vector<Value>* tmp = new std::vector<Value>;
+    Value a;
+    tmp->push_back(a);
+    return *tmp;
+  }
+
+  // Common method
+  virtual TxnType GetTxnType() {
+    return TXN_TYPE_PAYMENT;
+  };
+
+  virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }
+
+  // Common method
+  virtual peloton::PlanNodeType GetPlanType() {
+    return peloton::PLAN_NODE_TYPE_UPDATE;
+  };
+
+  virtual SingleRegion* RegionTransform() { return new SingleRegion(); }
+
+  // According predicate (WID AND IID), set the region cover(vector) for this
+  // txn
+  void SetRegionCover() {
+    region_.SetCover(state.warehouse_count, state.item_count);
+    region_.SetCoverWithDefault(warehouse_id_, state.item_count);
+  }
+
+  virtual SingleRegion& GetRegion() { return region_; }
+
+  // Increase the counter when conflict
+  virtual void UpdateLogTable() {}
+
+  // Increase the counter when conflict
+  virtual void UpdateLogTableFullConflict() {}
+
+  // Increase the counter when conflict
+  virtual void UpdateLogTableFullSuccess() {}
+
+  // Find out the max conflict condition and return the thread executing this
+  // condition. If there are multiple threads executing this condition, choose
+  // the thread who has the most of this condition
+  virtual int LookupRunTableMax() { return 0; }
+
+  // Return a queue to schedule
+  virtual int LookupRunTableFull() { return 0; }
+
+  // Find out the max conflict condition and return the thread executing this
+  // condition. If there are multiple threads executing this condPaymentition,
+  // choose
+  // the thread who has the most of this condition
+  virtual int LookupRunTableMaxFull() { return 0; }
+
+  // Return a queue to schedule
+  virtual int LookupRunTable() { return 0; }
+
+  // Increase each condition with the queue/thread. When a txn completes, it
+  // will decrease the reference
+  virtual void UpdateRunTable(int queue_no) {
+    std::cout << "Just pass compile" << queue_no << std::endl;
+  }
+
+  // Increase each condition with the queue/thread. When a txn completes, it
+  // will decrease the reference
+  virtual void DecreaseRunTable() {}
+
+  // For queue No.
+  virtual void SetQueueNo(int queue_no) { queue_ = queue_no; }
+  virtual int GetQueueNo() { return queue_; }
+
+  // Make them public for convenience
+ public:
+  executor::IndexScanExecutor* customer_pindex_scan_executor_;
+  executor::IndexScanExecutor* customer_index_scan_executor_;
+  executor::IndexScanExecutor* customer_update_bc_index_scan_executor_;
+  executor::UpdateExecutor* customer_update_bc_executor_;
+  executor::IndexScanExecutor* customer_update_gc_index_scan_executor_;
+  executor::UpdateExecutor* customer_update_gc_executor_;
+  executor::IndexScanExecutor* warehouse_index_scan_executor_;
+  executor::IndexScanExecutor* warehouse_update_index_scan_executor_;
+  executor::UpdateExecutor* warehouse_update_executor_;
+  executor::IndexScanExecutor* district_index_scan_executor_;
+  executor::IndexScanExecutor* district_update_index_scan_executor_;
+  executor::UpdateExecutor* district_update_executor_;
+  executor::ExecutorContext* context_;
+
+  std::chrono::system_clock::time_point start_time_;
+
+  // Flag to compute the execution time
+  bool first_pop_;
+
+  // uint64_t primary_key_;
+  std::vector<uint64_t> primary_keys_;
+
+  // For execute
+  int warehouse_id_;
+  int district_id_;
+  int customer_id_;
+
+  double h_amount_;
+
+  int customer_warehouse_id_;
+  int customer_district_id_;
+  std::string customer_lastname_;
+
+  SingleRegion region_;
+
+  // For queue No.
+  int queue_;
+};
+
 struct PaymentPlans {
 
   executor::IndexScanExecutor* customer_pindex_scan_executor_;
@@ -1233,6 +1442,7 @@ struct PaymentPlans {
     delete customer_update_gc_index_scan_executor_;
     customer_update_gc_index_scan_executor_ = nullptr;
     delete customer_update_gc_executor_;
+
     customer_update_gc_executor_ = nullptr;
 
     delete warehouse_index_scan_executor_;
@@ -1323,11 +1533,15 @@ DeliveryPlans PrepareDeliveryPlan();
 size_t GenerateWarehouseId(const size_t& thread_id);
 size_t GenerateWarehouseId();
 
+NewOrder* GenerateNewOrder();
 bool RunNewOrder(NewOrderPlans& new_order_plans, const size_t& thread_id);
 bool RunNewOrder(NewOrder* new_order);
 void SetNewOrder(NewOrder* new_order);
 
+Payment* GeneratePayment();
 bool RunPayment(PaymentPlans& payment_plans, const size_t& thread_id);
+bool RunPayment(Payment* new_order);
+void SetPayment(Payment* new_order);
 
 bool RunDelivery(DeliveryPlans& delivery_plans, const size_t& thread_id);
 
@@ -1339,9 +1553,9 @@ bool RunScanStock();
 
 /////////////////////////////////////////////////////////
 void GenerateAndCacheQuery();
+void GenerateALLAndCache(bool new_order);
 bool EnqueueCachedUpdate();
 std::unordered_map<int, ClusterRegion> ClusterAnalysis();
-NewOrder* GenerateNewOrder();
 
 /////////////////////////////////////////////////////////
 
