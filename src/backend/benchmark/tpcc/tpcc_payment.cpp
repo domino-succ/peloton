@@ -442,6 +442,10 @@ bool Payment::Run() {
      c_balance, c_ytd_payment, c_payment_cnt, c_w_id, c_d_id, c_id
      "insertHistory": "INSERT INTO HISTORY VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
      }
+
+   UPDATE DISTRICT SET D_YTD = D_YTD + ? WHERE D_W_ID = ? AND D_ID = ?
+   UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+   UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
    */
 
   LOG_TRACE("-------------------------------------");

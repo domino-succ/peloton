@@ -476,8 +476,6 @@ class TransactionScheduler {
     if (queue == -1) {
       // queue = random_generator_.GetSample();
       queue = g_queue_no.fetch_add(1) % queue_counts_;
-      std::cout << "Can't find a queue, randomly assigned to " << queue << "("
-                << queue_counts_ << ")" << std::endl;
     }
 
     // Update Run Table with the queue. That is to increasing the queue
