@@ -82,18 +82,18 @@ static void WriteOutput() {
   out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
   out << state.backend_count << " ";
   out << state.warehouse_count << " ";
-  out << state.generate_rate << " ";
-  out << state.payment_throughput << " ";
-  out << state.payment_abort_rate << " ";
+  out << state.generate_rate << "\n";
+  //  out << state.payment_throughput << " ";
+  //  out << state.payment_abort_rate << " ";
+  //
+  //  out << state.new_order_throughput << " ";
+  //  out << state.new_order_abort_rate << " ";
+  //
+  //  out << state.stock_level_latency << " ";
+  //  out << state.order_status_latency << " ";
+  //  out << state.scan_stock_latency << " ";
 
-  out << state.new_order_throughput << " ";
-  out << state.new_order_abort_rate << " ";
-
-  out << state.stock_level_latency << " ";
-  out << state.order_status_latency << " ";
-  out << state.scan_stock_latency << " ";
-
-  out << total_snapshot_memory << "\n";
+  // out << total_snapshot_memory << "\n";
 
   out.flush();
   out.close();
