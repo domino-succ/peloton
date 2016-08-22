@@ -23,13 +23,13 @@ if os.path.isfile(output_file):
 #   Thread from 1 to n
 #######################################################################################################
 
-for i in range(1, 24):
-    cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 23 -n 1 -z control"
+for i in range(1, 12):
+    cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z control"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1, 24):
-    cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 23 -n 1 -z ml"
+for i in range(1, 12):
+    cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z ml"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -43,8 +43,8 @@ for i in range(1, 24):
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 
-for i in range(1, 24):
-    cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 23 -n 1 -z cluster -m 1 -x 10000"
+for i in range(1, 12):
+    cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z cluster -m 1 -x 10000"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -53,13 +53,13 @@ for i in range(1, 24):
 #   Warehouse from 1 to n
 #######################################################################################################
 
-for i in range(4, 24):
-    cmd = "./src/tpcc -b 23 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + " -n 1 -z control"
+for i in range(4, 12):
+    cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + " -n 1 -z control"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(4, 24):
-    cmd = "./src/tpcc -b 23 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + " -n 1 -z ml"
+for i in range(4, 12):
+    cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + " -n 1 -z ml"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -73,8 +73,8 @@ for i in range(4, 24):
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 
-for i in range(4, 24):
-    cmd = "./src/tpcc -b 23 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + " -n 1 -z cluster -m 1 -x 10000"
+for i in range(4, 12):
+    cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w" + " " + str(i) + " " + " -n 1 -z cluster -m 1 -x 10000"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -82,12 +82,12 @@ for i in range(4, 24):
 #   Request speed from 1000 to 12000 per second
 #######################################################################################################
 for i in range(1000, 12000, 1000):
-    cmd = "./src/tpcc -b 23 -k 0.01 -p occ -g co -d 5 -w 23 -n 1 -z control -v" + " " + str(i)
+    cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w 11 -n 1 -z control -v" + " " + str(i)
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
 for i in range(1000, 12000, 1000):
-    cmd = "./src/tpcc -b 23 -k 0.01 -p occ -g co -d 5 -w 23 -n 1 -z ml -v" + " " + str(i)
+    cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w 11 -n 1 -z ml -v" + " " + str(i)
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
@@ -102,7 +102,7 @@ for i in range(1000, 12000, 1000):
 #    pid.wait()
 
 for i in range(1000, 12000, 1000):
-    cmd = "./src/tpcc -b 23 -k 0.01 -p occ -g co -d 5 -w 23 -n 1 -z cluster -m 1 -x 10000 -v" + " " + str(i)
+    cmd = "./src/tpcc -b 11 -k 0.01 -p occ -g co -d 5 -w 11 -n 1 -z cluster -m 1 -x 10000 -v" + " " + str(i)
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
