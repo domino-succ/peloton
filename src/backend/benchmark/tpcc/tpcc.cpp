@@ -108,6 +108,7 @@ void LoadQuery(uint64_t count) {
 
   // If use CLUSTER method, we should analyze the query/txns when load query.
   if (state.scheduler == SCHEDULER_TYPE_CLUSTER) {
+
     // These queries are for clustering
     for (int i = 0; i < state.analysis_txns; i++) {
       GenerateAndCacheQuery();
@@ -136,11 +137,13 @@ void LoadQuery(uint64_t count) {
     // compares the big region with each cluster
     concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
   }
+  /////////////////////////end clustering//////////////////////////
 
   // These new queries are for TPCC executions
   bool new_order = true;
   for (uint64_t i = 0; i < count; i++) {
     GenerateALLAndCache(new_order);
+    // GenerateALLAndCache(true);
 
     // change generating
     if (new_order) {
@@ -165,7 +168,7 @@ void LoadQuery(uint64_t count) {
 void LoadLogTable() {
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
     // load file
-    if (!state.offline) {
+    if (!state.log_table) {
       std::ifstream infile(LOGTABLE);
       std::string condition;
       int conflict;
@@ -180,7 +183,7 @@ void LoadLogTable() {
       infile.close();
 
       // Debug
-      concurrency::TransactionScheduler::GetInstance().DumpLogTable();
+      // concurrency::TransactionScheduler::GetInstance().DumpLogTable();
     }
   }
 }
@@ -199,7 +202,7 @@ void RunBenchmark() {
   LoadTPCCDatabase();
 
   // If OOHASH, load Log Table File
-  // LoadLogTable();
+  LoadLogTable();
 
   // Load queries/txns
   LoadQuery(PRELOAD);
@@ -207,7 +210,10 @@ void RunBenchmark() {
   // Run the workload
   RunWorkload();
 
-  WriteOutput();
+  // For OOHASH
+  if (!state.log_table) {
+    WriteOutput();
+  }
 }
 
 }  // namespace tpcc

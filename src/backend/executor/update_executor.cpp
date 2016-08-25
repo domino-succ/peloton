@@ -34,8 +34,7 @@ namespace executor {
  */
 UpdateExecutor::UpdateExecutor(const planner::AbstractPlan *node,
                                ExecutorContext *executor_context)
-    : AbstractExecutor(node, executor_context){
-	}
+    : AbstractExecutor(node, executor_context) {}
 
 /**
  * @brief Nothing to init at the moment.
@@ -50,7 +49,7 @@ bool UpdateExecutor::DInit() {
   const planner::UpdatePlan &node = GetPlanNode<planner::UpdatePlan>();
   target_table_ = node.GetTable();
   project_info_.reset(new planner::ProjectInfo(*(node.GetProjectInfo())));
-  
+
   assert(target_table_);
   assert(project_info_);
 
@@ -81,7 +80,8 @@ bool UpdateExecutor::DExecute() {
   auto &transaction_manager =
       concurrency::TransactionManagerFactory::GetInstance();
 
-  auto concurrency_protocol = concurrency::TransactionManagerFactory::GetProtocol();
+  auto concurrency_protocol =
+      concurrency::TransactionManagerFactory::GetProtocol();
   auto schema = target_table_->GetSchema();
 
   // Update tuples in given table
@@ -93,13 +93,15 @@ bool UpdateExecutor::DExecute() {
     LOG_TRACE("Visible Tuple id : %u, Physical Tuple id : %u ",
               visible_tuple_id, physical_tuple_id);
 
-    if (transaction_manager.IsOwner(tile_group_header, physical_tuple_id) == true) {
+    if (transaction_manager.IsOwner(tile_group_header, physical_tuple_id) ==
+        true) {
 
       // Make a copy of the original tuple and allocate a new tuple
       expression::ContainerTuple<storage::TileGroup> old_tuple(
           tile_group, physical_tuple_id);
       // Create a temp copy
-      std::unique_ptr<storage::Tuple> new_tuple(new storage::Tuple(target_table_->GetSchema(), true));
+      std::unique_ptr<storage::Tuple> new_tuple(
+          new storage::Tuple(target_table_->GetSchema(), true));
       // Execute the projections
       // FIXME: reduce memory copy by doing inplace update
       project_info_->Evaluate(new_tuple.get(), &old_tuple, nullptr,
@@ -107,34 +109,43 @@ bool UpdateExecutor::DExecute() {
 
       // Check if we are using rollback segment
       if (concurrency::TransactionManagerFactory::IsRB()) {
-        if ((concurrency_protocol == CONCURRENCY_TYPE_TO_FULL_RB
-             || concurrency_protocol == CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB)) {
-          auto rb_txn_manager = (concurrency::TsOrderFullRbTxnManager*)&transaction_manager;
+        if ((concurrency_protocol == CONCURRENCY_TYPE_TO_FULL_RB ||
+             concurrency_protocol == CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB)) {
+          auto rb_txn_manager =
+              (concurrency::TsOrderFullRbTxnManager *)&transaction_manager;
 
           // This is an inserted tuple, create a full rb and perform update
-          if (rb_txn_manager->IsInserted(tile_group_header, physical_tuple_id)) {
+          if (rb_txn_manager->IsInserted(tile_group_header,
+                                         physical_tuple_id)) {
             expression::ContainerTuple<storage::TileGroup> old_tuple(
-              tile_group, physical_tuple_id);
-            char *rb_seg = rb_txn_manager->GetSegmentPool()->CreateSegmentFromTuple(
-              schema, &old_tuple);
+                tile_group, physical_tuple_id);
+            char *rb_seg =
+                rb_txn_manager->GetSegmentPool()->CreateSegmentFromTuple(
+                    schema, &old_tuple);
             rb_txn_manager->PerformUpdateWithRb(old_location, rb_seg);
           }
-          
+
           // Overwrite the master copy
           tile_group->CopyTuple(new_tuple.get(), physical_tuple_id);
 
           // Insert into secondary index
-          rb_txn_manager->RBInsertVersion(target_table_, old_location, new_tuple.get());
+          rb_txn_manager->RBInsertVersion(target_table_, old_location,
+                                          new_tuple.get());
         } else {
-          auto rb_txn_manager = (concurrency::RBTxnManager*)&transaction_manager;
+          auto rb_txn_manager =
+              (concurrency::RBTxnManager *)&transaction_manager;
 
-          if (rb_txn_manager->IsInserted(tile_group_header, physical_tuple_id) == false) {
+          if (rb_txn_manager->IsInserted(tile_group_header,
+                                         physical_tuple_id) == false) {
             // If it's not an inserted tuple,
-            // create a new rollback segment based on the old one and the old tuple
-            auto rb_seg = rb_txn_manager->GetSegmentPool()->CreateSegmentFromTuple(
-              schema, project_info_->GetTargetList(), &old_tuple);
+            // create a new rollback segment based on the old one and the old
+            // tuple
+            auto rb_seg =
+                rb_txn_manager->GetSegmentPool()->CreateSegmentFromTuple(
+                    schema, project_info_->GetTargetList(), &old_tuple);
 
-            // TODO: rb_seg == nullptr may be resulted from an optimization to be done
+            // TODO: rb_seg == nullptr may be resulted from an optimization to
+            // be done
             // when creating rollback segment
             if (rb_seg != nullptr) {
               // Ask the txn manager to add the a new rollback segment
@@ -146,7 +157,8 @@ bool UpdateExecutor::DExecute() {
           tile_group->CopyTuple(new_tuple.get(), physical_tuple_id);
 
           // Insert into secondary index
-          rb_txn_manager->RBInsertVersion(target_table_, old_location, new_tuple.get());
+          rb_txn_manager->RBInsertVersion(target_table_, old_location,
+                                          new_tuple.get());
         }
       } else {
         tile_group->CopyTuple(new_tuple.get(), physical_tuple_id);
@@ -165,7 +177,8 @@ bool UpdateExecutor::DExecute() {
       }
       // if it is the latest version and not locked by other threads, then
       // insert a new version.
-      std::unique_ptr<storage::Tuple> new_tuple(new storage::Tuple(target_table_->GetSchema(), true));
+      std::unique_ptr<storage::Tuple> new_tuple(
+          new storage::Tuple(target_table_->GetSchema(), true));
       // Make a copy of the original tuple and allocate a new tuple
       expression::ContainerTuple<storage::TileGroup> old_tuple(
           tile_group, physical_tuple_id);
@@ -175,17 +188,17 @@ bool UpdateExecutor::DExecute() {
 
       if (concurrency::TransactionManagerFactory::IsRB()) {
         // For rollback segment implementation
-        auto rb_txn_manager = (concurrency::RBTxnManager*)&transaction_manager;
+        auto rb_txn_manager = (concurrency::RBTxnManager *)&transaction_manager;
 
         // Create a rollback segment based on the old tuple
         char *rb_seg = nullptr;
         if (concurrency_protocol == CONCURRENCY_TYPE_TO_FULL_RB ||
             concurrency_protocol == CONCURRENCY_TYPE_TO_FULL_CENTRAL_RB) {
           rb_seg = rb_txn_manager->GetSegmentPool()->CreateSegmentFromTuple(
-            schema, &old_tuple);
+              schema, &old_tuple);
         } else {
           rb_seg = rb_txn_manager->GetSegmentPool()->CreateSegmentFromTuple(
-            schema, project_info_->GetTargetList(), &old_tuple);  
+              schema, project_info_->GetTargetList(), &old_tuple);
         }
 
         // Ask the txn manager to append the rollback segment
@@ -196,13 +209,17 @@ bool UpdateExecutor::DExecute() {
 
         // Insert into secondary index. Maybe we can insert index before
         // CopyTuple? -- RX
-        rb_txn_manager->RBInsertVersion(target_table_, old_location, new_tuple.get());
+        rb_txn_manager->RBInsertVersion(target_table_, old_location,
+                                        new_tuple.get());
       } else {
         ItemPointer new_location;
         // finally insert updated tuple into the table
-        if (index::IndexFactory::GetSecondaryIndexType() == SECONDARY_INDEX_TYPE_TUPLE) {
-          ItemPointer *master_ptr = tile_group_header->GetMasterPointer(old_location.offset);
-          new_location = target_table_->InsertVersion(new_tuple.get(), &(project_info_->GetTargetList()), master_ptr);
+        if (index::IndexFactory::GetSecondaryIndexType() ==
+            SECONDARY_INDEX_TYPE_TUPLE) {
+          ItemPointer *master_ptr =
+              tile_group_header->GetMasterPointer(old_location.offset);
+          new_location = target_table_->InsertVersion(
+              new_tuple.get(), &(project_info_->GetTargetList()), master_ptr);
         } else {
           new_location = target_table_->InsertVersion(new_tuple.get());
         }
@@ -218,8 +235,10 @@ bool UpdateExecutor::DExecute() {
           return false;
         }
 
-        LOG_TRACE("perform update old location: %u, %u", old_location.block, old_location.offset);
-        LOG_TRACE("perform update new location: %u, %u", new_location.block, new_location.offset);
+        LOG_TRACE("perform update old location: %u, %u", old_location.block,
+                  old_location.offset);
+        LOG_TRACE("perform update new location: %u, %u", new_location.block,
+                  new_location.offset);
         transaction_manager.PerformUpdate(old_location, new_location);
       }
 

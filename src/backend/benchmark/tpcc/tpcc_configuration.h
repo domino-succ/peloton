@@ -27,13 +27,13 @@ namespace tpcc {
 static const oid_t tpcc_database_oid = 100;
 
 static const oid_t warehouse_table_oid = 1001;
-static const oid_t warehouse_table_pkey_index_oid = 20010; // W_ID
+static const oid_t warehouse_table_pkey_index_oid = 20010;  // W_ID
 
 static const oid_t district_table_oid = 1002;
-static const oid_t district_table_pkey_index_oid = 20021; // D_ID, D_W_ID
+static const oid_t district_table_pkey_index_oid = 20021;  // D_ID, D_W_ID
 
 static const oid_t item_table_oid = 1003;
-static const oid_t item_table_pkey_index_oid = 20030; // I_ID
+static const oid_t item_table_pkey_index_oid = 20030;  // I_ID
 
 static const oid_t customer_table_oid = 1004;
 static const oid_t customer_table_pkey_index_oid =
@@ -91,7 +91,7 @@ class configuration {
 
   // number of scan backends
   int scan_backend_count;
-  
+
   // number of query thread
   int generate_count;
 
@@ -130,7 +130,7 @@ class configuration {
   double order_status_latency;
 
   double scan_stock_latency;
-  
+
   // enable exponential backoff
   bool run_backoff;
 
@@ -139,6 +139,13 @@ class configuration {
 
   bool online;
   bool offline;
+
+  bool single_ref;
+
+  // canonical means transform to underlying domain
+  bool canonical;
+
+  bool log_table;
 
   //
   SchedulerType scheduler;
@@ -151,7 +158,7 @@ class configuration {
 
   // index type
   IndexType index;
-  
+
   // secondary index type
   SecondaryIndexType sindex;
 

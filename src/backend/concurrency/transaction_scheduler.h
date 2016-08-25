@@ -61,6 +61,7 @@ class TransactionQuery {
   virtual void Cleanup() = 0;
 
   virtual PlanNodeType GetPlanType() = 0;
+  virtual TxnType GetTxnType() = 0;
 
   virtual const std::vector<Value>& GetCompareKeys() const = 0;
 
@@ -71,15 +72,16 @@ class TransactionQuery {
   virtual SingleRegion& GetRegion() = 0;
 
   // For Log Table
-  virtual void UpdateLogTable() = 0;
+  virtual void UpdateLogTable(bool single_ref, bool canonical) = 0;
   virtual void UpdateLogTableFullConflict() = 0;
   virtual void UpdateLogTableFullSuccess() = 0;
 
   // For Run Table
-  virtual int LookupRunTable() = 0;
-  virtual int LookupRunTableMax() = 0;
-  virtual void UpdateRunTable(int queue_no) = 0;
-  virtual void DecreaseRunTable() = 0;
+  virtual int LookupRunTable(bool single_ref, bool canonical) = 0;
+  virtual int LookupRunTableMax(bool single_ref, bool canonical) = 0;
+  virtual void UpdateRunTable(int queue_no, bool single_ref,
+                              bool canonical) = 0;
+  virtual void DecreaseRunTable(bool single_ref, bool canonical) = 0;
 
   virtual int LookupRunTableFull() = 0;
   virtual int LookupRunTableMaxFull() = 0;
@@ -204,14 +206,15 @@ class TransactionScheduler {
   /*
    * Randomly enqueue
    */
-  void RandomEnqueue(TransactionQuery* query) {
 
+  void RandomEnqueue(TransactionQuery* query,
+                     bool single_ref __attribute__((unused))) {
     // Get a random number from 0 to queue_counts
     int queue = random_generator_.GetSample();
 
     // Update Run Table with the queue. That is to increasing the queue
     // reference in Run Table
-    query->UpdateRunTable(queue);
+    // query->UpdateRunTable(queue, single_ref);
 
     // Set queue No. then when clean run table queue No. will be used
     query->SetQueueNo(queue);
@@ -451,36 +454,51 @@ class TransactionScheduler {
 
   std::atomic<int> g_queue_no;
 
-  void OOHashEnqueue(TransactionQuery* query, bool offline, bool online) {
+  void OOHashEnqueue(TransactionQuery* query,
+                     bool offline __attribute__((unused)), bool online,
+                     bool single_ref, bool canonical) {
     int queue = -1;
     // Find out the corresponding queue
 
-    // MAX
+    //    // MAX
+    //    if (online) {
+    //      if (offline) {
+    //        queue = query->LookupRunTableMaxFull();
+    //      } else {
+    //        queue = query->LookupRunTableMax();
+    //      }
+    //    }
+    //    // SUM
+    //    else {
+    //      if (offline) {
+    //        queue = query->LookupRunTableFull();
+    //      } else {
+    //        queue = query->LookupRunTable();
+    //      }
+    //    }
+
     if (online) {
-      if (offline) {
-        queue = query->LookupRunTableMaxFull();
-      } else {
-        queue = query->LookupRunTableMax();
-      }
+      queue = query->LookupRunTableMax(single_ref, canonical);
     }
     // SUM
     else {
-      if (offline) {
-        queue = query->LookupRunTableFull();
-      } else {
-        queue = query->LookupRunTable();
-      }
+      queue = query->LookupRunTable(single_ref, canonical);
     }
 
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
       // queue = random_generator_.GetSample();
       queue = g_queue_no.fetch_add(1) % queue_counts_;
+      std::cout << "Can't find a queue to assign txn: " << queue;
+
+      std::cout << ". Txn type: " << query->GetTxnType();
+
+      std::cout << std::endl;
     }
 
     // Update Run Table with the queue. That is to increasing the queue
     // reference in Run Table
-    query->UpdateRunTable(queue);
+    query->UpdateRunTable(queue, single_ref, canonical);
 
     // Set queue No. then when clean run table queue No. will be used
     query->SetQueueNo(queue);
@@ -706,12 +724,13 @@ class TransactionScheduler {
   // returning reference wouldn't work here
   std::unordered_map<int, int>* RunTableGet(std::string& key) {
 
+    std::unordered_map<int, int>* ret = nullptr;
     auto entry = run_table_.find(key);
     if (entry != run_table_.end()) {
-      return &(entry->second);
+      ret = &(entry->second);
     }
 
-    return nullptr;
+    return ret;
   }
 
   // support multi-thread

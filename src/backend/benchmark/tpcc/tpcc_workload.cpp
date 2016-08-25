@@ -74,9 +74,6 @@ namespace peloton {
 namespace benchmark {
 namespace tpcc {
 
-NewOrder b;
-Payment a;
-
 /////////////////////////////////////////////////////////
 // WORKLOAD
 /////////////////////////////////////////////////////////
@@ -86,6 +83,7 @@ Payment a;
 #define PAYMENT_RATIO 0.46
 
 volatile bool is_running = true;
+volatile bool is_run_table = false;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
@@ -229,14 +227,19 @@ bool EnqueueCachedUpdate() {
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
     concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
   } else if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    if (state.online) {  // ONLINE means Run table
+    // If run table is not ready
+    if (state.log_table) {
       // concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
-      // concurrency::TransactionScheduler::GetInstance().RandomEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+          query, state.single_ref);
+    }
+    // Run table is ready
+    else if (state.online) {  // ONLINE means Run table
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-          query, state.offline, true);
+          query, state.offline, true, state.single_ref, state.canonical);
     } else {  // otherwise use OOHASH method
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-          query, state.offline, false);
+          query, state.offline, false, state.single_ref, state.canonical);
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
@@ -353,13 +356,13 @@ void RunBackend(oid_t thread_id) {
         break;
       }
       case SCHEDULER_TYPE_HASH: {
-        ret_pop =
-            concurrency::TransactionScheduler::GetInstance().CounterDequeue(
-                ret_query, thread_id);
-
         //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //            concurrency::TransactionScheduler::GetInstance().CounterDequeue(
         //                ret_query, thread_id);
+
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                ret_query, thread_id);
 
         break;
       }
@@ -457,21 +460,26 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_HASH: {
 
           // Log Table: record the conflict condition
-          if (state.offline) {  // OFFLINE = true means using JUST MAX
-            ret_query->UpdateLogTable();
-          } else {
-            ret_query->UpdateLogTableFullConflict();
-          }
+          //          if (state.offline) {  // OFFLINE = true means using MAX
+          //            ret_query->UpdateLogTable(state.single_ref);
+          //          } else {
+          //            ret_query->UpdateLogTableFullConflict();
+          //          }
+          if (state.log_table) {
+            ret_query->UpdateLogTable(state.single_ref, state.canonical);
 
-          // Run Table: record txn
-          if (state.online) {
-            // concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-            //                ret_query);
+            concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+                ret_query, state.single_ref);
+          }
+          // Log table is ready
+          else if (state.online) {
             concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query, state.offline, true);
+                ret_query, state.offline, true, state.single_ref,
+                state.canonical);
           } else {
             concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query, state.offline, false);
+                ret_query, state.offline, false, state.single_ref,
+                state.canonical);
           }
 
           break;
@@ -511,12 +519,12 @@ void RunBackend(oid_t thread_id) {
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
 
         // If ONLINE == FALSE means we should record SUCCESS txns
-        if (!state.offline) {
-          ret_query->UpdateLogTableFullSuccess();
-        }
+        //        if (!state.offline) {
+        //          ret_query->UpdateLogTableFullSuccess();
+        //        }
 
-        // Remove the txn from Run Table
-        ret_query->DecreaseRunTable();
+        // Remove txn from Run Table
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
       }
 
       // Second, clean up
@@ -742,7 +750,7 @@ void RunWorkload() {
 
   //////////////////////////////////////
   oid_t last_tile_group_id = 0;
-  for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
+  for (size_t round_id = 0; round_id < snapshot_round / 2; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
     memcpy(abort_counts_snapshots[round_id], abort_counts,
@@ -761,11 +769,12 @@ void RunWorkload() {
   state.snapshot_memory.push_back(
       state.snapshot_memory.at(state.snapshot_memory.size() - 1));
 
-  /*
-    LOG_INFO("Change mode to OOHASH");
-    state.offline = false;
+  LOG_INFO("Change mode to OOHASH");
 
-  for (size_t round_id = snapshot_round / 3; round_id < snapshot_round;
+  is_run_table = true;
+
+  ////
+  for (size_t round_id = snapshot_round / 2; round_id < snapshot_round;
        ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
@@ -777,13 +786,16 @@ void RunWorkload() {
 
     state.snapshot_memory.push_back(manager.GetLastTileGroupId());
   }
-  */
+  ///
+
   is_running = false;
 
-  // If this is offline analysis, write Log Table into a file. It is just a
-  // int-->int map
+  // If this is offline analysis, write Log Table into a file. It is a
+  // map: int-->int (reference-key, conflict-counts)
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
+    if (state.log_table) {
+      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
+    }
   }
 
   // Join the threads with the main thread

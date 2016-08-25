@@ -61,7 +61,11 @@ static struct option opts[] = {
     {"order_range", optional_argument, NULL, 'r'},
     {"exp_backoff", no_argument, NULL, 'e'},
     {"affinity", no_argument, NULL, 'a'},
-    {"offline", no_argument, NULL, 'l'},
+    {"online", no_argument, NULL, 'o'},
+    {"offline", no_argument, NULL, 'f'},
+    {"single_ref", no_argument, NULL, 'l'},
+    {"canonical", no_argument, NULL, 'c'},
+    {"log_table", no_argument, NULL, 'j'},
     {"protocol", optional_argument, NULL, 'p'},
     {"scheduler", optional_argument, NULL, 'z'},
     {"gc_protocol", optional_argument, NULL, 'g'},
@@ -191,6 +195,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.run_backoff = false;
   state.offline = false;
   state.online = false;
+  state.single_ref = false;
+  state.canonical = false;
+  state.log_table = false;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -203,8 +210,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(argc, argv, "aeofh:r:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:",
-                        opts, &idx);
+    int c = getopt_long(
+        argc, argv, "aeoflcjh:r:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
 
     if (c == -1) break;
 
@@ -256,6 +263,15 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'f':
         state.offline = true;
+        break;
+      case 'l':
+        state.single_ref = true;
+        break;
+      case 'c':
+        state.canonical = true;
+        break;
+      case 'j':
+        state.log_table = true;
         break;
       case 'z': {
         char *scheduler = optarg;
