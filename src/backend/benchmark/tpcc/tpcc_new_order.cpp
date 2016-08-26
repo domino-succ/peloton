@@ -411,6 +411,9 @@ bool NewOrder::Run() {
      OL_DIST_INFO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", # o_id, d_id, w_id,
      ol_number, ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info
      }
+
+     UPDATE DISTRICT SET ** WHERE D_ID=? AND D_W_ID=?",#d_next_o_id, d_id, w_id
+     UPDATE STOCK SET ** WHERE S_I_ID =? AND S_W_ID =?",#ol_i_id,ol_supply_w_id
    */
 
   LOG_TRACE("-------------------------------------");

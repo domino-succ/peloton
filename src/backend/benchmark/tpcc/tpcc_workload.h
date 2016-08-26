@@ -34,7 +34,7 @@ namespace tpcc {
 
 #define PRELOAD 300000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
-#define CONFLICT_THRESHHOLD 0
+#define CONFLICT_THRESHHOLD 5000
 #define LOGTABLE "logtable"
 
 //===========
@@ -367,6 +367,11 @@ class NewOrder : public concurrency::TransactionQuery {
       }
     }
   }
+
+  /*
+    UPDATE DISTRICT SET ** WHERE D_ID=? AND D_W_ID=?",#d_next_o_id, d_id, w_id
+    UPDATE STOCK SET ** WHERE S_I_ID =? AND S_W_ID =?",#ol_i_id,ol_supply_w_id"
+  */
 
   virtual void UpdateLogTable(bool single_ref, bool canonical) {
     if (single_ref) {
