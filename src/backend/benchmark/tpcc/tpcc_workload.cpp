@@ -356,13 +356,12 @@ void RunBackend(oid_t thread_id) {
         break;
       }
       case SCHEDULER_TYPE_HASH: {
-        //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().CounterDequeue(
-        //                ret_query, thread_id);
+        ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
+            ret_query, thread_id);
 
-        ret_pop =
-            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
-                ret_query, thread_id);
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //                ret_query, thread_id);
 
         break;
       }
