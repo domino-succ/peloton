@@ -501,7 +501,7 @@ class NewOrder : public concurrency::TransactionQuery {
     }
 
     // If there is no conflict, return -1;
-    if (max_conflict == 0) {
+    if (max_conflict == CONFLICT_THRESHHOLD) {
       std::cout << "Not find any conflict in Log Table" << std::endl;
       return -1;
     }
@@ -619,7 +619,8 @@ class NewOrder : public concurrency::TransactionQuery {
     ////////new end here
 
     // If there is no conflict, return -1;
-    if (max_conflict == 0) {
+    if (max_conflict == CONFLICT_THRESHHOLD) {
+      std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
@@ -1701,7 +1702,7 @@ class NewOrder : public concurrency::TransactionQuery {
     ////////////////////////new end here
 
     // If there is no conflict, return -1;
-    if (max_conflict == 0) {
+    if (max_conflict == CONFLICT_THRESHHOLD) {
       return -1;
     }
 
@@ -2171,7 +2172,8 @@ class Payment : public concurrency::TransactionQuery {
     }
 
     // If there is no conflict, return -1;
-    if (max_conflict == 0) {
+    if (max_conflict == CONFLICT_THRESHHOLD) {
+      std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
@@ -2227,6 +2229,11 @@ class Payment : public concurrency::TransactionQuery {
         int random_variable = std::rand() % queues.size();
         queue_no = queues.at(random_variable);
       }
+    }
+
+    if (queue_no == -1) {
+      std::cout << "Max_conflict: " << max_conflict
+                << " max_conflict_key: " << max_conflict_key << std::endl;
     }
 
     return queue_no;
@@ -2310,7 +2317,8 @@ class Payment : public concurrency::TransactionQuery {
     }
 
     // If there is no conflict, return -1;
-    if (max_conflict == 0) {
+    if (max_conflict == CONFLICT_THRESHHOLD) {
+      std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
@@ -3227,7 +3235,7 @@ class Payment : public concurrency::TransactionQuery {
     }
 
     // If there is no conflict, return -1;
-    if (max_conflict == 0) {
+    if (max_conflict == CONFLICT_THRESHHOLD) {
       return -1;
     }
 
