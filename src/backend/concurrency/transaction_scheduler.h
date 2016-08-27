@@ -476,7 +476,7 @@ class TransactionScheduler {
     //        queue = query->LookupRunTable();
     //      }
     //    }
-
+    counter_lock_.Lock();
     if (online) {
       queue = query->LookupRunTableMax(single_ref, canonical);
     }
@@ -499,7 +499,7 @@ class TransactionScheduler {
     // Update Run Table with the queue. That is to increasing the queue
     // reference in Run Table
     query->UpdateRunTable(queue, single_ref, canonical);
-
+    counter_lock_.Unlock();
     // Set queue No. then when clean run table queue No. will be used
     query->SetQueueNo(queue);
 
@@ -735,7 +735,7 @@ class TransactionScheduler {
 
   // support multi-thread
   void RunTableIncrease(std::string& key, int queue_no) {
-    counter_lock_.Lock();
+    // counter_lock_.Lock();
 
     // Get the reference of the corresponding queue
     std::unordered_map<int, int>* queue_info = RunTableGet(key);
@@ -758,7 +758,7 @@ class TransactionScheduler {
       run_table_.insert(std::make_pair(key, queue_map));
     }
 
-    counter_lock_.Unlock();
+    // counter_lock_.Unlock();
   }
 
   // support multi-thread

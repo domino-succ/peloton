@@ -715,6 +715,7 @@ class NewOrder : public concurrency::TransactionQuery {
 
     // Get the queues from Run Table for the given condition.
     // Each queue: <queueNo. reference>
+    // wid-3-->(3,100)(5,99)
     std::unordered_map<int, int>* queue_info =
         concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
 
