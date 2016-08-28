@@ -620,7 +620,7 @@ class NewOrder : public concurrency::TransactionQuery {
 
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
-      std::cout << "Can't find conflict" << std::endl;
+      // std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
@@ -2174,7 +2174,7 @@ class Payment : public concurrency::TransactionQuery {
 
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
-      std::cout << "Can't find conflict" << std::endl;
+      // std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
@@ -2319,7 +2319,7 @@ class Payment : public concurrency::TransactionQuery {
 
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
-      std::cout << "Can't find conflict" << std::endl;
+      // std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
