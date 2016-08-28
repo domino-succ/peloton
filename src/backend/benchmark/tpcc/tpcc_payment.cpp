@@ -380,24 +380,24 @@ void SetPayment(Payment *payment) {
 
   payment->h_amount_ = h_amount;
 
-  int x = GetRandomInteger(1, 100);
+  // int x = GetRandomInteger(1, 100);
   // int y = GetRandomInteger(1, 100);
 
-  // 85%: paying through own warehouse ( or there is only 1 warehosue)
-  if (state.warehouse_count == 1 || x <= 85) {
-    payment->customer_warehouse_id_ = payment->warehouse_id_;
-    payment->customer_district_id_ = payment->district_id_;
-  }
-  // 15%: paying through another warehouse
-  else {
-    payment->customer_warehouse_id_ = GetRandomIntegerExcluding(
-        0, state.warehouse_count - 1, payment->warehouse_id_);
-    assert(payment->customer_warehouse_id_ != payment->warehouse_id_);
-    payment->customer_district_id_ =
-        GetRandomInteger(0, state.districts_per_warehouse - 1);
-  }
-  //  payment->customer_warehouse_id_ = payment->warehouse_id_;
-  //  payment->customer_district_id_ = payment->district_id_;
+  //  // 85%: paying through own warehouse ( or there is only 1 warehosue)
+  //  if (state.warehouse_count == 1 || x <= 85) {
+  //    payment->customer_warehouse_id_ = payment->warehouse_id_;
+  //    payment->customer_district_id_ = payment->district_id_;
+  //  }
+  //  // 15%: paying through another warehouse
+  //  else {
+  //    payment->customer_warehouse_id_ = GetRandomIntegerExcluding(
+  //        0, state.warehouse_count - 1, payment->warehouse_id_);
+  //    assert(payment->customer_warehouse_id_ != payment->warehouse_id_);
+  //    payment->customer_district_id_ =
+  //        GetRandomInteger(0, state.districts_per_warehouse - 1);
+  //  }
+  payment->customer_warehouse_id_ = payment->warehouse_id_;
+  payment->customer_district_id_ = payment->district_id_;
 
   // 60%: payment by last name
   // if (y <= 60) {
