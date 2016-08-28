@@ -34,7 +34,7 @@ namespace tpcc {
 
 #define PRELOAD 300000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
-#define CONFLICT_THRESHHOLD 0
+#define CONFLICT_THRESHHOLD 5000
 #define LOGTABLE "logtable"
 
 //===========
