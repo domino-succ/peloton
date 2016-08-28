@@ -380,7 +380,7 @@ void SetPayment(Payment *payment) {
 
   payment->h_amount_ = h_amount;
 
-  int x = GetRandomInteger(1, 100);
+  // int x = GetRandomInteger(1, 100);
   // int y = GetRandomInteger(1, 100);
 
   //  // 85%: paying through own warehouse ( or there is only 1 warehosue)
