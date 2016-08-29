@@ -460,31 +460,27 @@ class TransactionScheduler {
                      bool single_ref, bool canonical) {
     int queue = -1;
 
+    counter_lock_.Lock();
     // Find out the corresponding queue
     if (online) {
       queue = query->LookupRunTableMax(single_ref, canonical);
-      // queue = query->LookupRunTableMaxFull(single_ref, canonical);
     }
     // SUM
     else {
       queue = query->LookupRunTable(single_ref, canonical);
-      // queue = query->LookupRunTableFull(single_ref, canonical);
     }
 
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
       // queue = random_generator_.GetSample();
       queue = g_queue_no.fetch_add(1) % queue_counts_;
-
-      //      std::cout << "Can't find a queue to assign txn: " << queue;
-      //      std::cout << ". Txn type: " << query->GetTxnType();
-      //      std::cout << std::endl;
     }
 
     // Update Run Table with the queue. That is to increasing the queue
     // reference in Run Table
     query->UpdateRunTable(queue, single_ref, canonical);
 
+    counter_lock_.Unlock();
     // Set queue No. then when clean run table queue No. will be used
     query->SetQueueNo(queue);
 
@@ -720,7 +716,7 @@ class TransactionScheduler {
 
   // support multi-thread
   void RunTableIncrease(std::string& key, int queue_no) {
-    counter_lock_.Lock();
+    // counter_lock_.Lock();
 
     // Get the reference of the corresponding queue
     std::unordered_map<int, int>* queue_info = RunTableGet(key);
@@ -743,7 +739,7 @@ class TransactionScheduler {
       run_table_.insert(std::make_pair(key, queue_map));
     }
 
-    counter_lock_.Unlock();
+    // counter_lock_.Unlock();
   }
 
   // support multi-thread
