@@ -459,14 +459,10 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_HASH: {
 
-          // Log Table: record the conflict condition
-          //          if (state.offline) {  // OFFLINE = true means using MAX
-          //            ret_query->UpdateLogTable(state.single_ref);
-          //          } else {
-          //            ret_query->UpdateLogTableFullConflict();
-          //          }
           if (state.log_table) {
             ret_query->UpdateLogTable(state.single_ref, state.canonical);
+            // ret_query->UpdateLogTableFullConflict(state.single_ref,
+            //                                      state.canonical);
 
             concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
                 ret_query, state.single_ref);
@@ -518,10 +514,10 @@ void RunBackend(oid_t thread_id) {
       // clean up the hash table
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
 
-        // If ONLINE == FALSE means we should record SUCCESS txns
-        //        if (!state.offline) {
-        //          ret_query->UpdateLogTableFullSuccess();
-        //        }
+        // Update Log Table when success
+        // if (state.log_table) {
+        //  ret_query->UpdateLogTableFullSuccess(state.single_ref,
+        // state.canonical);
 
         // Remove txn from Run Table
         ret_query->DecreaseRunTable(state.single_ref, state.canonical);

@@ -73,18 +73,19 @@ class TransactionQuery {
 
   // For Log Table
   virtual void UpdateLogTable(bool single_ref, bool canonical) = 0;
-  virtual void UpdateLogTableFullConflict() = 0;
-  virtual void UpdateLogTableFullSuccess() = 0;
+  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) = 0;
+  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) = 0;
 
   // For Run Table
   virtual int LookupRunTable(bool single_ref, bool canonical) = 0;
   virtual int LookupRunTableMax(bool single_ref, bool canonical) = 0;
+
+  virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
+  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
+
   virtual void UpdateRunTable(int queue_no, bool single_ref,
                               bool canonical) = 0;
   virtual void DecreaseRunTable(bool single_ref, bool canonical) = 0;
-
-  virtual int LookupRunTableFull() = 0;
-  virtual int LookupRunTableMaxFull() = 0;
 
   // For metadata
   virtual void SetQueueNo(int queue_no) = 0;
@@ -458,30 +459,16 @@ class TransactionScheduler {
                      bool offline __attribute__((unused)), bool online,
                      bool single_ref, bool canonical) {
     int queue = -1;
-    // Find out the corresponding queue
 
-    //    // MAX
-    //    if (online) {
-    //      if (offline) {
-    //        queue = query->LookupRunTableMaxFull();
-    //      } else {
-    //        queue = query->LookupRunTableMax();
-    //      }
-    //    }
-    //    // SUM
-    //    else {
-    //      if (offline) {
-    //        queue = query->LookupRunTableFull();
-    //      } else {
-    //        queue = query->LookupRunTable();
-    //      }
-    //    }
+    // Find out the corresponding queue
     if (online) {
       queue = query->LookupRunTableMax(single_ref, canonical);
+      // queue = query->LookupRunTableMaxFull(single_ref, canonical);
     }
     // SUM
     else {
       queue = query->LookupRunTable(single_ref, canonical);
+      // queue = query->LookupRunTableFull(single_ref, canonical);
     }
 
     // These is no queue matched. Randomly select a queue
@@ -824,6 +811,11 @@ class TransactionScheduler {
       out << entry.first << " ";
       out << entry.second << "\n";
     }
+    //    for (auto& entry : log_table_full_) {
+    //      out << entry.first << " ";
+    //      out << entry.second.first << " ";
+    //      out << entry.second.second << "\n";
+    //    }
 
     out.flush();
     out.close();
@@ -832,6 +824,10 @@ class TransactionScheduler {
   // Load data into log table
   void LoadLog(std::string condition, int conflict) {
     log_table_.insert(std::make_pair(condition, conflict));
+  }
+
+  void LoadLogFull(std::string condition, int conflict, int success) {
+    log_table_full_.emplace(condition, std::make_pair(conflict, success));
   }
 
   ///////////////////////////

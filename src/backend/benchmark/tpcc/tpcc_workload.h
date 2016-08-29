@@ -516,24 +516,6 @@ class NewOrder : public concurrency::TransactionQuery {
     int max_reference = 0;
     int queue_no = -1;
 
-    // randomly select
-    //    if (queue_info != nullptr) {
-    //      std::vector<int> queues;
-    //
-    //      for (auto queue : (*queue_info)) {
-    //
-    //        // reference = 0 means there is txn (of this condition) executing
-    //        if (queue.second > 0) {
-    //          queues.push_back(queue.first);
-    //        }
-    //      }
-    // if (queues.size() > 0) {
-    //      std::srand(unsigned(std::time(0)));
-    //      int random_variable = std::rand() % queues.size();
-    //      queue_no = queues.at(random_variable);
-    // }
-    //    }
-
     // select max reference
     if (queue_info != nullptr) {
       std::vector<int> queues;
@@ -1247,41 +1229,76 @@ class NewOrder : public concurrency::TransactionQuery {
   ///////////////////////////////////////////////////////////////////
   // obsolete :::: Full means conflict + success
   ///////////////////////////////////////////////////////////////////
+  void UpdateLogTableFullConflictSingleRef(bool canonical) {
+    if (canonical) {
+      // Extract D_W_ID and update it in Log Table
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // Extract D_ID and update it in Log Table
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+        key = std::string("W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullConflictIncrease(key);
+      }
+
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("I_ID") + "-" + std::to_string(id);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullConflictIncrease(key);
+      }
+    } else {
+      // Extract txn conditions include 4 conditions:
+      // S_I_ID  S_W_ID D_ID D_W_ID
+      // the corresponding values can be found from:
+      // warehouse_id_; district_id_; i_ids_
+      // For simplicity, the column name is hard coding here
+
+      // Extract D_W_ID and update it in Log Table
+      std::string key =
+          std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // Extract D_ID and update it in Log Table
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+        key = std::string("S_W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullConflictIncrease(key);
+      }
+
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("S_I_ID") + "-" + std::to_string(id);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullConflictIncrease(key);
+      }
+    }
+  }
 
   // Full means conflict + success
-  virtual void UpdateLogTableFullConflict() {
-    // Extract txn conditions include 4 conditions:
-    // S_I_ID  S_W_ID D_ID D_W_ID
-    // the corresponding values can be found from:
-    // warehouse_id_; district_id_; i_ids_
-    // For simplicity, the column name is hard coding here
+  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return UpdateLogTableFullConflictSingleRef(canonical);
+    }
 
-    //    // Extract D_W_ID and update it in Log Table
-    //    std::string key =
-    //        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
-    //
-    //    concurrency::TransactionScheduler::GetInstance()
-    //        .LogTableFullConflictIncrease(key);
-    //
-    //    // Extract D_ID and update it in Log Table
-    //    key = std::string("D_ID") + "-" + std::to_string(district_id_);
-    //
-    //    concurrency::TransactionScheduler::GetInstance()
-    //        .LogTableFullConflictIncrease(key);
-    //
-    //    // Extract S_W_ID and update it in Log Table
-    //    for (auto wid : ol_w_ids_) {
-    //      key = std::string("S_W_ID") + "-" + std::to_string(wid);
-    //      concurrency::TransactionScheduler::GetInstance()
-    //          .LogTableFullConflictIncrease(key);
-    //    }
-    //
-    //    // Extract S_I_ID and update it in Log Table
-    //    for (auto id : i_ids_) {
-    //      key = std::string("S_I_ID") + "-" + std::to_string(id);
-    //      concurrency::TransactionScheduler::GetInstance()
-    //          .LogTableFullConflictIncrease(key);
-    //    }
     std::string key = std::string("D_W_ID") + "-" +
                       std::to_string(warehouse_id_) + "-" +
                       std::string("D_ID") + "-" + std::to_string(district_id_);
@@ -1299,40 +1316,81 @@ class NewOrder : public concurrency::TransactionQuery {
     }
   }
 
+  void UpdateLogTableFullSuccessSingleRef(bool canonical) {
+    if (canonical) {
+
+      // Extract D_W_ID and update it in Log Table
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // Extract D_ID and update it in Log Table
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+        key = std::string("W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullSuccessIncrease(key);
+      }
+
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("I_ID") + "-" + std::to_string(id);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullSuccessIncrease(key);
+      }
+    } else {
+      // Extract txn conditions include 4 conditions:
+      // S_I_ID  S_W_ID D_ID D_W_ID
+      // the corresponding values can be found from:
+      // warehouse_id_; district_id_; i_ids_
+      // For simplicity, the column name is hard coding here
+
+      // Extract D_W_ID and update it in Log Table
+      std::string key =
+          std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // Extract D_ID and update it in Log Table
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+        key = std::string("S_W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullSuccessIncrease(key);
+      }
+
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("S_I_ID") + "-" + std::to_string(id);
+        concurrency::TransactionScheduler::GetInstance()
+            .LogTableFullSuccessIncrease(key);
+      }
+    }
+  }
   // Increase the counter when conflict
-  virtual void UpdateLogTableFullSuccess() {
+  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return UpdateLogTableFullSuccessSingleRef(canonical);
+    }
     // Extract txn conditions include 4 conditions:
     // S_I_ID  S_W_ID D_ID D_W_ID
     // the corresponding values can be found from:
     // warehouse_id_; district_id_; i_ids_
     // For simplicity, the column name is hard coding here
 
-    //    // Extract D_W_ID and update it in Log Table
-    //    std::string key =
-    //        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
-    //
-    //    concurrency::TransactionScheduler::GetInstance()
-    //        .LogTableFullSuccessIncrease(key);
-    //
-    //    // Extract D_ID and update it in Log Table
-    //    key = std::string("D_ID") + "-" + std::to_string(district_id_);
-    //
-    //    concurrency::TransactionScheduler::GetInstance()
-    //        .LogTableFullSuccessIncrease(key);
-    //
-    //    // Extract S_W_ID and update it in Log Table
-    //    for (auto wid : ol_w_ids_) {
-    //      key = std::string("S_W_ID") + "-" + std::to_string(wid);
-    //      concurrency::TransactionScheduler::GetInstance()
-    //          .LogTableFullSuccessIncrease(key);
-    //    }
-    //
-    //    // Extract S_I_ID and update it in Log Table
-    //    for (auto id : i_ids_) {
-    //      key = std::string("S_I_ID") + "-" + std::to_string(id);
-    //      concurrency::TransactionScheduler::GetInstance()
-    //          .LogTableFullSuccessIncrease(key);
-    //    }
     std::string key = std::string("D_W_ID") + "-" +
                       std::to_string(warehouse_id_) + "-" +
                       std::string("D_ID") + "-" + std::to_string(district_id_);
@@ -1350,8 +1408,7 @@ class NewOrder : public concurrency::TransactionQuery {
     }
   }
 
-  // Return a queue to schedule
-  virtual int LookupRunTableFull() {
+  int LookupRunTableFullSingleRef(bool canonical) {
     // Extract txn conditions include 4 conditions:
     // S_I_ID  S_W_ID D_ID D_W_ID
     // the corresponding values can be found from:
@@ -1367,157 +1424,336 @@ class NewOrder : public concurrency::TransactionQuery {
     double max_conflict = 0;
     int return_queue = -1;
 
-    //    //////////////////////////////////////////////////////////////////////
-    //    // D_W_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract D_W_ID and update it in Log Table
-    //    std::string key =
-    //        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
-    //
-    //    // Get conflict from Log Table for the given condition
-    //    double conflict =
-    //        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //    // Get the queues from Run Table for the given condition.
-    //    // Each queue: <queueNo. reference>
-    //    std::unordered_map<int, int>* queue_info =
-    //        concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
-    //
-    //    if (queue_info != nullptr) {
-    //      for (auto queue : (*queue_info)) {
-    //
-    //        // reference = 0 means there is txn (of this condition) executing
-    //        if (queue.second > 0) {
-    //          // Get the queue No.
-    //          int queue_no = queue.first;
-    //
-    //          // accumulate the conflict for this queue
-    //          queue_map[queue_no] += conflict;
-    //
-    //          // Get the latest conflict
-    //          int queue_conflict = queue_map[queue_no];
-    //
-    //          // Compare with the max, if current queue has larger conflict
-    //          if (queue_conflict > max_conflict) {
-    //            return_queue = queue_no;
-    //            max_conflict = queue_conflict;
-    //          }
-    //        }
-    //      }
-    //    }
-    //
-    //    //////////////////////////////////////////////////////////////////////
-    //    // D_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract D_ID and update it in Log Table
-    //
-    //    key = std::string("D_ID") + "-" + std::to_string(district_id_);
-    //
-    //    conflict =
-    //        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //    queue_info =
-    //        concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
-    //
-    //    if (queue_info != nullptr) {
-    //      for (auto queue : (*queue_info)) {
-    //
-    //        // reference = 0 means there is txn (of this condition) executing
-    //        if (queue.second > 0) {
-    //          // Get the queue No.
-    //          int queue_no = queue.first;
-    //
-    //          // accumulate the conflict for this queue
-    //          queue_map[queue_no] += conflict;
-    //
-    //          // Get the latest conflict
-    //          int queue_conflict = queue_map[queue_no];
-    //
-    //          // Compare with the max, if current queue has larger conflict
-    //          if (queue_conflict > max_conflict) {
-    //            return_queue = queue_no;
-    //            max_conflict = queue_conflict;
-    //          }
-    //        }
-    //      }
-    //    }
-    //
-    //    //////////////////////////////////////////////////////////////////////
-    //    // S_W_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract S_W_ID and update it in Log Table
-    //    for (auto wid : ol_w_ids_) {
-    //
-    //      key = std::string("S_W_ID") + "-" + std::to_string(wid);
-    //
-    //      conflict =
-    //          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //      queue_info =
-    //          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
-    //
-    //      if (queue_info != nullptr) {
-    //        for (auto queue : (*queue_info)) {
-    //
-    //          // reference = 0 means there is txn (of this condition)
-    // executing
-    //          if (queue.second > 0) {
-    //            // Get the queue No.
-    //            int queue_no = queue.first;
-    //
-    //            // accumulate the conflict for this queue
-    //            queue_map[queue_no] += conflict;
-    //
-    //            // Get the latest conflict
-    //            int queue_conflict = queue_map[queue_no];
-    //
-    //            // Compare with the max, if current queue has larger conflict
-    //            if (queue_conflict > max_conflict) {
-    //              return_queue = queue_no;
-    //              max_conflict = queue_conflict;
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
-    //
-    //    //////////////////////////////////////////////////////////////////////
-    //    // S_I_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract S_I_ID and update it in Log Table
-    //    for (auto id : i_ids_) {
-    //      key = std::string("S_I_ID") + "-" + std::to_string(id);
-    //
-    //      conflict =
-    //          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //      queue_info =
-    //          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
-    //
-    //      if (queue_info != nullptr) {
-    //        for (auto queue : (*queue_info)) {
-    //
-    //          // reference = 0 means there is txn (of this condition)
-    // executing
-    //          if (queue.second > 0) {
-    //            // Get the queue No.
-    //            int queue_no = queue.first;
-    //
-    //            // accumulate the conflict for this queue
-    //            queue_map[queue_no] += conflict;
-    //
-    //            // Get the latest conflict
-    //            int queue_conflict = queue_map[queue_no];
-    //
-    //            // Compare with the max, if current queue has larger conflict
-    //            if (queue_conflict > max_conflict) {
-    //              return_queue = queue_no;
-    //              max_conflict = queue_conflict;
-    //            }
-    //          }
-    //        }
-    //      }
-    //    }
+    if (canonical) {
+      //////////////////////////////////////////////////////////////////////
+      // D_W_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract D_W_ID and update it in Log Table
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+
+      // Get conflict from Log Table for the given condition
+      double conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      // Get the queues from Run Table for the given condition.
+      // Each queue: <queueNo. reference>
+      std::unordered_map<int, int>* queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+      if (queue_info != nullptr) {
+        for (auto queue : (*queue_info)) {
+
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > 0) {
+            // Get the queue No.
+            int queue_no = queue.first;
+
+            // accumulate the conflict for this queue
+            queue_map[queue_no] += conflict;
+
+            // Get the latest conflict
+            int queue_conflict = queue_map[queue_no];
+
+            // Compare with the max, if current queue has larger conflict
+            if (queue_conflict > max_conflict) {
+              return_queue = queue_no;
+              max_conflict = queue_conflict;
+            }
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // D_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract D_ID and update it in Log Table
+
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+      if (queue_info != nullptr) {
+        for (auto queue : (*queue_info)) {
+
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > 0) {
+            // Get the queue No.
+            int queue_no = queue.first;
+
+            // accumulate the conflict for this queue
+            queue_map[queue_no] += conflict;
+
+            // Get the latest conflict
+            int queue_conflict = queue_map[queue_no];
+
+            // Compare with the max, if current queue has larger conflict
+            if (queue_conflict > max_conflict) {
+              return_queue = queue_no;
+              max_conflict = queue_conflict;
+            }
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_W_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+
+        key = std::string("W_ID") + "-" + std::to_string(wid);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        queue_info =
+            concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+        if (queue_info != nullptr) {
+          for (auto queue : (*queue_info)) {
+
+            // reference = 0 means there is txn (of this condition)
+            if (queue.second > 0) {
+              // Get the queue No.
+              int queue_no = queue.first;
+
+              // accumulate the conflict for this queue
+              queue_map[queue_no] += conflict;
+
+              // Get the latest conflict
+              int queue_conflict = queue_map[queue_no];
+
+              // Compare with the max, if current queue has larger conflict
+              if (queue_conflict > max_conflict) {
+                return_queue = queue_no;
+                max_conflict = queue_conflict;
+              }
+            }
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_I_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("I_ID") + "-" + std::to_string(id);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        queue_info =
+            concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+        if (queue_info != nullptr) {
+          for (auto queue : (*queue_info)) {
+
+            // reference = 0 means there is txn (of this condition)
+            if (queue.second > 0) {
+              // Get the queue No.
+              int queue_no = queue.first;
+
+              // accumulate the conflict for this queue
+              queue_map[queue_no] += conflict;
+
+              // Get the latest conflict
+              int queue_conflict = queue_map[queue_no];
+
+              // Compare with the max, if current queue has larger conflict
+              if (queue_conflict > max_conflict) {
+                return_queue = queue_no;
+                max_conflict = queue_conflict;
+              }
+            }
+          }
+        }
+      }
+    }
+    // If not canonical
+    else {
+      //////////////////////////////////////////////////////////////////////
+      // D_W_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract D_W_ID and update it in Log Table
+      std::string key =
+          std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+      // Get conflict from Log Table for the given condition
+      double conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      // Get the queues from Run Table for the given condition.
+      // Each queue: <queueNo. reference>
+      std::unordered_map<int, int>* queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+      if (queue_info != nullptr) {
+        for (auto queue : (*queue_info)) {
+
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > 0) {
+            // Get the queue No.
+            int queue_no = queue.first;
+
+            // accumulate the conflict for this queue
+            queue_map[queue_no] += conflict;
+
+            // Get the latest conflict
+            int queue_conflict = queue_map[queue_no];
+
+            // Compare with the max, if current queue has larger conflict
+            if (queue_conflict > max_conflict) {
+              return_queue = queue_no;
+              max_conflict = queue_conflict;
+            }
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // D_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract D_ID and update it in Log Table
+
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+      if (queue_info != nullptr) {
+        for (auto queue : (*queue_info)) {
+
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > 0) {
+            // Get the queue No.
+            int queue_no = queue.first;
+
+            // accumulate the conflict for this queue
+            queue_map[queue_no] += conflict;
+
+            // Get the latest conflict
+            int queue_conflict = queue_map[queue_no];
+
+            // Compare with the max, if current queue has larger conflict
+            if (queue_conflict > max_conflict) {
+              return_queue = queue_no;
+              max_conflict = queue_conflict;
+            }
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_W_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+
+        key = std::string("S_W_ID") + "-" + std::to_string(wid);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        queue_info =
+            concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+        if (queue_info != nullptr) {
+          for (auto queue : (*queue_info)) {
+
+            // reference = 0 means there is txn (of this condition)
+            if (queue.second > 0) {
+              // Get the queue No.
+              int queue_no = queue.first;
+
+              // accumulate the conflict for this queue
+              queue_map[queue_no] += conflict;
+
+              // Get the latest conflict
+              int queue_conflict = queue_map[queue_no];
+
+              // Compare with the max, if current queue has larger conflict
+              if (queue_conflict > max_conflict) {
+                return_queue = queue_no;
+                max_conflict = queue_conflict;
+              }
+            }
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_I_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("S_I_ID") + "-" + std::to_string(id);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        queue_info =
+            concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
+
+        if (queue_info != nullptr) {
+          for (auto queue : (*queue_info)) {
+
+            // reference = 0 means there is txn (of this condition)
+            if (queue.second > 0) {
+              // Get the queue No.
+              int queue_no = queue.first;
+
+              // accumulate the conflict for this queue
+              queue_map[queue_no] += conflict;
+
+              // Get the latest conflict
+              int queue_conflict = queue_map[queue_no];
+
+              // Compare with the max, if current queue has larger conflict
+              if (queue_conflict > max_conflict) {
+                return_queue = queue_no;
+                max_conflict = queue_conflict;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return return_queue;
+  }
+  // Return a queue to schedule
+  virtual int LookupRunTableFull(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return LookupRunTableFullSingleRef(canonical);
+    }
+
+    // Extract txn conditions include 4 conditions:
+    // S_I_ID  S_W_ID D_ID D_W_ID
+    // the corresponding values can be found from:
+    // warehouse_id_; district_id_; i_ids_
+    // For simplicity, the column name is hard coding here
+
+    // Create a prepare queue map. This can be used to store the queue/thread
+    // counter
+    int queue_count =
+        concurrency::TransactionScheduler::GetInstance().GetQueueCount();
+
+    std::vector<double> queue_map(queue_count, 0);
+    double max_conflict = 0;
+    int return_queue = -1;
 
     //////////////////////////////////////////////////////////////////////
     // D_W_ID
@@ -1569,10 +1805,8 @@ class NewOrder : public concurrency::TransactionQuery {
       int iid = i_ids_[i];
       key = std::string("S_W_ID") + "-" + std::to_string(wid) + "-" +
             std::string("S_I_ID") + "-" + std::to_string(iid);
-
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-
       queue_info =
           concurrency::TransactionScheduler::GetInstance().RunTableGet(key);
 
@@ -1599,79 +1833,236 @@ class NewOrder : public concurrency::TransactionQuery {
         }
       }
     }
-    /////////new end here
 
     return return_queue;
   }
 
+  int LookupRunTableMaxFullSingleRef(bool canonical) {
+    double max_conflict = 0;
+    std::string max_conflict_key;
+    int max_reference = 0;
+    int queue_no = -1;
+
+    if (canonical) {
+      //////////////////////////////////////////////////////////////////////
+      // D_W_ID
+      //////////////////////////////////////////////////////////////////////
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+
+      // Get conflict from Log Table for the given condition
+      double conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      if (conflict > max_conflict) {
+        max_conflict = conflict;
+        max_conflict_key = key;
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // D_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract D_ID and update it in Log Table
+
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      if (conflict > max_conflict) {
+        max_conflict = conflict;
+        max_conflict_key = key;
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_W_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+
+        key = std::string("W_ID") + "-" + std::to_string(wid);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        if (conflict > max_conflict) {
+          max_conflict = conflict;
+          max_conflict_key = key;
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_I_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("I_ID") + "-" + std::to_string(id);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        if (conflict > max_conflict) {
+          max_conflict = conflict;
+          max_conflict_key = key;
+        }
+      }
+
+      // If there is no conflict, return -1;
+      if (max_conflict == CONFLICT_THRESHHOLD) {
+        return -1;
+      }
+
+      // Now we get the key with max conflict, such as S_W_ID
+      // Then we should lookup Run Table to get the thread who has this key
+      // Each queue: <queueNo. reference>
+      std::unordered_map<int, int>* queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(
+              max_conflict_key);
+
+      // select max reference
+      if (queue_info != nullptr) {
+        std::vector<int> queues;
+
+        for (auto queue : (*queue_info)) {
+
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > max_reference) {
+            // Get the queue No.
+            queue_no = queue.first;
+            max_reference = queue.second;
+
+            // Once find out new max, clear vector
+            queues.clear();
+          } else if (queue.second != 0 && queue.second == max_reference) {
+            queues.push_back(queue.first);
+          }
+        }
+
+        if (queues.size() > 0) {
+          std::srand(unsigned(std::time(0)));
+          int random_variable = std::rand() % queues.size();
+          queue_no = queues.at(random_variable);
+        }
+      }
+    }
+    // If not canonical
+    else {
+      //////////////////////////////////////////////////////////////////////
+      // D_W_ID
+      //////////////////////////////////////////////////////////////////////
+      std::string key =
+          std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+
+      // Get conflict from Log Table for the given condition
+      double conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      if (conflict > max_conflict) {
+        max_conflict = conflict;
+        max_conflict_key = key;
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // D_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract D_ID and update it in Log Table
+
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      if (conflict > max_conflict) {
+        max_conflict = conflict;
+        max_conflict_key = key;
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_W_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_W_ID and update it in Log Table
+      for (auto wid : ol_w_ids_) {
+
+        key = std::string("S_W_ID") + "-" + std::to_string(wid);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        if (conflict > max_conflict) {
+          max_conflict = conflict;
+          max_conflict_key = key;
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // S_I_ID
+      //////////////////////////////////////////////////////////////////////
+      // Extract S_I_ID and update it in Log Table
+      for (auto id : i_ids_) {
+        key = std::string("S_I_ID") + "-" + std::to_string(id);
+
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        if (conflict > max_conflict) {
+          max_conflict = conflict;
+          max_conflict_key = key;
+        }
+      }
+
+      // If there is no conflict, return -1;
+      if (max_conflict == CONFLICT_THRESHHOLD) {
+        return -1;
+      }
+
+      // Now we get the key with max conflict, such as S_W_ID
+      // Then we should lookup Run Table to get the thread who has this key
+      // Each queue: <queueNo. reference>
+      std::unordered_map<int, int>* queue_info =
+          concurrency::TransactionScheduler::GetInstance().RunTableGet(
+              max_conflict_key);
+
+      // select max reference
+      if (queue_info != nullptr) {
+        std::vector<int> queues;
+
+        for (auto queue : (*queue_info)) {
+
+          // reference = 0 means there is txn (of this condition) executing
+          if (queue.second > max_reference) {
+            // Get the queue No.
+            queue_no = queue.first;
+            max_reference = queue.second;
+
+            // Once find out new max, clear vector
+            queues.clear();
+          } else if (queue.second != 0 && queue.second == max_reference) {
+            queues.push_back(queue.first);
+          }
+        }
+
+        if (queues.size() > 0) {
+          std::srand(unsigned(std::time(0)));
+          int random_variable = std::rand() % queues.size();
+          queue_no = queues.at(random_variable);
+        }
+      }
+    }
+
+    return queue_no;
+  }
   // Find out the max conflict condition and return the thread executing this
   // condition. If there are multiple threads executing this condition, choose
   // the thread who has the most of this condition
-  virtual int LookupRunTableMaxFull() {
+  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return LookupRunTableMaxFullSingleRef(canonical);
+    }
+
     double max_conflict = 0;
     std::string max_conflict_key;
-
-    //    //////////////////////////////////////////////////////////////////////
-    //    // D_W_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    std::string key =
-    //        std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
-    //
-    //    // Get conflict from Log Table for the given condition
-    //    double conflict =
-    //        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //    if (conflict > max_conflict) {
-    //      max_conflict = conflict;
-    //      max_conflict_key = key;
-    //    }
-    //
-    //    //////////////////////////////////////////////////////////////////////
-    //    // D_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract D_ID and update it in Log Table
-    //
-    //    key = std::string("D_ID") + "-" + std::to_string(district_id_);
-    //    conflict =
-    //        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //    if (conflict > max_conflict) {
-    //      max_conflict = conflict;
-    //      max_conflict_key = key;
-    //    }
-    //
-    //    //////////////////////////////////////////////////////////////////////
-    //    // S_W_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract S_W_ID and update it in Log Table
-    //    for (auto wid : ol_w_ids_) {
-    //
-    //      key = std::string("S_W_ID") + "-" + std::to_string(wid);
-    //
-    //      conflict =
-    //          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //      if (conflict > max_conflict) {
-    //        max_conflict = conflict;
-    //        max_conflict_key = key;
-    //      }
-    //    }
-    //
-    //    //////////////////////////////////////////////////////////////////////
-    //    // S_I_ID
-    //    //////////////////////////////////////////////////////////////////////
-    //    // Extract S_I_ID and update it in Log Table
-    //    for (auto id : i_ids_) {
-    //      key = std::string("S_I_ID") + "-" + std::to_string(id);
-    //
-    //      conflict =
-    //          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
-    //
-    //      if (conflict > max_conflict) {
-    //        max_conflict = conflict;
-    //        max_conflict_key = key;
-    //      }
-    //    }
 
     std::string key = std::string("D_W_ID") + "-" +
                       std::to_string(warehouse_id_) + "-" +
@@ -1716,24 +2107,6 @@ class NewOrder : public concurrency::TransactionQuery {
 
     int max_reference = 0;
     int queue_no = -1;
-
-    // randomly select
-    //    if (queue_info != nullptr) {
-    //      std::vector<int> queues;
-    //
-    //      for (auto queue : (*queue_info)) {
-    //
-    //        // reference = 0 means there is txn (of this condition) executing
-    //        if (queue.second > 0) {
-    //          queues.push_back(queue.first);
-    //        }
-    //      }
-    // if (queues.size() > 0) {
-    //      std::srand(unsigned(std::time(0)));
-    //      int random_variable = std::rand() % queues.size();
-    //      queue_no = queues.at(random_variable);
-    // }
-    //    }
 
     // select max reference
     if (queue_info != nullptr) {
@@ -3050,7 +3423,8 @@ class Payment : public concurrency::TransactionQuery {
   ////////////////////////////////////////////////////////////////////////////
 
   // Return a queue to schedule
-  virtual int LookupRunTableFull() {
+  virtual int LookupRunTableFull(bool sigle_ref __attribute__((__unused__)),
+                                 bool canonical __attribute__((__unused__))) {
     int queue_count =
         concurrency::TransactionScheduler::GetInstance().GetQueueCount();
 
@@ -3188,7 +3562,9 @@ class Payment : public concurrency::TransactionQuery {
   // condition. If there are multiple threads executing this condPaymentition,
   // choose
   // the thread who has the most of this condition
-  virtual int LookupRunTableMaxFull() {
+  virtual int LookupRunTableMaxFull(bool sigle_ref __attribute__((__unused__)),
+                                    bool canonical
+                                    __attribute__((__unused__))) {
     double max_conflict = 0;
     std::string max_conflict_key;
 
@@ -3297,7 +3673,10 @@ class Payment : public concurrency::TransactionQuery {
     return queue_no;
   }
   // Increase the counter when conflict
-  virtual void UpdateLogTableFullConflict() {
+  virtual void UpdateLogTableFullConflict(bool sigle_ref
+                                          __attribute__((__unused__)),
+                                          bool canonical
+                                          __attribute__((__unused__))) {
     std::string key = std::string("D_W_ID") + "-" +
                       std::to_string(warehouse_id_) + "-" +
                       std::string("D_ID") + "-" + std::to_string(district_id_);
@@ -3322,7 +3701,10 @@ class Payment : public concurrency::TransactionQuery {
   }
 
   // Increase the counter when conflict
-  virtual void UpdateLogTableFullSuccess() {
+  virtual void UpdateLogTableFullSuccess(bool sigle_ref
+                                         __attribute__((__unused__)),
+                                         bool canonical
+                                         __attribute__((__unused__))) {
 
     std::string key = std::string("D_W_ID") + "-" +
                       std::to_string(warehouse_id_) + "-" +
