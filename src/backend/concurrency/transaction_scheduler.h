@@ -473,8 +473,13 @@ class TransactionScheduler {
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
       // queue = random_generator_.GetSample();
-      // queue = g_queue_no.fetch_add(1) % queue_counts_;
-      queue = GetMinQueue();
+
+      queue = g_queue_no.fetch_add(1) % queue_counts_;
+
+      // If this queue has txn executing, should not use this queue
+      while (queues_[queue].Size() > 0) {
+        queue = g_queue_no.fetch_add(1) % queue_counts_;
+      }
 
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
@@ -806,23 +811,26 @@ class TransactionScheduler {
   int GetMinQueue() {
     assert(queues_.size() == queue_counts_);
 
+    // how many txns the queue has
     int min_size = queues_.front().Size();
-    std::vector<int> min_queues;
+    int queue = 0;
 
-    for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
-      if (queues_[queue_no].Size() < min_size) {
+    std::vector<int> min_queues(1, 0);
+
+    for (uint64_t queue_no = 1; queue_no < queue_counts_; queue_no++) {
+      if (queues_[queue_no].Size() <= min_size) {
         min_size = queues_[queue_no].Size();
         min_queues.push_back(queue_no);
       }
     }
 
     int size = min_queues.size();
-    int queue = -1;
 
     if (size == 1) {
       queue = min_queues[0];
     }
 
+    // should not reach here
     if (size == 0) {
       queue = -1;
     }
