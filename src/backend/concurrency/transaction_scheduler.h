@@ -66,6 +66,7 @@ class TransactionQuery {
   virtual const std::vector<Value>& GetCompareKeys() const = 0;
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() = 0;
+  virtual int GetPrimaryKey() = 0;
 
   // For clustering
   virtual SingleRegion* RegionTransform() = 0;
@@ -473,6 +474,10 @@ class TransactionScheduler {
     if (queue == -1) {
       // queue = random_generator_.GetSample();
       queue = g_queue_no.fetch_add(1) % queue_counts_;
+
+      // Test
+      std::cout << "Can't find a queue, so assign queue: " << queue
+                << ". Key: " << query->GetPrimaryKey() << std::endl;
     }
 
     // Update Run Table with the queue. That is to increasing the queue

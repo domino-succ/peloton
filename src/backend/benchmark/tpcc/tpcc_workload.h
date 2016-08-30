@@ -283,6 +283,7 @@ class NewOrder : public concurrency::TransactionQuery {
   };
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }
+  virtual int GetPrimaryKey() { return warehouse_id_; }
   // Common method
   virtual peloton::PlanNodeType GetPlanType() {
     return peloton::PLAN_NODE_TYPE_UPDATE;
@@ -2282,6 +2283,7 @@ class Payment : public concurrency::TransactionQuery {
   };
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }
+  virtual int GetPrimaryKey() { return warehouse_id_; }
 
   // Common method
   virtual peloton::PlanNodeType GetPlanType() {
