@@ -172,18 +172,18 @@ void LoadLogTable() {
       std::ifstream infile(LOGTABLE);
       std::string condition;
       int conflict;
-      // int success;
+      int success;
 
       // Put condition and conflict into log_table
-      while (infile >> condition >> conflict) {
-        concurrency::TransactionScheduler::GetInstance().LoadLog(condition,
-                                                                 conflict);
-      }
-
-      //      while (infile >> condition >> conflict >> success) {
-      //        concurrency::TransactionScheduler::GetInstance().LoadLogFull(
-      //            condition, conflict, success);
+      //      while (infile >> condition >> conflict) {
+      //        concurrency::TransactionScheduler::GetInstance().LoadLog(condition,
+      //                                                                 conflict);
       //      }
+
+      while (infile >> condition >> conflict >> success) {
+        concurrency::TransactionScheduler::GetInstance().LoadLogFull(
+            condition, conflict, success);
+      }
 
       // Close file
       infile.close();
