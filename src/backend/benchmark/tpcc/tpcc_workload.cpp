@@ -460,9 +460,9 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_HASH: {
 
           if (state.log_table) {
-            // ret_query->UpdateLogTable(state.single_ref, state.canonical);
-            ret_query->UpdateLogTableFullConflict(state.single_ref,
-                                                  state.canonical);
+            ret_query->UpdateLogTable(state.single_ref, state.canonical);
+            //            ret_query->UpdateLogTableFullConflict(state.single_ref,
+            //                                                  state.canonical);
 
             concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
                 ret_query, state.single_ref);
@@ -515,13 +515,13 @@ void RunBackend(oid_t thread_id) {
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
 
         // Update Log Table when success
-        if (state.log_table) {
-          ret_query->UpdateLogTableFullSuccess(state.single_ref,
-                                               state.canonical);
-        } else {
-          // Remove txn from Run Table
-          ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-        }
+        //        if (state.log_table) {
+        //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
+        //                                               state.canonical);
+        //        } else {
+        // Remove txn from Run Table
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+        //        }
       }
 
       // Second, clean up

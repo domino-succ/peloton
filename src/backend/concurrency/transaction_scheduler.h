@@ -462,13 +462,11 @@ class TransactionScheduler {
 
     // Find out the corresponding queue
     if (online) {
-      queue = query->LookupRunTableMaxFull(single_ref, canonical);
-      // queue = query->LookupRunTableMax(single_ref, canonical);
+      queue = query->LookupRunTableMax(single_ref, canonical);
     }
     // SUM
     else {
-      queue = query->LookupRunTableFull(single_ref, canonical);
-      // queue = query->LookupRunTable(single_ref, canonical);
+      queue = query->LookupRunTable(single_ref, canonical);
     }
 
     // These is no queue matched. Randomly select a queue
@@ -803,15 +801,15 @@ class TransactionScheduler {
     std::ofstream out(oss.str(), std::ofstream::out);
 
     // Iterate Log Table (map)
-    //    for (auto& entry : log_table_) {
-    //      out << entry.first << " ";
-    //      out << entry.second << "\n";
-    //    }
-    for (auto& entry : log_table_full_) {
+    for (auto& entry : log_table_) {
       out << entry.first << " ";
-      out << entry.second.first << " ";
-      out << entry.second.second << "\n";
+      out << entry.second << "\n";
     }
+    //    for (auto& entry : log_table_full_) {
+    //      out << entry.first << " ";
+    //      out << entry.second.first << " ";
+    //      out << entry.second.second << "\n";
+    //    }
 
     out.flush();
     out.close();
