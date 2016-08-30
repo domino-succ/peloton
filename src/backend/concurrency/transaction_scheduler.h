@@ -842,8 +842,10 @@ class TransactionScheduler {
   void DumpRunTable() {
     for (auto& entry : run_table_) {
       for (auto& queue : entry.second) {
-        std::cout << "Key: " << entry.first << ". QueueNo: " << queue.first
-                  << ". Txns: " << queue.second << std::endl;
+        if (entry.first.substr(0, 4) == "W_ID") {
+          std::cout << "Key: " << entry.first << ". QueueNo: " << queue.first
+                    << ". Txns: " << queue.second << std::endl;
+        }
       }
     }
   }
