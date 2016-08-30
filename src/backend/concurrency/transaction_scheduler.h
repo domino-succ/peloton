@@ -483,6 +483,7 @@ class TransactionScheduler {
 
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
+                << ". Queue size is: " << queues_[queue].Size()
                 << ". Key: " << query->GetPrimaryKey() << std::endl;
       DumpRunTable(queue);
     }
