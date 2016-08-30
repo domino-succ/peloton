@@ -478,6 +478,7 @@ class TransactionScheduler {
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
                 << ". Key: " << query->GetPrimaryKey() << std::endl;
+      DumpRunTable(queue);
     }
 
     // Update Run Table with the queue. That is to increasing the queue
@@ -835,6 +836,26 @@ class TransactionScheduler {
   void DumpLogTable() {
     for (auto& entry : log_table_) {
       std::cout << entry.first << " " << entry.second << std::endl;
+    }
+  }
+
+  void DumpRunTable() {
+    for (auto& entry : run_table_) {
+      for (auto& queue : entry.second) {
+        std::cout << "Key: " << entry.first << ". QueueNo: " << queue.first
+                  << ". Txns: " << queue.second << std::endl;
+      }
+    }
+  }
+
+  void DumpRunTable(int queue_no) {
+    for (auto& entry : run_table_) {
+      for (auto& queue : entry.second) {
+        if (queue.first == queue_no) {
+          std::cout << "Key: " << entry.first << ". QueueNo: " << queue.first
+                    << ". Txns: " << queue.second << std::endl;
+        }
+      }
     }
   }
 
