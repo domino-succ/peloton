@@ -357,13 +357,12 @@ void SetNewOrder(NewOrder *new_order) {
     i_ids.push_back(GetRandomInteger(0, state.item_count - 1));
     ol_w_ids.push_back(new_order->warehouse_id_);
 
-    //    bool remote = GetRandomBoolean(new_order_remote_txns);
-    //    if (remote == true) {
-    //      ol_w_ids[ol_itr] = GetRandomIntegerExcluding(0,
-    // state.warehouse_count - 1,
-    //                                                   new_order->warehouse_id_);
-    //      o_all_local = false;
-    //    }
+    bool remote = GetRandomBoolean(new_order_remote_txns);
+    if (remote == true) {
+      ol_w_ids[ol_itr] = GetRandomIntegerExcluding(0, state.warehouse_count - 1,
+                                                   new_order->warehouse_id_);
+      o_all_local = false;
+    }
 
     ol_qtys.push_back(GetRandomInteger(0, order_line_max_ol_quantity));
   }

@@ -2644,11 +2644,6 @@ class Payment : public concurrency::TransactionQuery {
       }
     }
 
-    if (queue_no == -1) {
-      std::cout << "Max_conflict: " << max_conflict
-                << " max_conflict_key: " << max_conflict_key << std::endl;
-    }
-
     return queue_no;
   }
 
