@@ -1249,6 +1249,16 @@ class NewOrder : public concurrency::TransactionQuery {
   //    }
   //    return false;
   //  }
+  virtual bool ExistInRunTable(int queue) {
+
+    //////////////////////////////////////////////////////////////////////
+    // D_W_ID
+    //////////////////////////////////////////////////////////////////////
+    std::string key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+
+    return concurrency::TransactionScheduler::GetInstance().ExistInRunTable(
+        key, queue);
+  }
 
   // For queue No.
   virtual void SetQueueNo(int queue_no) { queue_ = queue_no; }
@@ -3441,6 +3451,17 @@ class Payment : public concurrency::TransactionQuery {
       concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
           key, queue_no);
     }
+  }
+
+  virtual bool ExistInRunTable(int queue) {
+
+    //////////////////////////////////////////////////////////////////////
+    // D_W_ID
+    //////////////////////////////////////////////////////////////////////
+    std::string key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+
+    return concurrency::TransactionScheduler::GetInstance().ExistInRunTable(
+        key, queue);
   }
 
   // For queue No.

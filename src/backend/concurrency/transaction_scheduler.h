@@ -81,7 +81,7 @@ class TransactionQuery {
   virtual int LookupRunTable(bool single_ref, bool canonical) = 0;
   virtual int LookupRunTableMax(bool single_ref, bool canonical) = 0;
 
-  // virtual bool IsQueueEmpty(int queue, bool single_ref, bool canonical) = 0;
+  virtual bool ExistInRunTable(int queue) = 0;
 
   virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
   virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
@@ -479,11 +479,9 @@ class TransactionScheduler {
       queue = g_queue_no.fetch_add(1) % queue_counts_;
 
       // If this queue has txn executing, should not use this queue
-      while (queues_[queue].Size() > 0) {
+      while (query->ExistInRunTable(queue)) {
         queue = g_queue_no.fetch_add(1) % queue_counts_;
       }
-
-      // IsQueueEmpty(queue)
 
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
@@ -850,8 +848,8 @@ class TransactionScheduler {
   }
 
   // Note: this function is based on Run Table
-  bool IsQueueEmpty(std::string& key, int queue_no) {
-    bool ret = true;
+  bool ExistInRunTable(std::string& key, int queue_no) {
+    bool ret = false;
 
     counter_lock_.Lock();
 
@@ -866,7 +864,7 @@ class TransactionScheduler {
       // If it exists, decrease the reference
       if (queue != queue_info->end()) {
         if ((*queue_info)[queue_no] > 0) {
-          ret = false;
+          ret = true;
         }
       }
     }
