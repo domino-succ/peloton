@@ -476,14 +476,15 @@ class TransactionScheduler {
     if (queue == -1) {
       // queue = random_generator_.GetSample();
 
-      queue = g_queue_no.fetch_add(1) % queue_counts_;
-
-      // If this queue has txn executing, should not use this queue
-      if (single_ref) {
-        while (!IsQueueEmpty(queue)) {
-          queue = g_queue_no.fetch_add(1) % queue_counts_;
-        }
-      }
+      //      queue = g_queue_no.fetch_add(1) % queue_counts_;
+      //
+      //      // If this queue has txn executing, should not use this queue
+      //      if (single_ref && canonical) {
+      //        while (!IsQueueEmpty(queue)) {
+      //          queue = g_queue_no.fetch_add(1) % queue_counts_;
+      //        }
+      //      }
+      queue = GetMinQueueUsingRunTable();
 
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
@@ -810,6 +811,52 @@ class TransactionScheduler {
     }
   }
 
+  bool IsQueueEmpty(int queue_no) {
+    bool is_empty = true;
+
+    counter_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    for (auto& entry : run_table_) {
+      for (auto& queue_info : entry.second) {
+        if (queue_info.first == queue_no && queue_info.second > 0) {
+          is_empty = false;
+          goto end;
+        }
+      }
+    }
+
+  end:
+    counter_lock_.Unlock();
+    return is_empty;
+  }
+
+  int GetMinQueueUsingRunTable() {
+
+    std::vector<int> queues(queue_counts_, 0);
+    int min_count = INT_MAX;
+    int min_queue = -1;
+
+    for (auto& entry : run_table_) {
+      for (auto& queue_info : entry.second) {
+
+        int queue_no = queue_info.first;
+        int queue_count = queue_info.second;
+
+        queues[queue_no] = queues[queue_no] + queue_count;
+      }
+    }
+
+    for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
+      if (queues[queue_no] < min_count) {
+        min_count = queues[queue_no];
+        min_queue = queue_no;
+      }
+    }
+
+    return min_queue;
+  }
+
   // Iterate all queues and see the size, select the smallest one
   // If there are several queues with the same smallest size,
   // Randomly select one
@@ -874,26 +921,6 @@ class TransactionScheduler {
     counter_lock_.Unlock();
 
     return ret;
-  }
-
-  bool IsQueueEmpty(int queue_no) {
-    bool is_empty = true;
-
-    counter_lock_.Lock();
-
-    // Get the reference of the corresponding queue
-    for (auto& entry : run_table_) {
-      for (auto& queue_info : entry.second) {
-        if (queue_info.first == queue_no && queue_info.second > 0) {
-          is_empty = false;
-          goto end;
-        }
-      }
-    }
-
-  end:
-    counter_lock_.Unlock();
-    return is_empty;
   }
 
   // Write LogTable into a file
