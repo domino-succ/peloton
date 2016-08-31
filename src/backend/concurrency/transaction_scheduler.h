@@ -81,6 +81,8 @@ class TransactionQuery {
   virtual int LookupRunTable(bool single_ref, bool canonical) = 0;
   virtual int LookupRunTableMax(bool single_ref, bool canonical) = 0;
 
+  // virtual bool IsQueueEmpty(int queue, bool single_ref, bool canonical) = 0;
+
   virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
   virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
 
@@ -481,6 +483,8 @@ class TransactionScheduler {
         queue = g_queue_no.fetch_add(1) % queue_counts_;
       }
 
+      // IsQueueEmpty(queue)
+
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
                 << ". Queue size is: " << queues_[queue].Size()
@@ -488,15 +492,15 @@ class TransactionScheduler {
       DumpRunTable(queue);
     }
 
-    // Update Run Table with the queue. That is to increasing the queue
-    // reference in Run Table
-    query->UpdateRunTable(queue, single_ref, canonical);
-
     // Set queue No. then when clean run table queue No. will be used
     query->SetQueueNo(queue);
 
     // Finally, enqueue this query
     queues_[queue].Enqueue(query);
+
+    // Update Run Table with the queue. That is to increasing the queue
+    // reference in Run Table
+    query->UpdateRunTable(queue, single_ref, canonical);
   }
 
   bool Dequeue(TransactionQuery*& query);
@@ -727,7 +731,7 @@ class TransactionScheduler {
 
   // support multi-thread
   void RunTableIncrease(std::string& key, int queue_no) {
-    // counter_lock_.Lock();
+    counter_lock_.Lock();
 
     // Get the reference of the corresponding queue
     std::unordered_map<int, int>* queue_info = RunTableGet(key);
@@ -750,7 +754,7 @@ class TransactionScheduler {
       run_table_.insert(std::make_pair(key, queue_map));
     }
 
-    // counter_lock_.Unlock();
+    counter_lock_.Unlock();
   }
 
   // support multi-thread
@@ -843,6 +847,33 @@ class TransactionScheduler {
     }
 
     return queue;
+  }
+
+  // Note: this function is based on Run Table
+  bool IsQueueEmpty(std::string& key, int queue_no) {
+    bool ret = true;
+
+    counter_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGet(key);
+
+    // Decrease the reference for this queue
+    if (queue_info != nullptr) {
+      // Find out the entry with queue NO.
+      auto queue = queue_info->find(queue_no);
+
+      // If it exists, decrease the reference
+      if (queue != queue_info->end()) {
+        if ((*queue_info)[queue_no] > 0) {
+          ret = false;
+        }
+      }
+    }
+
+    counter_lock_.Unlock();
+
+    return ret;
   }
 
   // Write LogTable into a file

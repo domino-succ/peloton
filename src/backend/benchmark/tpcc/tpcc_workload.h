@@ -1223,6 +1223,33 @@ class NewOrder : public concurrency::TransactionQuery {
     }
   }
 
+  //  bool IsQueueEmptySingleRef(int queue, bool canonical) {
+  //    if (canonical) {
+  //      //////////////////////////////////////////////////////////////////////
+  //      // D_W_ID
+  //      //////////////////////////////////////////////////////////////////////
+  //      std::string key =
+  //          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+  //
+  //      concurrency::TransactionScheduler::GetInstance().RunTableLookup()
+  //
+  //    } else {
+  //      //////////////////////////////////////////////////////////////////////
+  //      // D_W_ID
+  //      //////////////////////////////////////////////////////////////////////
+  //      std::string key =
+  //          std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+  //
+  //    }
+  //  }
+  //
+  //  virtual bool IsQueueEmpty(int queue, bool single_ref, bool canonical) {
+  //    if (single_ref) {
+  //      return IsQueueEmptySingleRef(queue, canonical);
+  //    }
+  //    return false;
+  //  }
+
   // For queue No.
   virtual void SetQueueNo(int queue_no) { queue_ = queue_no; }
   virtual int GetQueueNo() { return queue_; }
