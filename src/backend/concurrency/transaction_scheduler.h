@@ -479,7 +479,7 @@ class TransactionScheduler {
       queue = g_queue_no.fetch_add(1) % queue_counts_;
 
       // If this queue has txn executing, should not use this queue
-      while (query->ExistInRunTable(queue)) {
+      while (!IsQueueEmpty(queue)) {
         queue = g_queue_no.fetch_add(1) % queue_counts_;
       }
 
@@ -872,6 +872,26 @@ class TransactionScheduler {
     counter_lock_.Unlock();
 
     return ret;
+  }
+
+  bool IsQueueEmpty(int queue_no) {
+    bool is_empty = true;
+
+    counter_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    for (auto& entry : run_table_) {
+      for (auto& queue_info : entry.second) {
+        if (queue_info.first == queue_no && queue_info.second > 0) {
+          is_empty = false;
+          goto end;
+        }
+      }
+    }
+
+  end:
+    counter_lock_.Unlock();
+    return is_empty;
   }
 
   // Write LogTable into a file
