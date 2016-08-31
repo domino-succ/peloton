@@ -777,6 +777,9 @@ class TransactionScheduler {
         if (queue_info->at(queue_no) >= 1) {
           --(*queue_info)[queue_no];
         }
+        // TODO: remove the item?
+        else {
+        }
       }
     }
 
@@ -837,6 +840,7 @@ class TransactionScheduler {
     int min_count = INT_MAX;
     int min_queue = -1;
 
+    // Compute the total txns running for each queue
     for (auto& entry : run_table_) {
       for (auto& queue_info : entry.second) {
 
@@ -847,6 +851,7 @@ class TransactionScheduler {
       }
     }
 
+    // Find out the queue with min running txns
     for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
       if (queues[queue_no] < min_count) {
         min_count = queues[queue_no];
