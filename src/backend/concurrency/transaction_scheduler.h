@@ -479,15 +479,17 @@ class TransactionScheduler {
       queue = g_queue_no.fetch_add(1) % queue_counts_;
 
       // If this queue has txn executing, should not use this queue
-      while (!IsQueueEmpty(queue)) {
-        queue = g_queue_no.fetch_add(1) % queue_counts_;
+      if (single_ref) {
+        while (!IsQueueEmpty(queue)) {
+          queue = g_queue_no.fetch_add(1) % queue_counts_;
+        }
       }
 
       // Test
       std::cout << "Can't find a queue, so assign queue: " << queue
                 << ". Queue size is: " << queues_[queue].Size()
                 << ". Key: " << query->GetPrimaryKey() << std::endl;
-      DumpRunTable(queue);
+      // DumpRunTable(queue);
     }
 
     // Set queue No. then when clean run table queue No. will be used

@@ -752,7 +752,7 @@ void RunWorkload() {
 
   //////////////////////////////////////
   oid_t last_tile_group_id = 0;
-  for (size_t round_id = 0; round_id < snapshot_round / 2; ++round_id) {
+  for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
     memcpy(abort_counts_snapshots[round_id], abort_counts,
@@ -773,21 +773,21 @@ void RunWorkload() {
 
   LOG_INFO("Change mode to OOHASH");
 
-  is_run_table = true;
-
-  ////
-  for (size_t round_id = snapshot_round / 2; round_id < snapshot_round;
-       ++round_id) {
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
-    memcpy(abort_counts_snapshots[round_id], abort_counts,
-           sizeof(oid_t) * num_threads);
-    memcpy(commit_counts_snapshots[round_id], commit_counts,
-           sizeof(oid_t) * num_threads);
-    auto &manager = catalog::Manager::GetInstance();
-
-    state.snapshot_memory.push_back(manager.GetLastTileGroupId());
-  }
+  //  is_run_table = true;
+  //
+  //  ////
+  //  for (size_t round_id = snapshot_round / 2; round_id < snapshot_round;
+  //       ++round_id) {
+  //    std::this_thread::sleep_for(
+  //        std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+  //    memcpy(abort_counts_snapshots[round_id], abort_counts,
+  //           sizeof(oid_t) * num_threads);
+  //    memcpy(commit_counts_snapshots[round_id], commit_counts,
+  //           sizeof(oid_t) * num_threads);
+  //    auto &manager = catalog::Manager::GetInstance();
+  //
+  //    state.snapshot_memory.push_back(manager.GetLastTileGroupId());
+  //  }
   ///
 
   is_running = false;
@@ -805,6 +805,8 @@ void RunWorkload() {
        ++thread_itr) {
     thread_group[thread_itr].join();
   }
+
+  std::cout << "Is running: " << is_running << std::endl;
 
   // calculate the generate rate
   oid_t total_generate_count = 0;
