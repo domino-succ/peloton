@@ -523,7 +523,7 @@ class NewOrder : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().RunTableGet(
             max_conflict_key);
 
-    int max_reference = 0;
+    int max_reference = 8;
     int queue_no = -1;
 
     // select max reference
