@@ -486,12 +486,13 @@ class TransactionScheduler {
       //      }
       queue = GetMinQueueUsingRunTable();
 
-      // Test
-      std::cout << "Can't find a queue, so assign queue: " << queue
-                << ". Queue size is: " << queues_[queue].Size()
-                << ". Key: " << query->GetPrimaryKey()
-                << ". Txn Type: " << query->GetTxnType() << std::endl;
-      DumpRunTable(queue);
+      //      // Test
+      //      std::cout << "Can't find a queue, so assign queue: " << queue
+      //                << ". Queue size is: " << queues_[queue].Size()
+      //                << ". Key: " << query->GetPrimaryKey()
+      //                << ". Txn Type: " << query->GetTxnType() << std::endl;
+      //      DumpRunTable(queue);
+      //      // end
     }
 
     // Set queue No. then when clean run table queue No. will be used
