@@ -838,6 +838,8 @@ class TransactionScheduler {
   int GetMinQueueUsingRunTable() {
 
     std::vector<int> queues(queue_counts_, 0);
+    std::vector<int> min_queues;
+
     int min_count = INT_MAX;
     int min_queue = -1;
 
@@ -854,10 +856,21 @@ class TransactionScheduler {
 
     // Find out the queue with min running txns
     for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
-      if (queues[queue_no] < min_count) {
+      if (queues[queue_no] <= min_count) {
         min_count = queues[queue_no];
-        min_queue = queue_no;
+        min_queues.push_back(queue_no);
       }
+    }
+
+    // Randomly return a queue
+    int size = min_queues.size();
+    if (size == 1) {
+      min_queue = min_queues[0];
+    }
+    if (size > 1) {
+      srand(time(NULL));
+      int idx = rand() % size;
+      min_queue = min_queues[idx];
     }
 
     return min_queue;
