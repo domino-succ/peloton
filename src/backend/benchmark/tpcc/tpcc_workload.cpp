@@ -525,7 +525,7 @@ void RunBackend(oid_t thread_id) {
         //                                               state.canonical);
         //        } else {
         // Remove txn from Run Table
-        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+        // ret_query->DecreaseRunTable(state.single_ref, state.canonical);
         //        }
       }
 
