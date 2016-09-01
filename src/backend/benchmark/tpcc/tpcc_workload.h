@@ -35,6 +35,7 @@ namespace tpcc {
 #define PRELOAD 300000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
 #define CONFLICT_THRESHHOLD 0
+#define RUNNING_REF_THRESHOLD 3
 #define LOGTABLE "logtable"
 
 //===========
@@ -523,7 +524,7 @@ class NewOrder : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().RunTableGet(
             max_conflict_key);
 
-    int max_reference = 8;
+    int max_reference = RUNNING_REF_THRESHOLD;
     int queue_no = -1;
 
     // select max reference
@@ -2481,6 +2482,7 @@ class Payment : public concurrency::TransactionQuery {
   virtual int LookupRunTableMaxSingleRef(bool canonical) {
     int max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
+    std::map<std::string, int> key_counter;
 
     if (canonical) {
       //
@@ -2488,8 +2490,10 @@ class Payment : public concurrency::TransactionQuery {
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       int conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
@@ -2497,15 +2501,19 @@ class Payment : public concurrency::TransactionQuery {
       key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
+
       key = std::string("D_ID") + "-" + std::to_string(district_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
@@ -2513,26 +2521,58 @@ class Payment : public concurrency::TransactionQuery {
       key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
       key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
       key = std::string("C_ID") + "-" + std::to_string(customer_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
     }
     // Not canonical, use original ID
     else {
@@ -2541,8 +2581,9 @@ class Payment : public concurrency::TransactionQuery {
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       int conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
@@ -2550,16 +2591,18 @@ class Payment : public concurrency::TransactionQuery {
       key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
       key = std::string("D_ID") + "-" + std::to_string(district_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
@@ -2568,24 +2611,56 @@ class Payment : public concurrency::TransactionQuery {
           std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
       key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
 
       key = std::string("C_ID") + "-" + std::to_string(customer_id_);
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
     }
@@ -2603,7 +2678,7 @@ class Payment : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().RunTableGet(
             max_conflict_key);
 
-    int max_reference = 0;
+    int max_reference = RUNNING_REF_THRESHOLD;
     int queue_no = -1;
 
     // randomly select
