@@ -854,10 +854,16 @@ class TransactionScheduler {
       }
     }
 
+    // Find out min count
+    for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
+      if (queues[queue_no] < min_count) {
+        min_count = queues[queue_no];
+      }
+    }
+
     // Find out the queue with min running txns
     for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
-      if (queues[queue_no] <= min_count) {
-        min_count = queues[queue_no];
+      if (min_count == queues[queue_no]) {
         min_queues.push_back(queue_no);
       }
     }
