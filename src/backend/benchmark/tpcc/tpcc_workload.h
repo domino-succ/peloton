@@ -427,6 +427,7 @@ class NewOrder : public concurrency::TransactionQuery {
     int max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
     std::string key;
+    std::map<std::string, int> key_counter;
 
     //////////////////////////////////////////////////////////////////////
     // D_W_ID
@@ -441,8 +442,10 @@ class NewOrder : public concurrency::TransactionQuery {
     int conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
+    key_counter[key] += conflict;
+
+    if (key_counter[key] > max_conflict) {
+      max_conflict = key_counter[key];
       max_conflict_key = key;
     }
 
@@ -455,8 +458,10 @@ class NewOrder : public concurrency::TransactionQuery {
     conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
+    key_counter[key] += conflict;
+
+    if (key_counter[key] > max_conflict) {
+      max_conflict = key_counter[key];
       max_conflict_key = key;
     }
 
@@ -475,8 +480,10 @@ class NewOrder : public concurrency::TransactionQuery {
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
     }
@@ -495,8 +502,10 @@ class NewOrder : public concurrency::TransactionQuery {
       conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-      if (conflict > max_conflict) {
-        max_conflict = conflict;
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
         max_conflict_key = key;
       }
     }
@@ -988,23 +997,29 @@ class NewOrder : public concurrency::TransactionQuery {
       //////////////////////////////////////////////////////////////////////
       // S_W_ID
       //////////////////////////////////////////////////////////////////////
-      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      for (auto wid : ol_w_ids_) {
+        key = std::string("W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
+            key, queue_no);
 
-      // update run table
-      concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
-          key, queue_no);
+        //        // Test
+        //        if (wid != warehouse_id_) {
+        //          std::cout << "wid != warehouse_id_: " << wid << "--" <<
+        // warehouse_id_
+        //                    << ". Assinged queue: " << queue_no << std::endl;
+        //        }
+        //        // end
+      }
 
       //////////////////////////////////////////////////////////////////////
       // S_I_ID
       //////////////////////////////////////////////////////////////////////
       for (auto id : i_ids_) {
-        key = std::string("I_ID") + "-" + std::to_string(warehouse_id_) + "-" +
-              std::to_string(id);
-
-        // update run table
+        key = std::string("I_ID") + "-" + std::to_string(id);
         concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
             key, queue_no);
       }
+
     } else {
       //////////////////////////////////////////////////////////////////////
       // D_W_ID
@@ -1029,20 +1044,17 @@ class NewOrder : public concurrency::TransactionQuery {
       //////////////////////////////////////////////////////////////////////
       // S_W_ID
       //////////////////////////////////////////////////////////////////////
-      key = std::string("S_W_ID") + "-" + std::to_string(warehouse_id_);
-
-      // update run table
-      concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
-          key, queue_no);
+      for (auto wid : ol_w_ids_) {
+        key = std::string("S_W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
+            key, queue_no);
+      }
 
       //////////////////////////////////////////////////////////////////////
       // S_I_ID
       //////////////////////////////////////////////////////////////////////
       for (auto id : i_ids_) {
-        key = std::string("S_I_ID") + "-" + std::to_string(warehouse_id_) +
-              "-" + std::to_string(id);
-
-        // update run table
+        key = std::string("S_I_ID") + "-" + std::to_string(id);
         concurrency::TransactionScheduler::GetInstance().RunTableIncrease(
             key, queue_no);
       }
@@ -1119,20 +1131,17 @@ class NewOrder : public concurrency::TransactionQuery {
       //////////////////////////////////////////////////////////////////////
       // S_W_ID
       //////////////////////////////////////////////////////////////////////
-      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
-
-      // update run table
-      concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
-          key, queue_no);
+      for (auto wid : ol_w_ids_) {
+        key = std::string("W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
+            key, queue_no);
+      }
 
       //////////////////////////////////////////////////////////////////////
       // S_I_ID
       //////////////////////////////////////////////////////////////////////
       for (auto id : i_ids_) {
-        key = std::string("I_ID") + "-" + std::to_string(warehouse_id_) + "-" +
-              std::to_string(id);
-
-        // update run table
+        key = std::string("I_ID") + "-" + std::to_string(id);
         concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
             key, queue_no);
       }
@@ -1160,20 +1169,17 @@ class NewOrder : public concurrency::TransactionQuery {
       //////////////////////////////////////////////////////////////////////
       // S_W_ID
       //////////////////////////////////////////////////////////////////////
-      key = std::string("S_W_ID") + "-" + std::to_string(warehouse_id_);
-
-      // update run table
-      concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
-          key, queue_no);
+      for (auto wid : ol_w_ids_) {
+        key = std::string("S_W_ID") + "-" + std::to_string(wid);
+        concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
+            key, queue_no);
+      }
 
       //////////////////////////////////////////////////////////////////////
       // S_I_ID
       //////////////////////////////////////////////////////////////////////
       for (auto id : i_ids_) {
-        key = std::string("S_I_ID") + "-" + std::to_string(warehouse_id_) +
-              "-" + std::to_string(id);
-
-        // update run table
+        key = std::string("S_I_ID") + "-" + std::to_string(id);
         concurrency::TransactionScheduler::GetInstance().RunTableDecrease(
             key, queue_no);
       }
