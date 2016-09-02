@@ -102,6 +102,9 @@ class configuration {
   int min_pts;
   int analysis_txns;
 
+  // running txns for reference counting
+  int running_ref;
+
   std::vector<double> snapshot_throughput;
 
   std::vector<double> snapshot_abort_rate;

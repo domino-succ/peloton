@@ -491,7 +491,7 @@ class TransactionScheduler {
       //                << ". Queue size is: " << queues_[queue].Size()
       //                << ". Key: " << query->GetPrimaryKey()
       //                << ". Txn Type: " << query->GetTxnType() << std::endl;
-      //      DumpRunTable(queue);
+      DumpRunTable(queue);
       //      // end
     }
 
@@ -844,7 +844,7 @@ class TransactionScheduler {
     int min_count = INT_MAX;
     int min_queue = -1;
 
-    // Compute the total txns running for each queue
+    // Compute the total queries running for each queue
     for (auto& entry : run_table_) {
       for (auto& queue_info : entry.second) {
 

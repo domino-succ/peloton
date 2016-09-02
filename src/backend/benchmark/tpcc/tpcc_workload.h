@@ -35,7 +35,6 @@ namespace tpcc {
 #define PRELOAD 300000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
 #define CONFLICT_THRESHHOLD 0
-#define RUNNING_REF_THRESHOLD 5
 #define LOGTABLE "logtable"
 
 //===========
@@ -119,6 +118,7 @@ namespace tpcc {
 #define COL_IDX_S_DATA 16
 
 extern configuration state;
+extern int RUNNING_REF_THRESHOLD;
 
 void RunWorkload();
 

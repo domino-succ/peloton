@@ -29,6 +29,7 @@ namespace benchmark {
 namespace tpcc {
 
 configuration state;
+int RUNNING_REF_THRESHOLD = state.running_ref;
 
 // std::ofstream out("outputfile.summary");
 

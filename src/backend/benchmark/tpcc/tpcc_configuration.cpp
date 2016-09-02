@@ -190,6 +190,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.delay_max = 0.0;
   state.delay_min = 0.0;
   state.warehouse_count = 1;
+  state.running_ref = 0;
   state.order_range = 20;
   state.run_affinity = false;
   state.run_backoff = false;
@@ -210,8 +211,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c = getopt_long(
-        argc, argv, "aeoflcjh:r:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
+    int c =
+        getopt_long(argc, argv, "aeoflcjh:r:m:x:k:w:n:v:u:d:s:b:p:z:g:i:t:q:y:",
+                    opts, &idx);
 
     if (c == -1) break;
 
@@ -236,6 +238,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'v':
         state.generate_speed = atoi(optarg);
+        break;
+      case 'u':
+        state.running_ref = atoi(optarg);
         break;
       case 'r':
         state.order_range = atoi(optarg);
