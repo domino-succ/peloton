@@ -24,58 +24,58 @@ if os.path.isfile(output_file):
 #######################################################################################################
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -j"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -j"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##########################################################################################################
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 0"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 0"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 1"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 1"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 2"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 2"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 3"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 3"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 4"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 4"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 6"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 6"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 8"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 8"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 10"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 10"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 12"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 12"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 for i in range(1, 12):
-   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -u 20"
+   cmd = "./src/tpcc -k 0.01 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -c -u 20"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
