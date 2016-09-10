@@ -298,7 +298,7 @@ bool EnqueueCachedUpdate() {
       int queue = query->GetQueueNo();
       query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
-      concurrency::TransactionScheduler::GetInstance().RunTableUnlock()
+      concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
