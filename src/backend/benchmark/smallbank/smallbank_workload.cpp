@@ -276,8 +276,6 @@ bool EnqueueCachedUpdate() {
     }
     // Run table is ready
     else if (state.online) {  // ONLINE means Run table
-      concurrency::TransactionScheduler::GetInstance().RunTableLock();
-
       // enqueue
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
           query, state.offline, true, state.single_ref, state.canonical);
@@ -286,10 +284,7 @@ bool EnqueueCachedUpdate() {
       int queue = query->GetQueueNo();
       query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
-      concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
     } else {  // otherwise use OOHASH method
-      concurrency::TransactionScheduler::GetInstance().RunTableLock();
-
       // enqueue
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
           query, state.offline, false, state.single_ref, state.canonical);
@@ -297,8 +292,6 @@ bool EnqueueCachedUpdate() {
       // Increase run table
       int queue = query->GetQueueNo();
       query->UpdateRunTable(queue, state.single_ref, state.canonical);
-
-      concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);

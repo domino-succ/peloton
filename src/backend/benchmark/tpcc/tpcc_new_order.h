@@ -356,6 +356,20 @@ class NewOrder : public concurrency::TransactionQuery {
       }
     }
 
+    // Other Selects (4 selects)
+    for (int i = 0; i < 4; i++) {
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+    }
+
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
       std::cout << "Not find any conflict in Log Table" << std::endl;

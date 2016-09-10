@@ -235,9 +235,22 @@ bool EnqueueCachedUpdate() {
     }
     // Run table is ready
     else if (state.online) {  // ONLINE means Run table
-      concurrency::TransactionScheduler::GetInstance().RunTableLock();
+      // Debug
+      //      std::cout << "WID: " << ((Payment *)query)->warehouse_id_
+      //                << "CWID: " << ((Payment
+      // *)query)->customer_warehouse_id_
+      //                << "Before enqueue, run table : " << std::endl;
+      //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+      //
+      //      std::cout << "------------end run "
+      //                   "table------------------------------------------"
+      //                << std::endl;
+      // end debug
 
       // enqueue
+
+      concurrency::TransactionScheduler::GetInstance().RunTableLock();
+
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
           query, state.offline, true, state.single_ref, state.canonical);
 
@@ -246,6 +259,7 @@ bool EnqueueCachedUpdate() {
       query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
       concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+
     } else {  // otherwise use OOHASH method
       concurrency::TransactionScheduler::GetInstance().RunTableLock();
 

@@ -381,6 +381,18 @@ class Payment : public concurrency::TransactionQuery {
         max_conflict_key = key;
       }
 
+      // Other SELECTs for WID
+      for (int i = 0; i < 4; i++) {
+        key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+        key_counter[key] += conflict;
+        if (key_counter[key] > max_conflict) {
+          max_conflict = key_counter[key];
+          max_conflict_key = key;
+        }
+      }
     }
     // Not canonical, use original ID
     else {
@@ -471,6 +483,8 @@ class Payment : public concurrency::TransactionQuery {
         max_conflict = key_counter[key];
         max_conflict_key = key;
       }
+
+      // TODO: other SELECTs
     }
 
     // If there is no conflict, return -1;
@@ -580,6 +594,19 @@ class Payment : public concurrency::TransactionQuery {
         max_conflict = key_counter[key];
         max_conflict_key = key;
       }
+
+      // Other SELECTs for WID
+      for (int i = 0; i < 4; i++) {
+        key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+        key_counter[key] += conflict;
+        if (key_counter[key] > max_conflict) {
+          max_conflict = key_counter[key];
+          max_conflict_key = key;
+        }
+      }
     }
     // No canonical, use origincal ID
     else {
@@ -632,6 +659,8 @@ class Payment : public concurrency::TransactionQuery {
         max_conflict = key_counter[key];
         max_conflict_key = key;
       }
+
+      // TODO: other SELECTs
     }
 
     // If there is no conflict, return -1;

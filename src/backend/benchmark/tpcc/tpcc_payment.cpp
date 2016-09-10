@@ -380,10 +380,10 @@ void SetPayment(Payment *payment) {
 
   payment->h_amount_ = h_amount;
 
-  int x = GetRandomInteger(1, 100);
   // int y = GetRandomInteger(1, 100);
 
   // 85%: paying through own warehouse ( or there is only 1 warehosue)
+  int x = GetRandomInteger(1, 100);
   if (state.warehouse_count == 1 || x <= 85) {
     payment->customer_warehouse_id_ = payment->warehouse_id_;
     payment->customer_district_id_ = payment->district_id_;
