@@ -235,7 +235,7 @@ bool EnqueueCachedUpdate() {
     }
     // Run table is ready
     else if (state.online) {  // ONLINE means Run table
-      // Debug
+                              // Debug
       //      std::cout << "WID: " << ((Payment *)query)->warehouse_id_
       //                << "CWID: " << ((Payment
       // *)query)->customer_warehouse_id_
@@ -249,7 +249,7 @@ bool EnqueueCachedUpdate() {
 
       // enqueue
 
-      concurrency::TransactionScheduler::GetInstance().RunTableLock();
+      // concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
           query, state.offline, true, state.single_ref, state.canonical);
@@ -258,10 +258,10 @@ bool EnqueueCachedUpdate() {
       int queue = query->GetQueueNo();
       query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
-      concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+      // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
 
     } else {  // otherwise use OOHASH method
-      concurrency::TransactionScheduler::GetInstance().RunTableLock();
+      // concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
       // enqueue
       concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
@@ -271,7 +271,7 @@ bool EnqueueCachedUpdate() {
       int queue = query->GetQueueNo();
       query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
-      concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+      // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
