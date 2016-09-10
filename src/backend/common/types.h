@@ -445,13 +445,18 @@ enum IndexConstraintType {
   INDEX_CONSTRAINT_TYPE_UNIQUE = 3  // used for unique constraint
 };
 
-// TODO: Temp type for TPCC experiment. Remove them later
+// TODO: Temp type for experiment. Remove them later
 enum TxnType {
   TXN_TYPE_INVALID = 0,  // invalid plan node type
   TXN_TYPE_NEW_ORDER = 1,
   TXN_TYPE_PAYMENT = 2,
   TXN_TYPE_DELEVERY = 3,
-  TXN_TYPE_STOCK = 4
+  TXN_TYPE_STOCK = 4,
+
+  // For small bank
+  TXN_TYPE_AMALGAMATE = 5,
+  TXN_TYPE_BALANCE = 6,
+  TXN_TYP_DEPOSIT_CHECKING = 7
 };
 
 //===--------------------------------------------------------------------===//

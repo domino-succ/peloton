@@ -24,9 +24,11 @@
 #include <cstddef>
 #include <limits>
 
-#include "backend/benchmark/tpcc/tpcc_workload.h"
-#include "backend/benchmark/tpcc/tpcc_configuration.h"
-#include "backend/benchmark/tpcc/tpcc_loader.h"
+#include "backend/benchmark/smallbank/smallbank_amalgamate.h"
+#include "backend/benchmark/smallbank/smallbank_balance.h"
+#include "backend/benchmark/smallbank/smallbank_workload.h"
+#include "backend/benchmark/smallbank/smallbank_configuration.h"
+#include "backend/benchmark/smallbank/smallbank_loader.h"
 
 #include "backend/catalog/manager.h"
 #include "backend/catalog/schema.h"
@@ -72,7 +74,7 @@
 
 namespace peloton {
 namespace benchmark {
-namespace tpcc {
+namespace smallbank {
 
 /////////////////////////////////////////////////////////
 // WORKLOAD
@@ -81,6 +83,13 @@ namespace tpcc {
 #define STOCK_LEVEL_RATIO 0.04
 #define ORDER_STATUS_RATIO 0.04
 #define PAYMENT_RATIO 0.46
+
+#define FREQUENCY_AMALGAMATE 0.00
+#define FREQUENCY_BALANCE 0.25
+#define FREQUENCY_DEPOSIT_CHECKING 0.25
+#define FREQUENCY_TRANSACT_SAVINGS 0.25
+#define FREQUENCY_WRITE_CHECK 0.25
+#define FREQUENCY_SEND_PAYMENT 0  // No send payment?
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
@@ -108,52 +117,84 @@ double order_status_avg_latency;
 oid_t scan_stock_count;
 double scan_stock_avg_latency;
 
-size_t GenerateWarehouseId(const size_t &thread_id) {
-  if (state.run_affinity) {
-    if (state.warehouse_count <= state.backend_count) {
-      return thread_id % state.warehouse_count;
-    } else {
-      int warehouse_per_partition = state.warehouse_count / state.backend_count;
-      int start_warehouse = warehouse_per_partition * thread_id;
-      int end_warehouse = ((int)thread_id != (state.backend_count - 1))
-                              ? start_warehouse + warehouse_per_partition - 1
-                              : state.warehouse_count - 1;
-      return GetRandomInteger(start_warehouse, end_warehouse);
-    }
+size_t GenerateAccountsId(const size_t &thread_id) {
+
+  if ((int)NUM_ACCOUNTS <= state.backend_count) {
+    return thread_id % NUM_ACCOUNTS;
   } else {
-    return GetRandomInteger(0, state.warehouse_count - 1);
+    int accounts_per_partition = NUM_ACCOUNTS / state.backend_count;
+    int start_id = accounts_per_partition * thread_id;
+    int end_id = ((int)thread_id != (state.backend_count - 1))
+                     ? start_id + accounts_per_partition - 1
+                     : NUM_ACCOUNTS - 1;
+    return GetRandomInteger(start_id, end_id);
   }
 }
 
-size_t GenerateWarehouseId() {
-  return GetRandomInteger(0, state.warehouse_count - 1);
-}
+size_t GenerateAccountsId() { return GetRandomInteger(0, NUM_ACCOUNTS - 1); }
+size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 
 // Only generate New-Order
-void GenerateAndCacheQuery() {
+void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
-  NewOrder *new_order = GenerateNewOrder();
+  // Amalgamate *txn = GenerateAmalgamate(zipf);
+  DepositChecking *txn = GenerateDepositChecking(zipf);
 
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
   /////////////////////////////////////////////////////////
-  concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
+  concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
+}
+
+// Generate txns according proportion
+void GenerateALLAndCache(ZipfDistribution &zipf) {
+  fast_random rng(rand());
+
+  auto rng_val = rng.next_uniform();
+
+  // Amalgamate
+  if (rng_val <= FREQUENCY_AMALGAMATE) {
+    Amalgamate *amalgamate = GenerateAmalgamate(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(amalgamate);
+  }
+  // Balance
+  else if (rng_val <= FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
+    Balance *balance = GenerateBalance(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(balance);
+  }
+  // DEPOSIT_CHECKING
+  else if (rng_val <= FREQUENCY_DEPOSIT_CHECKING + FREQUENCY_BALANCE +
+                          FREQUENCY_AMALGAMATE) {
+    DepositChecking *dc = GenerateDepositChecking(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(dc);
+  }
+  // TRANSACT_SAVINGS
+  else if (rng_val <= FREQUENCY_TRANSACT_SAVINGS + FREQUENCY_DEPOSIT_CHECKING +
+                          FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
+    TransactSaving *ts = GenerateTransactSaving(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(ts);
+  }
+  // WRITE_CHECK
+  else {
+    WriteCheck *wc = GenerateWriteCheck(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(wc);
+  }
 }
 
 // Generate all kinds of txns: New-Order, Payment...
-void GenerateALLAndCache(bool new_order) {
-
-  // New-Order
-  if (new_order) {
-    NewOrder *new_order = GenerateNewOrder();
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
-  }
-  // Payment
-  else {
-    Payment *payment = GeneratePayment();
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(payment);
-  }
-}
+// void GenerateALLAndCache(bool new_order) {
+//
+//  // New-Order
+//  if (new_order) {
+//    NewOrder *new_order = GenerateNewOrder();
+//    concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
+//  }
+//  // Payment
+//  else {
+//    Payment *payment = GeneratePayment();
+//    concurrency::TransactionScheduler::GetInstance().CacheQuery(payment);
+//  }
+//}
 
 std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
   std::vector<SingleRegion> txn_regions;
@@ -274,8 +315,9 @@ bool EnqueueCachedUpdate() {
   return true;
 }
 
-void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
-                 uint64_t &delay_max_ref, uint64_t &delay_min_ref) {
+void RecordDelay(concurrency::TransactionQuery *query,
+                 uint64_t &delay_total_ref, uint64_t &delay_max_ref,
+                 uint64_t &delay_min_ref) {
   std::chrono::system_clock::time_point end_time =
       std::chrono::system_clock::now();
   uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -290,39 +332,6 @@ void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
   }
 }
 
-void RunScanBackend(oid_t thread_id) {
-  PinToCore(thread_id);
-
-  bool slept = false;
-  auto SLEEP_TIME = std::chrono::milliseconds(500);
-
-  // backoff
-  while (true) {
-    if (is_running == false) {
-      break;
-    }
-    if (!slept) {
-      slept = true;
-      std::this_thread::sleep_for(SLEEP_TIME);
-    }
-    std::chrono::steady_clock::time_point start_time;
-    if (thread_id == 0) {
-      start_time = std::chrono::steady_clock::now();
-    }
-    RunScanStock();
-    if (thread_id == 0) {
-      std::chrono::steady_clock::time_point end_time =
-          std::chrono::steady_clock::now();
-      double diff = std::chrono::duration_cast<std::chrono::microseconds>(
-          end_time - start_time).count();
-      scan_stock_avg_latency =
-          (scan_stock_avg_latency * scan_stock_count + diff) /
-          (scan_stock_count + 1);
-      scan_stock_count++;
-    }
-  }
-}
-
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -332,19 +341,6 @@ void RunBackend(oid_t thread_id) {
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
-
-  // // backoff
-  // uint32_t backoff_shifts = 0;
-
-  //  bool slept = false;
-  //  auto SLEEP_TIME = std::chrono::milliseconds(100);
-  //
-  //  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
-  //  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
-  //
-  //  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
-  //  oid_t &new_order_transaction_count_ref =
-  // new_order_commit_counts[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -421,8 +417,13 @@ void RunBackend(oid_t thread_id) {
     PL_ASSERT(ret_query != nullptr);
     total_count_ref++;
 
-    // Before execute query, we should set the start time
-    // (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
+    // Before execute query, update run table
+    //    if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    //      // Update Run Table with the queue. That is to increasing the queue
+    //      // reference in Run Table
+    //      int queue = ret_query->GetQueueNo();
+    //      ret_query->UpdateRunTable(queue, state.single_ref, state.canonical);
+    //    }
 
     //////////////////////////////////////////
     // Execute query
@@ -440,7 +441,7 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
-          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+          ret_query->Cleanup();
           delete ret_query;
           break;
         }
@@ -457,11 +458,10 @@ void RunBackend(oid_t thread_id) {
 
           // If execute successfully, we should clean up the query
           // First compute the delay
-          RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
-                      delay_max_ref, delay_min_ref);
+          RecordDelay(ret_query, delay_total_ref, delay_max_ref, delay_min_ref);
 
           // Second, clean up
-          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+          ret_query->Cleanup();
           delete ret_query;
 
           // Increase the counter
@@ -560,68 +560,6 @@ void RunBackend(oid_t thread_id) {
   }    // end big while
 }
 
-// void RunBackend(oid_t thread_id) {
-//  PinToCore(thread_id);
-//  oid_t &execution_count_ref = abort_counts[thread_id];
-//  oid_t &transaction_count_ref = commit_counts[thread_id];
-//  oid_t &total_count_ref = total_counts[thread_id];
-//  //  uint64_t &delay_total_ref = delay_totals[thread_id];
-//  //  uint64_t &delay_max_ref = delay_maxs[thread_id];
-//  //  uint64_t &delay_min_ref = delay_mins[thread_id];
-//
-//  while (true) {
-//    if (is_running == false) {
-//      break;
-//    }
-//
-//    // Pop a query from a queue and execute
-//    concurrency::TransactionQuery *ret_query = nullptr;
-//    bool ret_pop = false;
-//
-//    //////////////////////////////////////////
-//    // Pop a query
-//    //////////////////////////////////////////
-//    ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
-//        ret_query, thread_id);
-//
-//    // process the pop result. If queue is empty, continue loop
-//    if (ret_pop == false) {
-//      LOG_INFO("Queue is empty");
-//      continue;
-//    }
-//
-//    PL_ASSERT(ret_query != nullptr);
-//    total_count_ref++;
-//
-//    // Before execute query, we should set the start time
-//    //(reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
-//    //////////////////////////////////////////
-//    // Execute query
-//    //////////////////////////////////////////
-//    if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
-//      execution_count_ref++;
-//      LOG_INFO("Execution fail! put the txn at the end of the queue");
-//      if (is_running == false) {
-//        break;
-//      }
-//      concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-//    }
-//    /////////////////////////////////////////////////
-//    // Execute success: the memory should be deleted
-//    /////////////////////////////////////////////////
-//    else {
-//      // Second, clean up
-//      //      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-//      //      delete ret_query;
-//
-//      // Increase the counter
-//      transaction_count_ref++;
-//      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
-//      //         execution_count_ref, thread_id);
-//    }  // end else execute == true
-//  }    // end big while
-//}
-
 void QueryBackend(oid_t thread_id) {
 
   PinToCore(thread_id);
@@ -666,7 +604,8 @@ void QueryBackend(oid_t thread_id) {
       // std::chrono::duration_cast<std::chrono::microseconds>(
       //          now_time - start_time).count();
       //
-      //      // If elapsed time is still less than 1 second, sleep the rest of
+      //      // If elapsed time is still less than 1 second, sleep the rest
+      // of
       // the time
       //      if (elapsed_time / 1000 < 1000) {
       //        SleepMilliseconds(1000 - elapsed_time / 1000);
@@ -696,7 +635,7 @@ void RunWorkload() {
   // Execute the workload to build the log
   std::vector<std::thread> thread_group;
   oid_t num_threads = state.backend_count;
-  oid_t num_scan_threads = state.scan_backend_count;
+  // oid_t num_scan_threads = state.scan_backend_count;
   oid_t num_generate = state.generate_count;
 
   abort_counts = new oid_t[num_threads];
@@ -753,12 +692,7 @@ void RunWorkload() {
   }
 
   // Launch a group of threads
-  for (oid_t thread_itr = 0; thread_itr < num_scan_threads; ++thread_itr) {
-    thread_group.push_back(std::move(std::thread(RunScanBackend, thread_itr)));
-  }
-
-  for (oid_t thread_itr = num_scan_threads; thread_itr < num_threads;
-       ++thread_itr) {
+  for (oid_t thread_itr = 0; thread_itr < num_threads; ++thread_itr) {
     thread_group.push_back(std::move(std::thread(RunBackend, thread_itr)));
   }
 
@@ -991,16 +925,9 @@ void RunWorkload() {
   delay_mins = nullptr;
 
   LOG_INFO("============TABLE SIZES==========");
-  LOG_INFO("warehouse count = %u", warehouse_table->GetAllCurrentTupleCount());
-  LOG_INFO("district count  = %u", district_table->GetAllCurrentTupleCount());
-  LOG_INFO("item count = %u", item_table->GetAllCurrentTupleCount());
-  LOG_INFO("customer count = %u", customer_table->GetAllCurrentTupleCount());
-  LOG_INFO("history count = %u", history_table->GetAllCurrentTupleCount());
-  LOG_INFO("stock count = %u", stock_table->GetAllCurrentTupleCount());
-  LOG_INFO("orders count = %u", orders_table->GetAllCurrentTupleCount());
-  LOG_INFO("new order count = %u", new_order_table->GetAllCurrentTupleCount());
-  LOG_INFO("order line count = %u",
-           order_line_table->GetAllCurrentTupleCount());
+  LOG_INFO("accounts count = %u", accounts_table->GetAllCurrentTupleCount());
+  LOG_INFO("savings count  = %u", savings_table->GetAllCurrentTupleCount());
+  LOG_INFO("checking count = %u", checking_table->GetAllCurrentTupleCount());
 }
 
 /////////////////////////////////////////////////////////

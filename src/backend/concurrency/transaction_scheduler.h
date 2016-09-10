@@ -74,8 +74,6 @@ class TransactionQuery {
 
   // For Log Table
   virtual void UpdateLogTable(bool single_ref, bool canonical) = 0;
-  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) = 0;
-  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) = 0;
 
   // For Run Table
   virtual int LookupRunTable(bool single_ref, bool canonical) = 0;
@@ -83,8 +81,12 @@ class TransactionQuery {
 
   virtual bool ExistInRunTable(int queue) = 0;
 
-  virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
-  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
+  //  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) =
+  // 0;
+  //  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) =
+  // 0;
+  //  virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
+  //  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
 
   virtual void UpdateRunTable(int queue_no, bool single_ref,
                               bool canonical) = 0;
@@ -144,7 +146,17 @@ class TransactionScheduler {
   // Singleton
   static TransactionScheduler& GetInstance();
 
-  TransactionScheduler() : queue_counts_(1), partition_counts_(1), range_(0) {}
+  TransactionScheduler()
+      : queue_counts_(1),
+        partition_counts_(1),
+        range_(0),
+        run_table_queue_size_(nullptr) {}
+
+  ~TransactionScheduler() {
+    if (run_table_queue_size_ != nullptr) {
+      delete run_table_queue_size_;
+    }
+  }
 
   // factor is the total size of the of rows in YCSB
   void ResizeWithRange(int queue_counts, int factor) {
@@ -164,6 +176,9 @@ class TransactionScheduler {
 
     queue_counts_ = queue_counts;
     partition_counts_ = partition_counts;
+
+    run_table_queue_size_ = new std::atomic<int>[queue_counts];
+    memset(run_table_queue_size_, 0, sizeof(std::atomic<int>) * queue_counts);
   }
 
   int QueueCount() {
@@ -484,14 +499,15 @@ class TransactionScheduler {
       //          queue = g_queue_no.fetch_add(1) % queue_counts_;
       //        }
       //      }
-      queue = GetMinQueueUsingRunTable();
+      // queue = GetMinQueueUsingRunTable();
+      queue = GetMinQueueUsingAtomic();
 
       //      // Test
       //      std::cout << "Can't find a queue, so assign queue: " << queue
       //                << ". Queue size is: " << queues_[queue].Size()
       //                << ". Key: " << query->GetPrimaryKey()
       //                << ". Txn Type: " << query->GetTxnType() << std::endl;
-      DumpRunTable(queue);
+      // DumpRunTable(queue);
       //      // end
     }
 
@@ -500,10 +516,6 @@ class TransactionScheduler {
 
     // Finally, enqueue this query
     queues_[queue].Enqueue(query);
-
-    // Update Run Table with the queue. That is to increasing the queue
-    // reference in Run Table
-    query->UpdateRunTable(queue, single_ref, canonical);
   }
 
   bool Dequeue(TransactionQuery*& query);
@@ -648,7 +660,7 @@ class TransactionScheduler {
 
   // support multi-thread
   void LogTableIncrease(std::string& key) {
-    counter_lock_.Lock();
+    log_table_lock_.Lock();
 
     auto entry = log_table_.find(key);
 
@@ -660,7 +672,7 @@ class TransactionScheduler {
       log_table_.emplace(key, 1);
     }
 
-    counter_lock_.Unlock();
+    log_table_lock_.Unlock();
   }
 
   // Return the condition conflict number
@@ -676,7 +688,7 @@ class TransactionScheduler {
 
   // support multi-thread
   void LogTableFullConflictIncrease(std::string& key) {
-    counter_lock_.Lock();
+    log_table_lock_.Lock();
 
     auto entry = log_table_full_.find(key);
 
@@ -688,11 +700,11 @@ class TransactionScheduler {
       log_table_full_.emplace(key, std::make_pair(1, 0));
     }
 
-    counter_lock_.Unlock();
+    log_table_lock_.Unlock();
   }
 
   void LogTableFullSuccessIncrease(std::string& key) {
-    counter_lock_.Lock();
+    log_table_lock_.Lock();
 
     auto entry = log_table_full_.find(key);
 
@@ -704,7 +716,7 @@ class TransactionScheduler {
       log_table_full_.emplace(key, std::make_pair(0, 1));
     }
 
-    counter_lock_.Unlock();
+    log_table_lock_.Unlock();
   }
 
   // Return the condition conflict rate
@@ -724,6 +736,23 @@ class TransactionScheduler {
   std::unordered_map<int, int>* RunTableGet(std::string& key) {
 
     std::unordered_map<int, int>* ret = nullptr;
+
+    run_table_lock_.Lock();
+
+    auto entry = run_table_.find(key);
+    if (entry != run_table_.end()) {
+      ret = &(entry->second);
+    }
+
+    run_table_lock_.Unlock();
+
+    return ret;
+  }
+
+  std::unordered_map<int, int>* RunTableGetNoLock(std::string& key) {
+
+    std::unordered_map<int, int>* ret = nullptr;
+
     auto entry = run_table_.find(key);
     if (entry != run_table_.end()) {
       ret = &(entry->second);
@@ -734,10 +763,10 @@ class TransactionScheduler {
 
   // support multi-thread
   void RunTableIncrease(std::string& key, int queue_no) {
-    counter_lock_.Lock();
+    run_table_lock_.Lock();
 
     // Get the reference of the corresponding queue
-    std::unordered_map<int, int>* queue_info = RunTableGet(key);
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
 
     if (queue_info != nullptr) {
       // Increase the reference for this queue
@@ -745,30 +774,67 @@ class TransactionScheduler {
 
       if (entry != queue_info->end()) {
         ++(*queue_info)[queue_no];
+        ++run_table_queue_size_[queue_no];
       }
       // If there is no such entry, create it
       else {
         queue_info->insert(std::make_pair(queue_no, 1));
+        ++run_table_queue_size_[queue_no];
       }
     }
     // If there is no such entry, create it
     else {
       std::unordered_map<int, int> queue_map = {{queue_no, 1}};
       run_table_.insert(std::make_pair(key, queue_map));
+
+      ++run_table_queue_size_[queue_no];
     }
 
-    counter_lock_.Unlock();
+    run_table_lock_.Unlock();
+  }
+
+  // support multi-thread
+  void RunTableIncreaseNoLock(std::string& key, int queue_no) {
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
+
+    if (queue_info != nullptr) {
+      // Increase the reference for this queue
+      auto entry = queue_info->find(queue_no);
+
+      if (entry != queue_info->end()) {
+        ++(*queue_info)[queue_no];
+        ++run_table_queue_size_[queue_no];
+      }
+      // If there is no such entry, create it
+      else {
+        queue_info->insert(std::make_pair(queue_no, 1));
+        ++run_table_queue_size_[queue_no];
+      }
+    }
+    // If there is no such entry, create it
+    else {
+      std::unordered_map<int, int> queue_map = {{queue_no, 1}};
+      run_table_.insert(std::make_pair(key, queue_map));
+
+      ++run_table_queue_size_[queue_no];
+    }
   }
 
   // support multi-thread
   void RunTableDecrease(std::string& key, int queue_no) {
-    counter_lock_.Lock();
+    run_table_lock_.Lock();
 
     // Get the reference of the corresponding queue
-    std::unordered_map<int, int>* queue_info = RunTableGet(key);
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
 
     // Decrease the reference for this queue
     if (queue_info != nullptr) {
+      if (queue_info->size() == 0) {
+        // TODO: remove this item?
+        // remove
+      }
+
       // Find out the entry with queue NO.
       auto queue = queue_info->find(queue_no);
 
@@ -778,14 +844,19 @@ class TransactionScheduler {
         // If the reference is larger than 1, decrease
         if (queue_info->at(queue_no) >= 1) {
           --(*queue_info)[queue_no];
+
+          // decrease the number
+          --run_table_queue_size_[queue_no];
         }
-        // TODO: remove the item?
+        // remove the item, otherwise the table will be too large
         else {
+          // LOG_INFO("Remove item in Run Table: %lu", run_table_.size());
+          // queue_info->erase(queue);
         }
       }
     }
 
-    counter_lock_.Unlock();
+    run_table_lock_.Unlock();
   }
 
   // Clear all queues using pop.
@@ -819,7 +890,7 @@ class TransactionScheduler {
   bool IsQueueEmpty(int queue_no) {
     bool is_empty = true;
 
-    counter_lock_.Lock();
+    run_table_lock_.Lock();
 
     // Get the reference of the corresponding queue
     for (auto& entry : run_table_) {
@@ -832,8 +903,47 @@ class TransactionScheduler {
     }
 
   end:
-    counter_lock_.Unlock();
+    run_table_lock_.Unlock();
     return is_empty;
+  }
+
+  int GetMinQueueUsingAtomic() {
+    std::vector<int> min_queues;
+
+    int min_count = INT_MAX;
+    int min_queue = -1;
+
+    // Find out min count
+    for (uint64_t queue_no = 0; queue_no < queue_counts_; queue_no++) {
+      if (run_table_queue_size_[queue_no] < min_count) {
+        // Update min count
+        min_count = run_table_queue_size_[queue_no];
+
+        // When there is a new min number, clear queue and cache new
+        min_queues.clear();
+
+        // Cache new number
+        min_queues.push_back(queue_no);
+      }
+      // When multiple numbers with the same min count
+      else if (run_table_queue_size_[queue_no] == min_count) {
+        min_queues.push_back(queue_no);
+      }
+    }
+
+    // Randomly return a queue
+    int size = min_queues.size();
+    if (size == 1) {
+      min_queue = min_queues[0];
+    }
+    if (size > 1) {
+      srand(time(NULL));
+      int idx = rand() % size;
+      min_queue = min_queues[idx];
+    }
+
+    assert(min_queue != -1);
+    return min_queue;
   }
 
   int GetMinQueueUsingRunTable() {
@@ -845,6 +955,8 @@ class TransactionScheduler {
     int min_queue = -1;
 
     // Compute the total queries running for each queue
+    // LOG_INFO("Run Table's size: %lu", run_table_.size());
+
     for (auto& entry : run_table_) {
       for (auto& queue_info : entry.second) {
 
@@ -926,10 +1038,10 @@ class TransactionScheduler {
   bool ExistInRunTable(std::string& key, int queue_no) {
     bool ret = false;
 
-    counter_lock_.Lock();
+    run_table_lock_.Lock();
 
     // Get the reference of the corresponding queue
-    std::unordered_map<int, int>* queue_info = RunTableGet(key);
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
 
     // Decrease the reference for this queue
     if (queue_info != nullptr) {
@@ -944,7 +1056,7 @@ class TransactionScheduler {
       }
     }
 
-    counter_lock_.Unlock();
+    run_table_lock_.Unlock();
 
     return ret;
   }
@@ -1009,6 +1121,20 @@ class TransactionScheduler {
     }
   }
 
+  void DumpRunTable(std::string& key, int queue_no) {
+    for (auto& entry : run_table_) {
+      for (auto& queue : entry.second) {
+        if (queue.first == queue_no && entry.first.substr(0, 4) == key) {
+          std::cout << "Key: " << entry.first << ". QueueNo: " << queue.first
+                    << ". Txns: " << queue.second << std::endl;
+        }
+      }
+    }
+  }
+
+  void RunTableLock() { run_table_lock_.Lock(); }
+  void RunTableUnlock() { run_table_lock_.Unlock(); }
+
  private:
   uint64_t Hash(uint64_t key) { return key % queue_counts_; }
 
@@ -1056,6 +1182,12 @@ class TransactionScheduler {
   // To synch the counter
   Spinlock counter_lock_;
 
+  // To synch run table
+  Spinlock run_table_lock_;
+
+  // To synch log table
+  Spinlock log_table_lock_;
+
   // Random Generator
   UniformIntGenerator random_generator_;
   UniformIntGenerator random_cluster_;
@@ -1089,8 +1221,13 @@ class TransactionScheduler {
   // vector for threads in the table. wid-3-->(3,100)(5,99)
   std::unordered_map<std::string, std::unordered_map<int, int>> run_table_;
 
-  // Log Table: a Hash table that records condition-->count for conflict txns.
-  // For example, txnA conflict with another txnB. TxnA has three conditions:
+  // Record each queue size in run_table, which is used in counter method
+  std::atomic<int>* run_table_queue_size_;
+
+  // Log Table: a Hash table that records condition-->count for conflict
+  // txns.
+  // For example, txnA conflict with another txnB. TxnA has three
+  // conditions:
   // wid=3, iid=100, did=10. It increase these three conditions in LogTable:
   // condition conflict success
   // |----------------

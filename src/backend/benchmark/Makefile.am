@@ -71,12 +71,31 @@ tpcc_SOURCES =  \
                     backend/benchmark/tpcc/tpcc_workload.cpp \
                     backend/benchmark/tpcc/tpcc_loader.cpp \
                     backend/benchmark/tpcc/tpcc_new_order.cpp \
-                    backend/benchmark/tpcc/tpcc_delivery.cpp \
                     backend/benchmark/tpcc/tpcc_payment.cpp \
                     backend/benchmark/tpcc/tpcc_stock_level.cpp \
                     backend/benchmark/tpcc/tpcc_order_status.cpp \
                     backend/benchmark/tpcc/tpcc_scan_stock.cpp 
-
+#backend/benchmark/tpcc/tpcc_delivery.cpp \
 tpcc_LDFLAGS =
 tpcc_CPPFLAGS = $(benchmark_common_cppflags)
 tpcc_LDADD = $(benchmark_common_ldadd)
+
+######################################################################
+# SMALLBANK
+######################################################################
+
+smallbank_SOURCES =  \
+                         backend/benchmark/benchmark_common.cpp \
+				            backend/benchmark/smallbank/smallbank.cpp \
+                    backend/benchmark/smallbank/smallbank_configuration.cpp \
+                    backend/benchmark/smallbank/smallbank_workload.cpp \
+                    backend/benchmark/smallbank/smallbank_loader.cpp \
+                    backend/benchmark/smallbank/smallbank_amalgamate.cpp \
+                    backend/benchmark/smallbank/smallbank_balance.cpp \
+                    backend/benchmark/smallbank/smallbank_deposit_checking.cpp \
+                    backend/benchmark/smallbank/smallbank_transact_saving.cpp \
+                    backend/benchmark/smallbank/smallbank_write_check.cpp
+
+smallbank_LDFLAGS =
+smallbank_CPPFLAGS = $(benchmark_common_cppflags)
+smallbank_LDADD = $(benchmark_common_ldadd)

@@ -25,6 +25,7 @@
 #include <limits>
 
 #include "backend/benchmark/tpcc/tpcc_workload.h"
+#include "backend/benchmark/tpcc/tpcc_new_order.h"
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/benchmark/tpcc/tpcc_loader.h"
 
