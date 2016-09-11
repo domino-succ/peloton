@@ -527,13 +527,34 @@ void RunBackend(oid_t thread_id) {
           }
           // Log table is ready
           else if (state.online) {
-            concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query, state.offline, true, state.single_ref,
-                state.canonical);
+
+            if (state.lock_free) {
+              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+                  ret_query, state.offline, true, state.single_ref,
+                  state.canonical);
+            }
+            // lock
+            else {
+              concurrency::TransactionScheduler::GetInstance().RunTableLock();
+              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+                  ret_query, state.offline, true, state.single_ref,
+                  state.canonical);
+              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+            }
           } else {
-            concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                ret_query, state.offline, false, state.single_ref,
-                state.canonical);
+            if (state.lock_free) {
+              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+                  ret_query, state.offline, false, state.single_ref,
+                  state.canonical);
+            }
+            // lock
+            else {
+              concurrency::TransactionScheduler::GetInstance().RunTableLock();
+              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+                  ret_query, state.offline, false, state.single_ref,
+                  state.canonical);
+              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+            }
           }
 
           break;
