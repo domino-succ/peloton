@@ -150,48 +150,48 @@ for i in range(2000, 20000, 2000):
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -z ml -v" + " " + str(i)
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
 #############################
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -o -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -o -l -f"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -o -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -o -l -c -f"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 #####################
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -l -f"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
-for i in range(1000, 12000, 1000):
+for i in range(2000, 20000, 2000):
     cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v" + " " + str(i) + " " + "-z hash -l -c -f"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
