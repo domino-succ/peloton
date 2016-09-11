@@ -49,10 +49,10 @@ namespace smallbank {
 const size_t BATCH_SIZE = 5000;
 const size_t BASIC_ACCOUNTS = 10000;
 size_t NUM_ACCOUNTS = 0;
-const size_t HOTSPOT_FIXED_SIZE = 100;  // fixed number of tuples
+
+const size_t HOTSPOT_FIXED_SIZE = 10;  // fixed number of tuples
 
 double accounts_name_length = 16;
-double HOTSPOT_PERCENTAGE = 25;  // [0% - 100%]
 bool HOTSPOT_USE_FIXED_SIZE = false;
 
 const size_t MIN_BALANCE = 10000;

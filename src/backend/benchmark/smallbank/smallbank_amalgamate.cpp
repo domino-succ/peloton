@@ -266,8 +266,13 @@ void Amalgamate::SetValue(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PREPARE ARGUMENTS
   /////////////////////////////////////////////////////////
-  custid_0_ = zipf.GetNextNumber();
-  custid_1_ = zipf.GetNextNumber();
+  if (state.zipf_theta > 0) {
+    custid_0_ = zipf.GetNextNumber();
+    custid_1_ = zipf.GetNextNumber();
+  } else {
+    custid_0_ = GenerateAccountsId();
+    custid_1_ = GenerateAccountsId();
+  }
 
   // Take warehouse_id_ as the primary key
   primary_keys_.assign(1, custid_0_);

@@ -196,7 +196,11 @@ void DepositChecking::SetValue(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PREPARE ARGUMENTS
   /////////////////////////////////////////////////////////
-  custid_ = zipf.GetNextNumber();
+  if (state.zipf_theta > 0) {
+    custid_ = zipf.GetNextNumber();
+  } else {
+    custid_ = GenerateAccountsId();
+  }
 
   // Take warehouse_id_ as the primary key
   primary_keys_.assign(1, custid_);

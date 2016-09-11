@@ -64,9 +64,9 @@ extern const size_t BATCH_SIZE;
 extern const size_t BASIC_ACCOUNTS;
 extern size_t NUM_ACCOUNTS;
 extern const size_t HOTSPOT_FIXED_SIZE;  // fixed number of tuples
+extern double HOTSPOT_PERCENTAGE;        // [0% - 100%]
 
 extern double accounts_name_length;
-extern double HOTSPOT_PERCENTAGE;  // [0% - 100%]
 extern bool HOTSPOT_USE_FIXED_SIZE;
 
 extern const size_t MIN_BALANCE;

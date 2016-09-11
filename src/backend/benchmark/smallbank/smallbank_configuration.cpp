@@ -74,6 +74,7 @@ static struct option opts[] = {
     {"generate_speed", optional_argument, NULL, 'v'},
     {"min_pts", optional_argument, NULL, 'm'},
     {"analysis_txns", optional_argument, NULL, 'x'},
+    {"hot_spot", optional_argument, NULL, 'h'},
     {NULL, 0, NULL, 0}};
 
 void ValidateScaleFactor(const configuration &state) {
@@ -179,7 +180,7 @@ void ValidateGenerateSpeed(const configuration &state) {
 void ParseArguments(int argc, char *argv[], configuration &state) {
   // Default Values
   state.scale_factor = 1;
-  state.zipf_theta = 0.5;
+  state.zipf_theta = -1;
   state.duration = 10;
   state.snapshot_duration = 1;
   state.backend_count = 1;
@@ -207,12 +208,13 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.sindex = SECONDARY_INDEX_TYPE_VERSION;
   state.min_pts = 1;
   state.analysis_txns = 10000;
+  state.hot_spot = -1;
 
   // Parse args
   while (1) {
     int idx = 0;
     int c =
-        getopt_long(argc, argv, "aeoflcjh:r:m:x:k:w:n:v:u:d:s:b:p:z:g:i:t:q:y:",
+        getopt_long(argc, argv, "aeoflcjr:m:x:k:w:n:h:v:u:d:s:b:p:z:g:i:t:q:y:",
                     opts, &idx);
 
     if (c == -1) break;
@@ -235,6 +237,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'n':
         state.generate_count = atoi(optarg);
+        break;
+      case 'h':
+        state.hot_spot = atoi(optarg);
         break;
       case 'v':
         state.generate_speed = atoi(optarg);
@@ -385,10 +390,10 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         }
         break;
       }
-      case 'h':
-        Usage(stderr);
-        exit(EXIT_FAILURE);
-        break;
+      //      case 'help':
+      //        Usage(stderr);
+      //        exit(EXIT_FAILURE);
+      //        break;
 
       default:
         fprintf(stderr, "\nUnknown option: -%c-\n", c);
@@ -417,6 +422,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   ValidateGenerateCount(state);
   ValidateGenerateSpeed(state);
 
+  LOG_TRACE("%s : %d", "hot_spot", state.hot_spot);
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
   LOG_TRACE("%s : %d", "Run offline analysis", state.offline);

@@ -119,6 +119,9 @@ class configuration {
   // Theta in zipf distribution to control skewness
   double zipf_theta;
 
+  // data skew
+  int hot_spot;
+
   // enable exponential backoff
   bool run_backoff;
 

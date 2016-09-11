@@ -80,16 +80,12 @@ namespace smallbank {
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
-#define STOCK_LEVEL_RATIO 0.04
-#define ORDER_STATUS_RATIO 0.04
-#define PAYMENT_RATIO 0.46
-
 #define FREQUENCY_AMALGAMATE 0.00
 #define FREQUENCY_BALANCE 0.25
 #define FREQUENCY_DEPOSIT_CHECKING 0.25
 #define FREQUENCY_TRANSACT_SAVINGS 0.25
 #define FREQUENCY_WRITE_CHECK 0.25
-#define FREQUENCY_SEND_PAYMENT 0  // No send payment?
+#define FREQUENCY_SEND_PAYMENT 0  // No send payment in original doc
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
@@ -131,7 +127,17 @@ size_t GenerateAccountsId(const size_t &thread_id) {
   }
 }
 
-size_t GenerateAccountsId() { return GetRandomInteger(0, NUM_ACCOUNTS - 1); }
+size_t GenerateAccountsId() {
+  // hot spot : 0 - 99
+  if (GetRandomInteger(0, 99) < state.hot_spot) {
+    return GetRandomInteger(0, HOTSPOT_FIXED_SIZE - 1);
+  }
+  // return : 100 - others
+  else {
+    return GetRandomInteger(0, (NUM_ACCOUNTS - HOTSPOT_FIXED_SIZE) - 1);
+  }
+}
+
 size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 
 // Only generate New-Order
