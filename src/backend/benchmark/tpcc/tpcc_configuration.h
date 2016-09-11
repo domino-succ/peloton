@@ -155,6 +155,9 @@ class configuration {
 
   bool log_table;
 
+  // update run table with lock-free
+  bool lock_free;
+
   //
   SchedulerType scheduler;
 

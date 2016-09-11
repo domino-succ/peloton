@@ -247,31 +247,52 @@ bool EnqueueCachedUpdate() {
       //                << std::endl;
       // end debug
 
-      // enqueue
+      if (state.lock_free) {
+        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+            query, state.offline, true, state.single_ref, state.canonical);
 
-      // concurrency::TransactionScheduler::GetInstance().RunTableLock();
+        // Increase run table
+        int queue = query->GetQueueNo();
+        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+      }
+      // lock
+      else {
+        concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
-      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-          query, state.offline, true, state.single_ref, state.canonical);
+        // Increase run table
+        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+            query, state.offline, true, state.single_ref, state.canonical);
 
-      // Increase run table
-      int queue = query->GetQueueNo();
-      query->UpdateRunTable(queue, state.single_ref, state.canonical);
+        // Increase run table
+        int queue = query->GetQueueNo();
+        query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
-      // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+        concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+      }
 
     } else {  // otherwise use OOHASH method
-      // concurrency::TransactionScheduler::GetInstance().RunTableLock();
+      if (state.lock_free) {
+        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+            query, state.offline, false, state.single_ref, state.canonical);
 
-      // enqueue
-      concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-          query, state.offline, false, state.single_ref, state.canonical);
+        // Increase run table
+        int queue = query->GetQueueNo();
+        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+      }
+      // lock run table
+      else {
+        concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
-      // Increase run table
-      int queue = query->GetQueueNo();
-      query->UpdateRunTable(queue, state.single_ref, state.canonical);
+        // enqueue
+        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+            query, state.offline, false, state.single_ref, state.canonical);
 
-      // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+        // Increase run table
+        int queue = query->GetQueueNo();
+        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+
+        concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+      }
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
     // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
@@ -550,15 +571,15 @@ void RunBackend(oid_t thread_id) {
 
       // clean up the hash table
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
-
         // Update Log Table when success
         //        if (state.log_table) {
         //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
         //                                               state.canonical);
         //        } else {
         // Remove txn from Run Table
-        // ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-        //        }
+        if (!state.lock_free) {
+          ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+        }
       }
 
       // Second, clean up

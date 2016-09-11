@@ -60,11 +60,11 @@ static struct option opts[] = {
     {"exp_backoff", no_argument, NULL, 'e'},
     {"affinity", no_argument, NULL, 'a'},
     {"online", no_argument, NULL, 'o'},
-    {"offline", no_argument, NULL, 'f'},
     {"single_ref", no_argument, NULL, 'l'},
     {"canonical", no_argument, NULL, 'c'},
     {"zipf_theta", optional_argument, NULL, 'y'},
     {"log_table", no_argument, NULL, 'j'},
+    {"lock_free", no_argument, NULL, 'f'},
     {"protocol", optional_argument, NULL, 'p'},
     {"scheduler", optional_argument, NULL, 'z'},
     {"gc_protocol", optional_argument, NULL, 'g'},
@@ -200,6 +200,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.single_ref = false;
   state.canonical = false;
   state.log_table = false;
+  state.lock_free = false;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -272,7 +273,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.online = true;
         break;
       case 'f':
-        state.offline = true;
+        state.lock_free = true;
         break;
       case 'l':
         state.single_ref = true;
@@ -425,7 +426,6 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   LOG_TRACE("%s : %d", "hot_spot", state.hot_spot);
   LOG_TRACE("%s : %d", "Run client affinity", state.run_affinity);
   LOG_TRACE("%s : %d", "Run exponential backoff", state.run_backoff);
-  LOG_TRACE("%s : %d", "Run offline analysis", state.offline);
   LOG_TRACE("%s : %d", "Run online analysis", state.online);
   LOG_TRACE("%s : %d", "Run cluster min_pts", state.min_pts);
   LOG_TRACE("%s : %d", "Run cluster analysis txns", state.analysis_txns);
