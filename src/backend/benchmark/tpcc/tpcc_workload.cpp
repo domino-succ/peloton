@@ -687,8 +687,8 @@ void QueryBackend(oid_t thread_id) {
 
   int speed = state.generate_speed;
   int count = 0;
-  // std::chrono::system_clock::time_point start_time =
-  //    std::chrono::system_clock::now();
+  std::chrono::system_clock::time_point start_time =
+      std::chrono::system_clock::now();
 
   while (true) {
     if (is_running == false) {
@@ -712,37 +712,30 @@ void QueryBackend(oid_t thread_id) {
     if (count >= speed) {
       // Reset the counter
       count = 0;
-      SleepMilliseconds(1000);
+      // SleepMilliseconds(1000);
 
-      //      // Compute the elapsed time
-      //      std::chrono::system_clock::time_point now_time =
-      //          std::chrono::system_clock::now();
-      //
-      //      int elapsed_time =
-      // std::chrono::duration_cast<std::chrono::microseconds>(
-      //          now_time - start_time).count();
-      //
-      //      // If elapsed time is still less than 1 second, sleep the rest of
-      // the time
-      //      if (elapsed_time / 1000 < 1000) {
-      //        SleepMilliseconds(1000 - elapsed_time / 1000);
-      //
-      //        // Reset start time
-      //        start_time = std::chrono::system_clock::now();
-      //      }
-      //      // Otherwise, if elapsed time is larger then 1 second, re-set
-      // starttime
-      //      // and continue to enqueue txns
-      //      else {
-      //        // Rest start time
-      //        start_time = std::chrono::system_clock::now();
-      //
-      //        continue;
-      //      }
-    }
-    // If executed txns are still less than the speed, continue to enqueue
-    else {
-      continue;
+      // Compute the elapsed time
+      std::chrono::system_clock::time_point now_time =
+          std::chrono::system_clock::now();
+
+      int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+          now_time - start_time).count();
+
+      std::cout << "elapsed_time: " << elapsed_time << std::endl;
+
+      // If elapsed time is still less than 1 second, sleep the rest of the time
+      if ((elapsed_time) < 1000) {
+        SleepMilliseconds(1000 - (elapsed_time));
+
+        // Reset start time
+        start_time = std::chrono::system_clock::now();
+      }
+      // Otherwise, if elapsed time is larger then 1 second, re-set start time
+      // and continue to enqueue txns
+      else {
+        // Rest start time
+        start_time = std::chrono::system_clock::now();
+      }
     }
   }
 }

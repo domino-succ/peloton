@@ -22,6 +22,7 @@ void PinToCore(size_t core) {
   CPU_SET(core, &cpuset);
   pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 }
+
 void SleepMilliseconds(int n) {
   struct timespec ts_sleep = {n / 1000, (n % 1000) * 1000000L};
   nanosleep(&ts_sleep, NULL);
