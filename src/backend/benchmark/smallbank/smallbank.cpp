@@ -36,8 +36,8 @@ int RUNNING_REF_THRESHOLD = state.running_ref;
 static void WriteOutput() {
   // Create output directory
   struct stat st;
-  if (stat("./tpcc-output", &st) == -1) {
-    mkdir("./tpcc-output", 0700);
+  if (stat("./smallbank-output", &st) == -1) {
+    mkdir("./smallbank-output", 0700);
   }
 
   oid_t total_snapshot_memory = 0;
@@ -51,7 +51,7 @@ static void WriteOutput() {
   struct tm *p;
   p = localtime(&tt);
   std::stringstream oss;
-  oss << "./tpcc-output/"
+  oss << "./smallbank-output/"
       << "output" << p->tm_year + 1900 << p->tm_mon + 1 << p->tm_mday
       << p->tm_hour << p->tm_min << p->tm_sec << ".summary";
   std::ofstream out(oss.str(), std::ofstream::out);
