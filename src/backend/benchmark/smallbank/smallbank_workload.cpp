@@ -187,21 +187,6 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
   }
 }
 
-// Generate all kinds of txns: New-Order, Payment...
-// void GenerateALLAndCache(bool new_order) {
-//
-//  // New-Order
-//  if (new_order) {
-//    NewOrder *new_order = GenerateNewOrder();
-//    concurrency::TransactionScheduler::GetInstance().CacheQuery(new_order);
-//  }
-//  // Payment
-//  else {
-//    Payment *payment = GeneratePayment();
-//    concurrency::TransactionScheduler::GetInstance().CacheQuery(payment);
-//  }
-//}
-
 std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
   std::vector<SingleRegion> txn_regions;
 

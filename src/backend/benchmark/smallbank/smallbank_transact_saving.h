@@ -127,11 +127,14 @@ class TransactSaving : public concurrency::TransactionQuery {
   virtual SingleRegion& GetRegion() { return region_; }
 
   /*
-     "DepositChecking": {
+     "Transact Saving": {
         "SELECT * FROM " + SmallBankConstants.TABLENAME_ACCOUNTS +
         " WHERE custid = ?" # id 0
 
-        "UPDATE " + SmallBankConstants.TABLENAME_CHECKING +
+        "SELECT bal FROM " + SmallBankConstants.TABLENAME_SAVINGS +
+        " WHERE custid = ?" # id 0
+
+        "UPDATE " + SmallBankConstants.TABLENAME_SAVINGS +
         "   SET bal = bal + ? " +
         " WHERE custid = ?" # id 0
       }

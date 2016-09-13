@@ -132,7 +132,7 @@ class WriteCheck : public concurrency::TransactionQuery {
   virtual SingleRegion& GetRegion() { return region_; }
 
   /*
-     "DepositChecking": {
+     "WriteCheck": {
         "SELECT * FROM " + SmallBankConstants.TABLENAME_ACCOUNTS +
         " WHERE custid = ?" # id 0
 

@@ -212,6 +212,9 @@ bool DepositChecking::Run() {
         "SELECT * FROM " + SmallBankConstants.TABLENAME_ACCOUNTS +
         " WHERE custid = ?" # id 0
 
+        "SELECT bal FROM " + SmallBankConstants.TABLENAME_CHECKING +
+        " WHERE custid = ?" # id 0
+
         "UPDATE " + SmallBankConstants.TABLENAME_CHECKING +
         "   SET bal = bal + ? " +
         " WHERE custid = ?" # id 0
