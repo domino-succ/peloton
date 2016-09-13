@@ -99,3 +99,18 @@ smallbank_SOURCES =  \
 smallbank_LDFLAGS =
 smallbank_CPPFLAGS = $(benchmark_common_cppflags)
 smallbank_LDADD = $(benchmark_common_ldadd)
+
+######################################################################
+# TATP
+######################################################################
+
+tatp_SOURCES =  \
+                    backend/benchmark/benchmark_common.cpp \
+				            backend/benchmark/tatp/tatp.cpp \
+				            backend/benchmark/tatp/tatp_configuration.cpp \
+                    backend/benchmark/tatp/tatp_workload.cpp \
+                    backend/benchmark/tatp/tatp_loader.cpp  
+
+tatp_LDFLAGS =
+tatp_CPPFLAGS = $(benchmark_common_cppflags)
+tatp_LDADD = $(benchmark_common_ldadd)

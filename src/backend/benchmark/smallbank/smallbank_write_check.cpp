@@ -369,6 +369,7 @@ bool WriteCheck::Run() {
 
   Value checking_update_val = ValueFactory::GetDoubleValue(final_bal);
 
+  // bal's column is 1
   checking_target_list.emplace_back(
       1, expression::ExpressionUtil::ConstantValueFactory(checking_update_val));
 
