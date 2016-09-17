@@ -514,6 +514,9 @@ class TransactionScheduler {
     // Set queue No. then when clean run table queue No. will be used
     query->SetQueueNo(queue);
 
+    // Increase run table
+    query->UpdateRunTable(queue, single_ref, canonical);
+
     // Finally, enqueue this query
     queues_[queue].Enqueue(query);
   }
@@ -908,6 +911,7 @@ class TransactionScheduler {
   }
 
   int GetMinQueueUsingAtomic() {
+
     std::vector<int> min_queues;
 
     int min_count = INT_MAX;
@@ -943,6 +947,7 @@ class TransactionScheduler {
     }
 
     assert(min_queue != -1);
+
     return min_queue;
   }
 

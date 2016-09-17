@@ -42,7 +42,8 @@ bin_PROGRAMS = \
 			   hyadapt \
 			   ycsb \
 			   tpcc \
-			   smallbank
+			   smallbank \
+			   tatp
 
 lib_LTLIBRARIES += libpeloton.la
 lib_LTLIBRARIES += libpelotonpg.la

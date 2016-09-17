@@ -15,9 +15,9 @@
 #include <iomanip>
 #include <sys/stat.h>
 
-#include "backend/benchmark/smallbank/smallbank_configuration.h"
-#include "backend/benchmark/smallbank/smallbank_loader.h"
-#include "backend/benchmark/smallbank/smallbank_workload.h"
+#include "backend/benchmark/tatp/tatp_configuration.h"
+#include "backend/benchmark/tatp/tatp_loader.h"
+#include "backend/benchmark/tatp/tatp_workload.h"
 
 #include "backend/gc/gc_manager_factory.h"
 #include "backend/concurrency/transaction_manager_factory.h"
@@ -26,7 +26,7 @@
 
 namespace peloton {
 namespace benchmark {
-namespace smallbank {
+namespace tatp {
 
 configuration state;
 int RUNNING_REF_THRESHOLD = state.running_ref;
@@ -36,8 +36,8 @@ int RUNNING_REF_THRESHOLD = state.running_ref;
 static void WriteOutput() {
   // Create output directory
   struct stat st;
-  if (stat("./smallbank-output", &st) == -1) {
-    mkdir("./smallbank-output", 0700);
+  if (stat("./tatp-output", &st) == -1) {
+    mkdir("./tatp-output", 0700);
   }
 
   oid_t total_snapshot_memory = 0;
@@ -51,7 +51,7 @@ static void WriteOutput() {
   struct tm *p;
   p = localtime(&tt);
   std::stringstream oss;
-  oss << "./smallbank-output/"
+  oss << "./tatp-output/"
       << "output" << p->tm_year + 1900 << p->tm_mon + 1 << p->tm_mday
       << p->tm_hour << p->tm_min << p->tm_sec << ".summary";
   std::ofstream out(oss.str(), std::ofstream::out);
@@ -107,10 +107,10 @@ void LoadQuery(uint64_t count) {
         state.backend_count, state.warehouse_count);
   }
 
-  std::cout << "zipf--number: " << NUM_ACCOUNTS - 1
+  std::cout << "zipf--number: " << NUM_SUBSCRIBERS - 1
             << "theta: " << state.zipf_theta << std::endl;
 
-  ZipfDistribution zipf(NUM_ACCOUNTS - 1, state.zipf_theta);
+  ZipfDistribution zipf(NUM_SUBSCRIBERS - 1, state.zipf_theta);
 
   // If use CLUSTER method, we should analyze the query/txns when load query.
   if (state.scheduler == SCHEDULER_TYPE_CLUSTER) {
@@ -201,10 +201,10 @@ void RunBenchmark() {
   index::IndexFactory::Configure(state.sindex);
 
   // Create the database
-  CreateSmallBankDatabase();
+  CreateTatpDatabase();
 
   // Load the database
-  LoadSmallBankDatabase();
+  LoadTatpDatabase();
 
   // If OOHASH, load Log Table File
   LoadLogTable();
@@ -221,15 +221,15 @@ void RunBenchmark() {
   }
 }
 
-}  // namespace tpcc
+}  // namespace tatp
 }  // namespace benchmark
 }  // namespace peloton
 
 int main(int argc, char **argv) {
-  peloton::benchmark::smallbank::ParseArguments(
-      argc, argv, peloton::benchmark::smallbank::state);
+  peloton::benchmark::tatp::ParseArguments(argc, argv,
+                                           peloton::benchmark::tatp::state);
 
-  peloton::benchmark::smallbank::RunBenchmark();
+  peloton::benchmark::tatp::RunBenchmark();
 
   return 0;
 }

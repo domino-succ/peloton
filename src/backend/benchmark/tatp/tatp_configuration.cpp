@@ -14,12 +14,12 @@
 #include <algorithm>
 #include <string.h>
 
-#include "backend/benchmark/smallbank/smallbank_configuration.h"
+#include "backend/benchmark/tatp/tatp_configuration.h"
 #include "backend/common/logger.h"
 
 namespace peloton {
 namespace benchmark {
-namespace smallbank {
+namespace tatp {
 
 void Usage(FILE *out) {
   fprintf(
@@ -411,7 +411,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.customers_per_district = 3000 * state.scale_factor;
   state.new_orders_per_district = 900 * state.scale_factor;
 
-  NUM_ACCOUNTS = BASIC_ACCOUNTS * state.scale_factor;
+  NUM_SUBSCRIBERS = BASIC_SUBSCRIBERS * state.scale_factor;
 
   // Print configuration
   ValidateScaleFactor(state);

@@ -62,11 +62,11 @@ class AbstractExecutor {
 
   const planner::AbstractPlan *GetRawNode() const { return node_; }
 
-  // set the context 
+  // set the context
   void SetContext(Value value, ParamsExecFlag flag) {
- 	  executor_context_->SetParams(value);
- 	  executor_context_->SetParamsExecFlag(flag);
-   }
+    executor_context_->SetParams(value);
+    executor_context_->SetParamsExecFlag(flag);
+  }
 
   // clear the context
   void ClearContext() { executor_context_->ClearParams(); }

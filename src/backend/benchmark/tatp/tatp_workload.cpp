@@ -24,11 +24,9 @@
 #include <cstddef>
 #include <limits>
 
-#include "backend/benchmark/smallbank/smallbank_amalgamate.h"
-#include "backend/benchmark/smallbank/smallbank_balance.h"
-#include "backend/benchmark/smallbank/smallbank_workload.h"
-#include "backend/benchmark/smallbank/smallbank_configuration.h"
-#include "backend/benchmark/smallbank/smallbank_loader.h"
+#include "backend/benchmark/tatp/tatp_workload.h"
+#include "backend/benchmark/tatp/tatp_configuration.h"
+#include "backend/benchmark/tatp/tatp_loader.h"
 
 #include "backend/catalog/manager.h"
 #include "backend/catalog/schema.h"
@@ -74,18 +72,19 @@
 
 namespace peloton {
 namespace benchmark {
-namespace smallbank {
+namespace tatp {
 
 /////////////////////////////////////////////////////////
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
-#define FREQUENCY_AMALGAMATE 0.04
-#define FREQUENCY_BALANCE 0.24
-#define FREQUENCY_DEPOSIT_CHECKING 0.24
-#define FREQUENCY_TRANSACT_SAVINGS 0.24
-#define FREQUENCY_WRITE_CHECK 0.24
-#define FREQUENCY_SEND_PAYMENT 0  // No send payment in original doc
+#define FREQUENCY_GET_ACCESS_DATA 0.14         // Single
+#define FREQUENCY_GET_NEW_DESTINATION 0.1      // Single
+#define FREQUENCY_GET_SUBSCRIBER_DATA 0.35     // Single
+#define FREQUENCY_INSERT_CALL_FORWARDING 0.02  // Multi
+#define FREQUENCY_DELETE_CALL_FORWARDING 0.02  // Multi
+#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.02  // Single
+#define FREQUENCY_UPDATE_LOCATION 0.35         // Multi
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
@@ -113,39 +112,34 @@ double order_status_avg_latency;
 oid_t scan_stock_count;
 double scan_stock_avg_latency;
 
-size_t GenerateAccountsId(const size_t &thread_id) {
-
-  if ((int)NUM_ACCOUNTS <= state.backend_count) {
-    return thread_id % NUM_ACCOUNTS;
-  } else {
-    int accounts_per_partition = NUM_ACCOUNTS / state.backend_count;
-    int start_id = accounts_per_partition * thread_id;
-    int end_id = ((int)thread_id != (state.backend_count - 1))
-                     ? start_id + accounts_per_partition - 1
-                     : NUM_ACCOUNTS - 1;
-    return GetRandomInteger(start_id, end_id);
-  }
-}
-
-size_t GenerateAccountsId() {
+size_t GenerateSubscriberId() {
   // hot spot : 0 - 99
   if (GetRandomInteger(0, 99) < state.hot_spot) {
     return GetRandomInteger(0, HOTSPOT_FIXED_SIZE - 1);
   }
   // return : 100 - others
   else {
-    return GetRandomInteger(0, (NUM_ACCOUNTS - HOTSPOT_FIXED_SIZE) - 1);
+    return GetRandomInteger(0, (NUM_SUBSCRIBERS - HOTSPOT_FIXED_SIZE) - 1);
   }
 }
 
+size_t GenerateAiTypeId() { return GetRandomInteger(1, AI_TYPE.size() - 1); }
+size_t GenerateSfTypeId() { return GetRandomInteger(1, SF_TYPE.size() - 1); }
+size_t GenerateStartTime() { return GetRandomIntegerFromArr(START_TIME); }
+size_t GenerateEndTime() { return GetRandomInteger(1, 24); }
 size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 
 // Only generate New-Order
 void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
-  // Amalgamate *txn = GenerateAmalgamate(zipf);
-  DepositChecking *txn = GenerateDepositChecking(zipf);
-
+  GetNewDestination *txn = GenerateGetNewDestination(zipf);
+  // GetAccessData *txn = GenerateGetAccessData(zipf);  // 80000
+  // GetSubscriberData *txn = GenerateGetSubscriberData(zipf);
+  //
+  // InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
+  // DeteteCallForwarding *txn = GenerateDeteteCallForwarding(zipf);
+  // UpdateSubscriberData *txn = GenerateUpdateSubscriberData(zipf);  // 5176
+  // UpdateLocation *txn = GenerateUpdateLocation(zipf);  // 5303
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
   /////////////////////////////////////////////////////////
@@ -158,32 +152,56 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
 
   auto rng_val = rng.next_uniform();
 
-  // Amalgamate
-  if (rng_val <= FREQUENCY_AMALGAMATE) {
-    Amalgamate *amalgamate = GenerateAmalgamate(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(amalgamate);
+  // GET_ACCESS_DATA
+  if (rng_val <= FREQUENCY_GET_ACCESS_DATA) {
+    GetAccessData *txn = GenerateGetAccessData(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
-  // Balance
-  else if (rng_val <= FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
-    Balance *balance = GenerateBalance(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(balance);
+  // GET_NEW_DESTINATION
+  else if (rng_val <=
+           FREQUENCY_GET_ACCESS_DATA + FREQUENCY_GET_NEW_DESTINATION) {
+    GetNewDestination *txn = GenerateGetNewDestination(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
-  // DEPOSIT_CHECKING
-  else if (rng_val <= FREQUENCY_DEPOSIT_CHECKING + FREQUENCY_BALANCE +
-                          FREQUENCY_AMALGAMATE) {
-    DepositChecking *dc = GenerateDepositChecking(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(dc);
+  // GET_SUBSCRIBER_DATA
+  else if (rng_val <= FREQUENCY_GET_ACCESS_DATA +
+                          FREQUENCY_GET_NEW_DESTINATION +
+                          FREQUENCY_GET_SUBSCRIBER_DATA) {
+    GetSubscriberData *txn = GenerateGetSubscriberData(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
-  // TRANSACT_SAVINGS
-  else if (rng_val <= FREQUENCY_TRANSACT_SAVINGS + FREQUENCY_DEPOSIT_CHECKING +
-                          FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
-    TransactSaving *ts = GenerateTransactSaving(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(ts);
+  // INSERT_CALL_FORWARDING
+  else if (rng_val <= FREQUENCY_GET_ACCESS_DATA +
+                          FREQUENCY_GET_NEW_DESTINATION +
+                          FREQUENCY_GET_SUBSCRIBER_DATA +
+                          FREQUENCY_INSERT_CALL_FORWARDING) {
+    // GetAccessData *txn = GenerateGetAccessData(zipf);
+    InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
-  // WRITE_CHECK
+  // DELETE_CALL_FORWARDING
+  else if (rng_val <= FREQUENCY_GET_ACCESS_DATA +
+                          FREQUENCY_GET_NEW_DESTINATION +
+                          FREQUENCY_GET_SUBSCRIBER_DATA +
+                          FREQUENCY_INSERT_CALL_FORWARDING +
+                          FREQUENCY_DELETE_CALL_FORWARDING) {
+    DeteteCallForwarding *txn = GenerateDeteteCallForwarding(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
+  }
+  // UPDATE_SUBSCRIBER_DATA
+  else if (rng_val <= FREQUENCY_GET_ACCESS_DATA +
+                          FREQUENCY_GET_NEW_DESTINATION +
+                          FREQUENCY_GET_SUBSCRIBER_DATA +
+                          FREQUENCY_INSERT_CALL_FORWARDING +
+                          FREQUENCY_DELETE_CALL_FORWARDING +
+                          FREQUENCY_UPDATE_SUBSCRIBER_DATA) {
+    UpdateSubscriberData *txn = GenerateUpdateSubscriberData(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
+  }
+  // UPDATE_LOCATION
   else {
-    WriteCheck *wc = GenerateWriteCheck(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(wc);
+    UpdateLocation *txn = GenerateUpdateLocation(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
 }
 
@@ -249,6 +267,8 @@ bool EnqueueCachedUpdate() {
     return false;
   }
 
+  PL_ASSERT(query != nullptr);
+
   // Start counting the response time when entering the queue
   query->ReSetStartTime();
 
@@ -268,49 +288,30 @@ bool EnqueueCachedUpdate() {
     // Run table is ready
     else if (state.online) {  // ONLINE means Run table
       if (state.lock_free) {
-        // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, state.offline, true, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
       }
       // lock run table
       else {
         concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
-        // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, state.offline, true, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
     } else {  // otherwise use OOHASH method
       if (state.lock_free) {
-        // enqueue
+
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, state.offline, false, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
       }
       // lock run table
       else {
         concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
-        // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, state.offline, false, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
@@ -323,7 +324,10 @@ bool EnqueueCachedUpdate() {
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
     // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
     concurrency::TransactionScheduler::GetInstance().Enqueue(query);
-  } else {  // Control
+  } else if (state.scheduler == SCHEDULER_TYPE_ABORT_QUEUE) {
+    concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+        query, state.single_ref);
+  } else {  // Control None
     concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
   }
 
@@ -371,11 +375,19 @@ void RunBackend(oid_t thread_id) {
     //////////////////////////////////////////
     switch (state.scheduler) {
       case SCHEDULER_TYPE_NONE:
-      case SCHEDULER_TYPE_CONTROL:
-      case SCHEDULER_TYPE_ABORT_QUEUE: {
+      case SCHEDULER_TYPE_CONTROL: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().SingleDequeue(
                 ret_query);
+        break;
+      }
+      case SCHEDULER_TYPE_ABORT_QUEUE: {
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().SingleDequeue(
+        //                ret_query);
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                ret_query, thread_id);
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_DETECT: {
@@ -462,6 +474,14 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_CONTROL: {
           // Control: The txn re-executed immediately
+
+          // Note: otherwise it will cause failed insert continuly execute
+          if (ret_query->GetTxnType() == TXN_TYPE_INSERT_CALL_FORWARDING) {
+            ret_query->Cleanup();
+            delete ret_query;
+            break;
+          }
+
           while (ret_query->Run() == false) {
             // If still fail, the counter increase, then enter loop again
             execution_count_ref++;
@@ -485,8 +505,10 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_ABORT_QUEUE: {
           // Queue: put the txn at the end of the queue
-          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
-              ret_query);
+          //          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
+          //              ret_query);
+          concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+              ret_query, state.single_ref);
           break;
         }
 
@@ -985,9 +1007,14 @@ void RunWorkload() {
   delay_mins = nullptr;
 
   LOG_INFO("============TABLE SIZES==========");
-  LOG_INFO("accounts count = %u", accounts_table->GetAllCurrentTupleCount());
-  LOG_INFO("savings count  = %u", savings_table->GetAllCurrentTupleCount());
-  LOG_INFO("checking count = %u", checking_table->GetAllCurrentTupleCount());
+  LOG_INFO("subscriber count = %u",
+           subscriber_table->GetAllCurrentTupleCount());
+  LOG_INFO("access_info count = %u",
+           access_info_table->GetAllCurrentTupleCount());
+  LOG_INFO("special_facility count  = %u",
+           special_facility_table->GetAllCurrentTupleCount());
+  LOG_INFO("call_forwarding count = %u",
+           call_forwarding_table->GetAllCurrentTupleCount());
 }
 
 /////////////////////////////////////////////////////////
@@ -1026,6 +1053,13 @@ std::vector<std::vector<Value>> ExecuteReadTest(
 }
 
 void ExecuteUpdateTest(executor::AbstractExecutor *executor) {
+
+  // Execute stuff
+  while (executor->Execute() == true)
+    ;
+}
+
+void ExecuteInsertTest(executor::AbstractExecutor *executor) {
 
   // Execute stuff
   while (executor->Execute() == true)

@@ -47,9 +47,8 @@ bool Index::Compare(const AbstractTuple &index_key,
                     const std::vector<Value> &values) {
   // construct the key_column_ids and indexed column ids map
   std::unordered_map<oid_t, oid_t> id_map;
-  auto indexed_column_ids =
-    GetMetadata()->GetKeySchema()->GetIndexedColumns();
-  for(size_t i = 0; i < indexed_column_ids.size(); i++){
+  auto indexed_column_ids = GetMetadata()->GetKeySchema()->GetIndexedColumns();
+  for (size_t i = 0; i < indexed_column_ids.size(); i++) {
     id_map[indexed_column_ids[i]] = (oid_t)i;
   }
 
@@ -148,7 +147,8 @@ bool Index::ConstructLowerBoundTuple(
   // Go over each column in the key tuple
   // Setting either the placeholder or the min value
   for (oid_t column_itr = 0; column_itr < col_count; column_itr++) {
-    auto col_id = GetMetadata()->GetKeySchema()->GetIndexedColumns()[column_itr];
+    auto col_id =
+        GetMetadata()->GetKeySchema()->GetIndexedColumns()[column_itr];
     auto key_column_itr =
         std::find(key_column_ids.begin(), key_column_ids.end(), col_id);
     bool placeholder = false;
@@ -162,8 +162,9 @@ bool Index::ConstructLowerBoundTuple(
         placeholder = true;
         value = values[offset];
       }
-          // Not all expressions / constraints are equal
-          else {
+      // Not all expressions / constraints are equal
+      else {
+        LOG_INFO("aaaaaaaaaaaaaaaaaaaaaaaa");
         all_constraints_equal = false;
       }
     }
@@ -174,8 +175,8 @@ bool Index::ConstructLowerBoundTuple(
     if (placeholder == true) {
       index_key->SetValue(column_itr, value, GetPool());
     }
-        // Fill in the min value
-        else {
+    // Fill in the min value
+    else {
       auto value_type = schema->GetType(column_itr);
       index_key->SetValue(column_itr, Value::GetMinValue(value_type),
                           GetPool());

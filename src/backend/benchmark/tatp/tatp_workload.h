@@ -13,13 +13,15 @@
 #pragma once
 
 #include "backend/benchmark/benchmark_common.h"
-#include "backend/benchmark/smallbank/smallbank_loader.h"
-#include "backend/benchmark/smallbank/smallbank_amalgamate.h"
-#include "backend/benchmark/smallbank/smallbank_balance.h"
-#include "backend/benchmark/smallbank/smallbank_deposit_checking.h"
-#include "backend/benchmark/smallbank/smallbank_transact_saving.h"
-#include "backend/benchmark/smallbank/smallbank_write_check.h"
-#include "backend/benchmark/smallbank/smallbank_configuration.h"
+#include "backend/benchmark/tatp/tatp_loader.h"
+#include "backend/benchmark/tatp/tatp_get_new_destination.h"
+#include "backend/benchmark/tatp/tatp_get_subscriber_data.h"
+#include "backend/benchmark/tatp/tatp_get_access_data.h"
+#include "backend/benchmark/tatp/tatp_update_subscriber_data.h"
+#include "backend/benchmark/tatp/tatp_update_location.h"
+#include "backend/benchmark/tatp/tatp_insert_call_forwarding.h"
+#include "backend/benchmark/tatp/tatp_delete_call_forwarding.h"
+#include "backend/benchmark/tatp/tatp_configuration.h"
 #include "backend/executor/abstract_executor.h"
 #include "backend/storage/data_table.h"
 #include "backend/executor/update_executor.h"
@@ -35,7 +37,7 @@ class DataTable;
 }
 
 namespace benchmark {
-namespace smallbank {
+namespace tatp {
 
 extern configuration state;
 extern int RUNNING_REF_THRESHOLD;
@@ -46,8 +48,11 @@ void RunWorkload();
 // TRANSACTION TYPES
 /////////////////////////////////////////////////////////
 
-size_t GenerateAccountsId(const size_t& thread_id);
-size_t GenerateAccountsId();
+size_t GenerateSubscriberId();
+size_t GenerateAiTypeId();
+size_t GenerateSfTypeId();
+size_t GenerateStartTime();
+size_t GenerateEndTime();
 size_t GenerateAmount();
 
 /////////////////////////////////////////////////////////
@@ -63,7 +68,7 @@ std::vector<std::vector<Value>> ExecuteReadTest(
     executor::AbstractExecutor* executor);
 
 void ExecuteUpdateTest(executor::AbstractExecutor* executor);
-
+void ExecuteInsertTest(executor::AbstractExecutor* executor);
 void ExecuteDeleteTest(executor::AbstractExecutor* executor);
 
 }  // namespace tpcc

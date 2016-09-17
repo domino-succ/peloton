@@ -22,26 +22,36 @@
 
 namespace peloton {
 namespace benchmark {
-namespace smallbank {
+namespace tatp {
 
 #define PRELOAD 800000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
 #define CONFLICT_THRESHHOLD 0
 #define LOGTABLE "logtable"
 
-static const oid_t smallbank_database_oid = 100;
+static const oid_t tatp_database_oid = 100;
 
-static const oid_t accounts_table_oid = 1001;
-static const oid_t accounts_table_pkey_index_oid = 20010;  // CUSTID
+static const oid_t subscriber_table_oid = 1001;
+static const oid_t subscriber_table_pkey_index_oid = 20010;  // CUSTID
 
-static const oid_t savings_table_oid = 1002;
-static const oid_t savings_table_pkey_index_oid = 20021;  // CUSTID
+static const oid_t access_info_table_oid = 1002;
+static const oid_t access_info_table_pkey_index_oid = 20021;  // sid,type
 
-static const oid_t checking_table_oid = 1003;
-static const oid_t checking_table_pkey_index_oid = 20030;  // CUSTID
+static const oid_t special_facility_table_oid = 1003;
+static const oid_t special_facility_table_pkey_index_oid = 20030;  // sid,type
+static const oid_t special_facility_table_skey_index_oid = 20031;  // id
+static const oid_t special_facility_table_skey_index_oid2 =
+    20032;  // id,type,active
 
-extern const size_t BASIC_ACCOUNTS;
-extern size_t NUM_ACCOUNTS;
+static const oid_t call_forwarding_table_oid = 1004;
+static const oid_t call_forwarding_table_pkey_index_oid =
+    20040;  // id,type,time
+static const oid_t call_forwarding_table_skey_index_oid = 20041;  // id
+static const oid_t call_forwarding_table_skey_index_oid2 =
+    20042;  // id,type,start_time,end_time
+
+extern const size_t BASIC_SUBSCRIBERS;
+extern size_t NUM_SUBSCRIBERS;
 
 class configuration {
  public:
