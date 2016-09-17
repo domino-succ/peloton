@@ -83,7 +83,12 @@ static void WriteOutput() {
   out << state.snapshot_memory[state.snapshot_throughput.size() - 1] << " ";
   out << state.backend_count << " ";
   out << state.warehouse_count << " ";
-  out << state.generate_rate << "\n";
+  out << state.generate_rate << " ";
+  out << state.canonical << " ";
+  out << state.online << " ";
+  out << state.single_ref << " ";
+  out << state.lock_free << "\n";
+
   //  out << state.payment_throughput << " ";
   //  out << state.payment_abort_rate << " ";
   //
