@@ -473,8 +473,7 @@ class TransactionScheduler {
 
   std::atomic<int> g_queue_no;
 
-  void OOHashEnqueue(TransactionQuery* query,
-                     bool offline __attribute__((unused)), bool online,
+  void OOHashEnqueue(TransactionQuery* query, bool enqueue_thread, bool online,
                      bool single_ref, bool canonical) {
     int queue = -1;
 
@@ -515,7 +514,9 @@ class TransactionScheduler {
     query->SetQueueNo(queue);
 
     // Increase run table
-    query->UpdateRunTable(queue, single_ref, canonical);
+    if (enqueue_thread) {
+      query->UpdateRunTable(queue, single_ref, canonical);
+    }
 
     // Finally, enqueue this query
     queues_[queue].Enqueue(query);
