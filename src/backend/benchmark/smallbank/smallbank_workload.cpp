@@ -270,11 +270,8 @@ bool EnqueueCachedUpdate() {
       if (state.lock_free) {
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, true, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, state.offline, true, state.single_ref, state.canonical,
+            state.fraction);
       }
       // lock run table
       else {
@@ -282,11 +279,8 @@ bool EnqueueCachedUpdate() {
 
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, true, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, state.offline, true, state.single_ref, state.canonical,
+            state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
@@ -294,11 +288,8 @@ bool EnqueueCachedUpdate() {
       if (state.lock_free) {
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, false, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, state.offline, false, state.single_ref, state.canonical,
+            state.fraction);
       }
       // lock run table
       else {
@@ -306,11 +297,8 @@ bool EnqueueCachedUpdate() {
 
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, false, state.single_ref, state.canonical);
-
-        // Increase run table
-        int queue = query->GetQueueNo();
-        query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, state.offline, false, state.single_ref, state.canonical,
+            state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
@@ -510,28 +498,28 @@ void RunBackend(oid_t thread_id) {
             if (state.lock_free) {
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
                   ret_query, state.offline, true, state.single_ref,
-                  state.canonical);
+                  state.canonical, state.fraction);
             }
             // lock
             else {
               concurrency::TransactionScheduler::GetInstance().RunTableLock();
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
                   ret_query, state.offline, true, state.single_ref,
-                  state.canonical);
+                  state.canonical, state.fraction);
               concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
             }
           } else {
             if (state.lock_free) {
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
                   ret_query, state.offline, false, state.single_ref,
-                  state.canonical);
+                  state.canonical, state.fraction);
             }
             // lock
             else {
               concurrency::TransactionScheduler::GetInstance().RunTableLock();
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
                   ret_query, state.offline, false, state.single_ref,
-                  state.canonical);
+                  state.canonical, state.fraction);
               concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
             }
           }

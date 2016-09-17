@@ -329,6 +329,24 @@ class GetSubscriberData : public concurrency::TransactionQuery {
   virtual void SetQueueNo(int queue_no) { queue_ = queue_no; }
   virtual int GetQueueNo() { return queue_; }
 
+  // For fraction run
+  virtual void UpdateLogTableFullConflict(bool single_ref
+                                          __attribute__((unused)),
+                                          bool canonical
+                                          __attribute__((unused))) {}
+  virtual void UpdateLogTableFullSuccess(bool single_ref
+                                         __attribute__((unused)),
+                                         bool canonical
+                                         __attribute__((unused))) {}
+  virtual int LookupRunTableFull(bool single_ref __attribute__((unused)),
+                                 bool canonical __attribute__((unused))) {
+    return 0;
+  }
+  virtual int LookupRunTableMaxFull(bool single_ref __attribute__((unused)),
+                                    bool canonical __attribute__((unused))) {
+    return 0;
+  }
+
   // Make them public for convenience
  public:
   executor::IndexScanExecutor* sub_index_scan_executor_;

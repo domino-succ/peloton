@@ -200,6 +200,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.canonical = false;
   state.log_table = false;
   state.lock_free = false;
+  state.fraction = false;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -278,6 +279,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'j':
         state.log_table = true;
+        break;
+      case 'h':
+        state.fraction = true;
         break;
       case 'z': {
         char *scheduler = optarg;
@@ -386,10 +390,10 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         }
         break;
       }
-      case 'h':
-        Usage(stderr);
-        exit(EXIT_FAILURE);
-        break;
+      //      case 'h':
+      //        Usage(stderr);
+      //        exit(EXIT_FAILURE);
+      //        break;
 
       default:
         fprintf(stderr, "\nUnknown option: -%c-\n", c);

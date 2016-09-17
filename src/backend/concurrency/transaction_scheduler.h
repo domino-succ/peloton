@@ -81,13 +81,13 @@ class TransactionQuery {
 
   virtual bool ExistInRunTable(int queue) = 0;
 
-  //  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) =
-  // 0;
-  //  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) =
-  // 0;
-  //  virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
-  //  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
+  // For Fraction run
+  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) = 0;
+  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) = 0;
+  virtual int LookupRunTableFull(bool single_ref, bool canonical) = 0;
+  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) = 0;
 
+  // Normal
   virtual void UpdateRunTable(int queue_no, bool single_ref,
                               bool canonical) = 0;
   virtual void DecreaseRunTable(bool single_ref, bool canonical) = 0;
@@ -474,30 +474,30 @@ class TransactionScheduler {
   std::atomic<int> g_queue_no;
 
   void OOHashEnqueue(TransactionQuery* query, bool enqueue_thread, bool online,
-                     bool single_ref, bool canonical) {
+                     bool single_ref, bool canonical, bool fraction) {
     int queue = -1;
 
     // Find out the corresponding queue
     if (online) {
-      queue = query->LookupRunTableMax(single_ref, canonical);
+      if (fraction) {
+        queue = query->LookupRunTableMaxFull(single_ref, canonical);
+      } else {
+        queue = query->LookupRunTableMax(single_ref, canonical);
+      }
     }
     // SUM
     else {
-      queue = query->LookupRunTable(single_ref, canonical);
+      if (fraction) {
+        queue = query->LookupRunTableFull(single_ref, canonical);
+      } else {
+        queue = query->LookupRunTable(single_ref, canonical);
+      }
     }
 
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
       // queue = random_generator_.GetSample();
 
-      //      queue = g_queue_no.fetch_add(1) % queue_counts_;
-      //
-      //      // If this queue has txn executing, should not use this queue
-      //      if (single_ref && canonical) {
-      //        while (!IsQueueEmpty(queue)) {
-      //          queue = g_queue_no.fetch_add(1) % queue_counts_;
-      //        }
-      //      }
       // queue = GetMinQueueUsingRunTable();
       queue = GetMinQueueUsingAtomic();
 

@@ -153,6 +153,9 @@ class configuration {
   // update run table with lock-free
   bool lock_free;
 
+  // use fraction to express conflict
+  bool fraction;
+
   //
   SchedulerType scheduler;
 

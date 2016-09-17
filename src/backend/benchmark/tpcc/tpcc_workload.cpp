@@ -249,11 +249,8 @@ bool EnqueueCachedUpdate() {
 
       if (state.lock_free) {
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, true, state.single_ref, state.canonical);
-
-        //// Increase run table
-        // int queue = query->GetQueueNo();
-        // query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, true, true, state.single_ref, state.canonical,
+            state.fraction);
       }
       // lock
       else {
@@ -261,11 +258,8 @@ bool EnqueueCachedUpdate() {
 
         // Increase run table
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, true, state.single_ref, state.canonical);
-
-        //// Increase run table
-        // int queue = query->GetQueueNo();
-        // query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, true, true, state.single_ref, state.canonical,
+            state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
@@ -273,11 +267,8 @@ bool EnqueueCachedUpdate() {
     } else {  // otherwise use OOHASH method
       if (state.lock_free) {
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, false, state.single_ref, state.canonical);
-
-        //// Increase run table
-        // int queue = query->GetQueueNo();
-        // query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, true, false, state.single_ref, state.canonical,
+            state.fraction);
       }
       // lock run table
       else {
@@ -285,11 +276,8 @@ bool EnqueueCachedUpdate() {
 
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, false, state.single_ref, state.canonical);
-
-        //// Increase run table
-        // int queue = query->GetQueueNo();
-        // query->UpdateRunTable(queue, state.single_ref, state.canonical);
+            query, true, false, state.single_ref, state.canonical,
+            state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
@@ -518,9 +506,12 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_HASH: {
 
           if (state.log_table) {
-            ret_query->UpdateLogTable(state.single_ref, state.canonical);
-            //            ret_query->UpdateLogTableFullConflict(state.single_ref,
-            //                                                  state.canonical);
+            if (state.fraction) {
+              ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                    state.canonical);
+            } else {
+              ret_query->UpdateLogTable(state.single_ref, state.canonical);
+            }
 
             concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
                 ret_query, state.single_ref);
@@ -530,25 +521,29 @@ void RunBackend(oid_t thread_id) {
 
             if (state.lock_free) {
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, true, state.single_ref, state.canonical);
+                  ret_query, false, true, state.single_ref, state.canonical,
+                  state.fraction);
             }
             // lock
             else {
               concurrency::TransactionScheduler::GetInstance().RunTableLock();
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, true, state.single_ref, state.canonical);
+                  ret_query, false, true, state.single_ref, state.canonical,
+                  state.fraction);
               concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
             }
           } else {
             if (state.lock_free) {
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, false, state.single_ref, state.canonical);
+                  ret_query, false, false, state.single_ref, state.canonical,
+                  state.fraction);
             }
             // lock
             else {
               concurrency::TransactionScheduler::GetInstance().RunTableLock();
               concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, false, state.single_ref, state.canonical);
+                  ret_query, false, false, state.single_ref, state.canonical,
+                  state.fraction);
               concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
             }
           }
@@ -589,10 +584,10 @@ void RunBackend(oid_t thread_id) {
       // clean up the hash table
       if (state.scheduler == SCHEDULER_TYPE_HASH) {
         // Update Log Table when success
-        //        if (state.log_table) {
-        //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
-        //                                               state.canonical);
-        //        } else {
+        if (state.log_table && state.fraction) {
+          ret_query->UpdateLogTableFullSuccess(state.single_ref,
+                                               state.canonical);
+        }
         // Remove txn from Run Table
         if (!state.lock_free) {
           ret_query->DecreaseRunTable(state.single_ref, state.canonical);
