@@ -1651,57 +1651,210 @@ class Payment : public concurrency::TransactionQuery {
   // condition. If there are multiple threads executing this condPaymentition,
   // choose
   // the thread who has the most of this condition
-  virtual int LookupRunTableMaxFull(bool sigle_ref __attribute__((__unused__)),
-                                    bool canonical
-                                    __attribute__((__unused__))) {
-    double max_conflict = 0;
+  virtual int LookupRunTableMaxFullSingleRef(bool canonical) {
+    double max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
+    std::map<std::string, int> key_counter;
 
-    std::string key = std::string("D_W_ID") + "-" +
-                      std::to_string(warehouse_id_) + "-" +
-                      std::string("D_ID") + "-" + std::to_string(district_id_);
-    // Get conflict from Log Table for the given condition
-    int conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+    if (canonical) {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      int conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
-      max_conflict_key = key;
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // Other SELECTs for WID
+      for (int i = 0; i < 4; i++) {
+        key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        key_counter[key] += conflict;
+        if (key_counter[key] > max_conflict) {
+          max_conflict = key_counter[key];
+          max_conflict_key = key;
+        }
+      }
     }
+    // Not canonical, use original ID
+    else {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      int conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
 
-    key = std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_) +
-          "-" + std::string("C_D_ID") + "-" +
-          std::to_string(customer_district_id_);
-    conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
-      max_conflict_key = key;
-    }
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
 
-    key = std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_) +
-          "-" + std::string("C_ID") + "-" + std::to_string(customer_id_);
-    conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
-      max_conflict_key = key;
-    }
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
 
-    key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_) +
-          "-" + std::string("C_ID") + "-" + std::to_string(customer_id_);
-    conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
-      max_conflict_key = key;
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // TODO: other SELECTs
     }
 
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
+      // std::cout << "Can't find conflict" << std::endl;
       return -1;
     }
 
@@ -1712,26 +1865,8 @@ class Payment : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().RunTableGetNoLock(
             max_conflict_key);
 
-    int max_reference = 0;
+    int max_reference = RUNNING_REF_THRESHOLD;
     int queue_no = -1;
-
-    // randomly select
-    //    if (queue_info != nullptr) {
-    //      std::vector<int> queues;
-    //
-    //      for (auto queue : (*queue_info)) {
-    //
-    //        // reference = 0 means there is txn (of this condition) executing
-    //        if (queue.second > 0) {
-    //          queues.push_back(queue.first);
-    //        }
-    //      }
-    // if (queues.size() > 0) {
-    //      std::srand(unsigned(std::time(0)));
-    //      int random_variable = std::rand() % queues.size();
-    //      queue_no = queues.at(random_variable);
-    // }
-    //    }
 
     // select max reference
     if (queue_info != nullptr) {
@@ -1761,61 +1896,483 @@ class Payment : public concurrency::TransactionQuery {
 
     return queue_no;
   }
-  // Increase the counter when conflict
-  virtual void UpdateLogTableFullConflict(bool sigle_ref
-                                          __attribute__((__unused__)),
-                                          bool canonical
-                                          __attribute__((__unused__))) {
-    std::string key = std::string("D_W_ID") + "-" +
-                      std::to_string(warehouse_id_) + "-" +
-                      std::string("D_ID") + "-" + std::to_string(district_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullConflictIncrease(key);
 
-    key = std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_) +
-          "-" + std::string("C_D_ID") + "-" +
-          std::to_string(customer_district_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullConflictIncrease(key);
+  virtual int LookupRunTableMaxFull(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return LookupRunTableMaxFullSingleRef(canonical);
+    }
 
-    key = std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_) +
-          "-" + std::string("C_ID") + "-" + std::to_string(customer_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullConflictIncrease(key);
+    double max_conflict = CONFLICT_THRESHHOLD;
+    std::string max_conflict_key;
+    std::map<std::string, int> key_counter;
 
-    key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_) +
-          "-" + std::string("C_ID") + "-" + std::to_string(customer_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullConflictIncrease(key);
+    if (canonical) {
+      // UPDATE WAERHOUSE
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      int conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE DISTRICT
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
+            std::string("D_ID") + "-" + std::to_string(district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_) +
+            "-" + std::string("D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_) +
+            "-" + std::string("D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // Other SELECTs for WID
+      for (int i = 0; i < 4; i++) {
+        key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+        conflict =
+            concurrency::TransactionScheduler::GetInstance().LogTableFullGet(
+                key);
+
+        key_counter[key] += conflict;
+        if (key_counter[key] > max_conflict) {
+          max_conflict = key_counter[key];
+          max_conflict_key = key;
+        }
+      }
+    }
+    // No canonical, use origincal ID
+    else {
+      // UPDATE WAREHOUSE
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      int conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE DISTRICT
+      key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
+            std::string("D_ID") + "-" + std::to_string(district_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("C_W_ID") + "-" +
+            std::to_string(customer_warehouse_id_) + "-" +
+            std::string("C_D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("C_W_ID") + "-" +
+            std::to_string(customer_warehouse_id_) + "-" +
+            std::string("C_D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+      key_counter[key] += conflict;
+      if (key_counter[key] > max_conflict) {
+        max_conflict = key_counter[key];
+        max_conflict_key = key;
+      }
+
+      // TODO: other SELECTs
+    }
+
+    // If there is no conflict, return -1;
+    if (max_conflict == CONFLICT_THRESHHOLD) {
+      // std::cout << "Can't find conflict" << std::endl;
+      return -1;
+    }
+
+    // Now we get the key with max conflict, such as S_W_ID
+    // Then we should lookup Run Table to get the thread who has this key
+    // Each queue: <queueNo. reference>
+    std::unordered_map<int, int>* queue_info =
+        concurrency::TransactionScheduler::GetInstance().RunTableGetNoLock(
+            max_conflict_key);
+
+    int max_reference = RUNNING_REF_THRESHOLD;
+    int queue_no = -1;
+
+    // select max reference
+    if (queue_info != nullptr) {
+      std::vector<int> queues;
+
+      for (auto queue : (*queue_info)) {
+
+        // reference = 0 means there is txn (of this condition) executing
+        if (queue.second > max_reference) {
+          // Get the queue No.
+          queue_no = queue.first;
+          max_reference = queue.second;
+
+          // Once find out new max, clear vector
+          queues.clear();
+        } else if (queue.second != 0 && queue.second == max_reference) {
+          queues.push_back(queue.first);
+        }
+      }
+
+      if (queues.size() > 0) {
+        std::srand(unsigned(std::time(0)));
+        int random_variable = std::rand() % queues.size();
+        queue_no = queues.at(random_variable);
+      }
+    }
+
+    return queue_no;
+  }
+
+  virtual void UpdateLogTableFullConflictSingleRef(bool canonical) {
+    // canonical means transform all D_W_ID and C_W_ID to W_ID
+    if (canonical) {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+    }
+    // No canonical, use original ID
+    else {
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+    }
   }
 
   // Increase the counter when conflict
-  virtual void UpdateLogTableFullSuccess(bool sigle_ref
-                                         __attribute__((__unused__)),
-                                         bool canonical
-                                         __attribute__((__unused__))) {
+  virtual void UpdateLogTableFullConflict(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return UpdateLogTableFullConflictSingleRef(canonical);
+    }
 
-    std::string key = std::string("D_W_ID") + "-" +
-                      std::to_string(warehouse_id_) + "-" +
-                      std::string("D_ID") + "-" + std::to_string(district_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullSuccessIncrease(key);
+    if (canonical) {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
 
-    key = std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_) +
-          "-" + std::string("C_D_ID") + "-" +
-          std::to_string(customer_district_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullSuccessIncrease(key);
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
+            std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
 
-    key = std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_) +
-          "-" + std::string("C_ID") + "-" + std::to_string(customer_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullSuccessIncrease(key);
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_) +
+            "-" + std::string("D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
 
-    key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_) +
-          "-" + std::string("C_ID") + "-" + std::to_string(customer_id_);
-    concurrency::TransactionScheduler::GetInstance()
-        .LogTableFullSuccessIncrease(key);
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_) +
+            "-" + std::string("D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      return;
+    }
+    // No canonical, use original ID
+    else {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
+            std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("C_W_ID") + "-" +
+            std::to_string(customer_warehouse_id_) + "-" +
+            std::string("C_D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("C_W_ID") + "-" +
+            std::to_string(customer_warehouse_id_) + "-" +
+            std::string("C_D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullConflictIncrease(key);
+    }
+  }
+
+  virtual void UpdateLogTableFullSuccessSingleRef(bool canonical) {
+    // canonical means transform all D_W_ID and C_W_ID to W_ID
+    if (canonical) {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+    }
+    // No canonical, use original ID
+    else {
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key =
+          std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("C_D_ID") + "-" + std::to_string(customer_district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+      key = std::string("C_ID") + "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+    }
+  }
+  // Increase the counter when conflict
+  virtual void UpdateLogTableFullSuccess(bool single_ref, bool canonical) {
+    if (single_ref) {
+      return UpdateLogTableFullSuccessSingleRef(canonical);
+    }
+
+    if (canonical) {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
+            std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_) +
+            "-" + std::string("D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("W_ID") + "-" + std::to_string(customer_warehouse_id_) +
+            "-" + std::string("D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      return;
+    }
+    // No canonical, use original ID
+    else {
+      //
+      std::string key =
+          std::string("W_ID") + "-" + std::to_string(warehouse_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
+      key = std::string("D_W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
+            std::string("D_ID") + "-" + std::to_string(district_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("C_W_ID") + "-" +
+            std::to_string(customer_warehouse_id_) + "-" +
+            std::string("C_D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+
+      // UPDATE2 CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
+      key = std::string("C_W_ID") + "-" +
+            std::to_string(customer_warehouse_id_) + "-" +
+            std::string("C_D_ID") + "-" +
+            std::to_string(customer_district_id_) + "-" + std::string("C_ID") +
+            "-" + std::to_string(customer_id_);
+      concurrency::TransactionScheduler::GetInstance()
+          .LogTableFullSuccessIncrease(key);
+    }
   }
   //////////////////////end //////////////////////////////
   // Make them public for convenience
