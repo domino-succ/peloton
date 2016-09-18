@@ -1954,9 +1954,10 @@ class NewOrder : public concurrency::TransactionQuery {
         }
       }
 
-      //      // For debug
-      //      std::cout << "max_conflict_key: " << max_conflict_key
-      //                << "---max_conflict:" << max_conflict << std::endl;
+      // For debug
+      std::cout << "Queue:" << queue_no
+                << ". max_conflict_key: " << max_conflict_key
+                << "---max_conflict:" << max_conflict << std::endl;
     }
     // If not canonical
     else {
