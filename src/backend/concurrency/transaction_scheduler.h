@@ -1089,6 +1089,23 @@ class TransactionScheduler {
     out.close();
   }
 
+  void OutputLogTableFull(std::string filename) {
+    // Create file
+    std::stringstream oss;
+    oss << filename;
+    std::ofstream out(oss.str(), std::ofstream::out);
+
+    // Iterate Log Table (map)
+    for (auto& entry : log_table_full_) {
+      out << entry.first << " ";
+      out << entry.second.first << " ";
+      out << entry.second.second << "\n";
+    }
+
+    out.flush();
+    out.close();
+  }
+
   // Load data into log table
   void LoadLog(std::string condition, int conflict) {
     log_table_.insert(std::make_pair(condition, conflict));
