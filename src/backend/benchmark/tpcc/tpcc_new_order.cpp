@@ -750,7 +750,7 @@ bool NewOrder::Run() {
                 gsi_lists_values.size());
       // TODO: I found sometimes will go here. Just return false to continue
       // experiments. We should fix this issue later! by Michael
-      return false;
+      // return false;
       assert(false);
     }
 
