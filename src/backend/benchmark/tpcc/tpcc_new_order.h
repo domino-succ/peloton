@@ -1366,8 +1366,11 @@ class NewOrder : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().GetQueueCount();
 
     std::vector<double> queue_map(queue_count, 0);
-    double max_conflict = 0;
+    double max_conflict = CONFLICT_THRESHHOLD;
     int return_queue = -1;
+
+    // For debug frint
+    std::string max_conflict_key;
 
     if (canonical) {
       //////////////////////////////////////////////////////////////////////
@@ -1399,12 +1402,14 @@ class NewOrder : public concurrency::TransactionQuery {
             queue_map[queue_no] += conflict;
 
             // Get the latest conflict
-            int queue_conflict = queue_map[queue_no];
+            double queue_conflict = queue_map[queue_no];
 
             // Compare with the max, if current queue has larger conflict
             if (queue_conflict > max_conflict) {
               return_queue = queue_no;
               max_conflict = queue_conflict;
+
+              max_conflict_key = key;
             }
           }
         }
@@ -1436,12 +1441,14 @@ class NewOrder : public concurrency::TransactionQuery {
             queue_map[queue_no] += conflict;
 
             // Get the latest conflict
-            int queue_conflict = queue_map[queue_no];
+            double queue_conflict = queue_map[queue_no];
 
             // Compare with the max, if current queue has larger conflict
             if (queue_conflict > max_conflict) {
               return_queue = queue_no;
               max_conflict = queue_conflict;
+
+              max_conflict_key = key;
             }
           }
         }
@@ -1475,12 +1482,14 @@ class NewOrder : public concurrency::TransactionQuery {
               queue_map[queue_no] += conflict;
 
               // Get the latest conflict
-              int queue_conflict = queue_map[queue_no];
+              double queue_conflict = queue_map[queue_no];
 
               // Compare with the max, if current queue has larger conflict
               if (queue_conflict > max_conflict) {
                 return_queue = queue_no;
                 max_conflict = queue_conflict;
+
+                max_conflict_key = key;
               }
             }
           }
@@ -1514,17 +1523,23 @@ class NewOrder : public concurrency::TransactionQuery {
               queue_map[queue_no] += conflict;
 
               // Get the latest conflict
-              int queue_conflict = queue_map[queue_no];
+              double queue_conflict = queue_map[queue_no];
 
               // Compare with the max, if current queue has larger conflict
               if (queue_conflict > max_conflict) {
                 return_queue = queue_no;
                 max_conflict = queue_conflict;
+
+                max_conflict_key = key;
               }
             }
           }
         }
       }
+
+      //      // For debug
+      //      std::cout << "max_conflict_key: " << max_conflict_key
+      //                << "---max_conflict:" << max_conflict << std::endl;
     }
     // If not canonical
     else {
@@ -1557,12 +1572,14 @@ class NewOrder : public concurrency::TransactionQuery {
             queue_map[queue_no] += conflict;
 
             // Get the latest conflict
-            int queue_conflict = queue_map[queue_no];
+            double queue_conflict = queue_map[queue_no];
 
             // Compare with the max, if current queue has larger conflict
             if (queue_conflict > max_conflict) {
               return_queue = queue_no;
               max_conflict = queue_conflict;
+
+              max_conflict_key = key;
             }
           }
         }
@@ -1594,12 +1611,14 @@ class NewOrder : public concurrency::TransactionQuery {
             queue_map[queue_no] += conflict;
 
             // Get the latest conflict
-            int queue_conflict = queue_map[queue_no];
+            double queue_conflict = queue_map[queue_no];
 
             // Compare with the max, if current queue has larger conflict
             if (queue_conflict > max_conflict) {
               return_queue = queue_no;
               max_conflict = queue_conflict;
+
+              max_conflict_key = key;
             }
           }
         }
@@ -1633,12 +1652,14 @@ class NewOrder : public concurrency::TransactionQuery {
               queue_map[queue_no] += conflict;
 
               // Get the latest conflict
-              int queue_conflict = queue_map[queue_no];
+              double queue_conflict = queue_map[queue_no];
 
               // Compare with the max, if current queue has larger conflict
               if (queue_conflict > max_conflict) {
                 return_queue = queue_no;
                 max_conflict = queue_conflict;
+
+                max_conflict_key = key;
               }
             }
           }
@@ -1672,17 +1693,23 @@ class NewOrder : public concurrency::TransactionQuery {
               queue_map[queue_no] += conflict;
 
               // Get the latest conflict
-              int queue_conflict = queue_map[queue_no];
+              double queue_conflict = queue_map[queue_no];
 
               // Compare with the max, if current queue has larger conflict
               if (queue_conflict > max_conflict) {
                 return_queue = queue_no;
                 max_conflict = queue_conflict;
+
+                max_conflict_key = key;
               }
             }
           }
         }
       }
+
+      // For debug
+      //      std::cout << "max_conflict_key: " << max_conflict_key
+      //                << "---max_conflict:" << max_conflict << std::endl;
     }
 
     return return_queue;
@@ -1705,9 +1732,11 @@ class NewOrder : public concurrency::TransactionQuery {
         concurrency::TransactionScheduler::GetInstance().GetQueueCount();
 
     std::vector<int> queue_map(queue_count, 0);
-    int max_conflict = CONFLICT_THRESHHOLD;
+    double max_conflict = CONFLICT_THRESHHOLD;
     int return_queue = -1;
     std::string key;
+
+    std::string max_conflict_key = key;
 
     //////////////////////////////////////////////////////////////////////
     // D_W_ID
@@ -1742,12 +1771,14 @@ class NewOrder : public concurrency::TransactionQuery {
           queue_map[queue_no] += conflict;
 
           // Get the latest conflict
-          int queue_conflict = queue_map[queue_no];
+          double queue_conflict = queue_map[queue_no];
 
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            max_conflict_key = key;
           }
         }
       }
@@ -1789,25 +1820,31 @@ class NewOrder : public concurrency::TransactionQuery {
             queue_map[queue_no] += conflict;
 
             // Get the latest conflict
-            int queue_conflict = queue_map[queue_no];
+            double queue_conflict = queue_map[queue_no];
 
             // Compare with the max, if current queue has larger conflict
             if (queue_conflict > max_conflict) {
               return_queue = queue_no;
               max_conflict = queue_conflict;
+
+              max_conflict_key = key;
             }
           }
         }
       }
     }
 
+    //    // For debug
+    //    std::cout << "max_conflict_key: " << max_conflict_key
+    //              << "---max_conflict:" << max_conflict << std::endl;
+
     return return_queue;
   }
 
   int LookupRunTableMaxFullSingleRef(bool canonical) {
-    double max_conflict = 0;
+    double max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
-    int max_reference = 0;
+    double max_reference = 0;
     int queue_no = -1;
 
     if (canonical) {
@@ -1820,6 +1857,10 @@ class NewOrder : public concurrency::TransactionQuery {
       // Get conflict from Log Table for the given condition
       double conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
+
+      //      std::cout << "W_ID-" << warehouse_id_ << ". conflict: " <<
+      // conflict
+      //                << std::endl;
 
       if (conflict > max_conflict) {
         max_conflict = conflict;
@@ -1912,6 +1953,10 @@ class NewOrder : public concurrency::TransactionQuery {
           queue_no = queues.at(random_variable);
         }
       }
+
+      //      // For debug
+      //      std::cout << "max_conflict_key: " << max_conflict_key
+      //                << "---max_conflict:" << max_conflict << std::endl;
     }
     // If not canonical
     else {
@@ -2016,6 +2061,10 @@ class NewOrder : public concurrency::TransactionQuery {
           queue_no = queues.at(random_variable);
         }
       }
+
+      //      // For debug
+      //      std::cout << "max_conflict_key: " << max_conflict_key
+      //                << "---max_conflict:" << max_conflict << std::endl;
     }
 
     return queue_no;
@@ -2032,7 +2081,7 @@ class NewOrder : public concurrency::TransactionQuery {
     double max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
     std::string key;
-    std::map<std::string, int> key_counter;
+    std::map<std::string, double> key_counter;
 
     if (canonical) {
       key = std::string("W_ID") + "-" + std::to_string(warehouse_id_) + "-" +
@@ -2043,7 +2092,7 @@ class NewOrder : public concurrency::TransactionQuery {
     }
 
     // Get conflict from Log Table for the given condition
-    int conflict =
+    double conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
 
     key_counter[key] += conflict;
@@ -2137,6 +2186,10 @@ class NewOrder : public concurrency::TransactionQuery {
         queue_no = queues.at(random_variable);
       }
     }
+
+    //    // For debug
+    //    std::cout << "max_conflict_key: " << max_conflict_key
+    //              << "---max_conflict:" << max_conflict << std::endl;
 
     return queue_no;
   }

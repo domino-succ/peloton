@@ -1654,13 +1654,13 @@ class Payment : public concurrency::TransactionQuery {
   virtual int LookupRunTableMaxFullSingleRef(bool canonical) {
     double max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
-    std::map<std::string, int> key_counter;
+    std::map<std::string, double> key_counter;
 
     if (canonical) {
       //
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
-      int conflict =
+      double conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
 
       key_counter[key] += conflict;
@@ -1764,7 +1764,7 @@ class Payment : public concurrency::TransactionQuery {
       //
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
-      int conflict =
+      double conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
       key_counter[key] += conflict;
       if (key_counter[key] > max_conflict) {
@@ -1904,13 +1904,13 @@ class Payment : public concurrency::TransactionQuery {
 
     double max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
-    std::map<std::string, int> key_counter;
+    std::map<std::string, double> key_counter;
 
     if (canonical) {
       // UPDATE WAERHOUSE
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
-      int conflict =
+      double conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
 
       key_counter[key] += conflict;
@@ -1979,7 +1979,7 @@ class Payment : public concurrency::TransactionQuery {
       // UPDATE WAREHOUSE
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
-      int conflict =
+      double conflict =
           concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
       key_counter[key] += conflict;
       if (key_counter[key] > max_conflict) {
