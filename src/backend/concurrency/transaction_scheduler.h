@@ -494,7 +494,8 @@ class TransactionScheduler {
       }
     }
 
-    std::cout << "Find out queue: " << queue << std::endl;
+    // std::cout << "Find out queue: " << queue << std::endl;
+
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
       // queue = random_generator_.GetSample();
