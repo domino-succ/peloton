@@ -349,8 +349,8 @@ void RunScanBackend(oid_t thread_id) {
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
-  oid_t &execution_count_ref = abort_counts[thread_id];
-  oid_t &transaction_count_ref = commit_counts[thread_id];
+  oid_t &abort_count_ref = abort_counts[thread_id];
+  oid_t &commit_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
@@ -362,11 +362,11 @@ void RunBackend(oid_t thread_id) {
   //  bool slept = false;
   //  auto SLEEP_TIME = std::chrono::milliseconds(100);
   //
-  //  oid_t &payment_execution_count_ref = payment_abort_counts[thread_id];
-  //  oid_t &payment_transaction_count_ref = payment_commit_counts[thread_id];
+  //  oid_t &payment_abort_count_ref = payment_abort_counts[thread_id];
+  //  oid_t &payment_commit_count_ref = payment_commit_counts[thread_id];
   //
-  //  oid_t &new_order_execution_count_ref = new_order_abort_counts[thread_id];
-  //  oid_t &new_order_transaction_count_ref =
+  //  oid_t &new_order_abort_count_ref = new_order_abort_counts[thread_id];
+  //  oid_t &new_order_commit_count_ref =
   // new_order_commit_counts[thread_id];
 
   while (true) {
@@ -453,7 +453,7 @@ void RunBackend(oid_t thread_id) {
 
     if (ret_query->Run() == false) {
       // Increase the counter
-      execution_count_ref++;
+      abort_count_ref++;
 
       if (is_running == false) {
         break;
@@ -471,7 +471,7 @@ void RunBackend(oid_t thread_id) {
           // Control: The txn re-executed immediately
           while (ret_query->Run() == false) {
             // If still fail, the counter increase, then enter loop again
-            execution_count_ref++;
+            abort_count_ref++;
 
             if (is_running == false) {
               break;
@@ -488,7 +488,7 @@ void RunBackend(oid_t thread_id) {
           delete ret_query;
 
           // Increase the counter
-          transaction_count_ref++;
+          commit_count_ref++;
           break;
         }
         case SCHEDULER_TYPE_ABORT_QUEUE: {
@@ -600,17 +600,17 @@ void RunBackend(oid_t thread_id) {
 
       // Increase the counter
 
-      transaction_count_ref++;
-      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
-      //         execution_count_ref, thread_id);
+      commit_count_ref++;
+      // LOG_INFO("Success:%d, fail:%d---%d", commit_count_ref,
+      //         abort_count_ref, thread_id);
     }  // end else execute == true
   }    // end big while
 }
 
 // void RunBackend(oid_t thread_id) {
 //  PinToCore(thread_id);
-//  oid_t &execution_count_ref = abort_counts[thread_id];
-//  oid_t &transaction_count_ref = commit_counts[thread_id];
+//  oid_t &abort_count_ref = abort_counts[thread_id];
+//  oid_t &commit_count_ref = commit_counts[thread_id];
 //  oid_t &total_count_ref = total_counts[thread_id];
 //  //  uint64_t &delay_total_ref = delay_totals[thread_id];
 //  //  uint64_t &delay_max_ref = delay_maxs[thread_id];
@@ -646,7 +646,7 @@ void RunBackend(oid_t thread_id) {
 //    // Execute query
 //    //////////////////////////////////////////
 //    if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
-//      execution_count_ref++;
+//      abort_count_ref++;
 //      LOG_INFO("Execution fail! put the txn at the end of the queue");
 //      if (is_running == false) {
 //        break;
@@ -662,9 +662,9 @@ void RunBackend(oid_t thread_id) {
 //      //      delete ret_query;
 //
 //      // Increase the counter
-//      transaction_count_ref++;
-//      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
-//      //         execution_count_ref, thread_id);
+//      commit_count_ref++;
+//      // LOG_INFO("Success:%d, fail:%d---%d", commit_count_ref,
+//      //         abort_count_ref, thread_id);
 //    }  // end else execute == true
 //  }    // end big while
 //}
@@ -932,10 +932,27 @@ void RunWorkload() {
     total_abort_count += abort_counts_snapshots[snapshot_round - 1][i];
   }
 
-  state.throughput = total_commit_count * 1.0 / state.duration;
-  state.abort_rate =
+  state.throughput1 = total_commit_count * 1.0 / state.duration;
+  state.abort_rate1 =
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
+
+  // Test to see
+  total_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_commit_count += commit_counts[i];
+  }
+
+  total_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_abort_count += abort_counts[i];
+  }
+
+  state.throughput2 = total_commit_count * 1.0 / state.duration;
+  state.abort_rate2 =
+      total_abort_count * 1.0 / (total_commit_count + total_abort_count);
+
+  // end
 
   oid_t total_payment_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
