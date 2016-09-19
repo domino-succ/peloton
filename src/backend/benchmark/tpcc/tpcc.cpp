@@ -58,10 +58,11 @@ static void WriteOutput() {
 
   LOG_INFO("----------------------------------------------------------");
   LOG_INFO(
-      "scheduler:%d---%lf :: %lf tps1, %lf abort1, %lf tps2, %lf abort2, %lf "
-      "delay, %lf generate, %d",
-      state.scheduler, state.scale_factor, state.throughput1, state.abort_rate1,
-      state.throughput2, state.abort_rate2, state.delay_ave,
+      "scheduler:%d---%lf :: %lf tps, %lf abort, %lf tps_new, %lf abort_new, "
+      "%lf tps_pay, %lf abort_pay, %lf delay, %lf generate, %d",
+      state.scheduler, state.scale_factor, state.throughput, state.abort_rate,
+      state.new_order_throughput, state.new_order_abort_rate,
+      state.payment_throughput, state.payment_abort_rate, state.delay_ave,
       state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
@@ -77,8 +78,8 @@ static void WriteOutput() {
         << state.snapshot_memory[round_id] << "\n";
   }
 
-  out << state.throughput1 << " ";
-  out << state.abort_rate1 << " ";
+  out << state.throughput << " ";
+  out << state.abort_rate << " ";
   out << state.delay_ave << " ";
   out << state.delay_max << " ";
   out << state.delay_min << " ";
@@ -89,9 +90,7 @@ static void WriteOutput() {
   out << state.canonical << " ";
   out << state.online << " ";
   out << state.single_ref << " ";
-  out << state.lock_free << " ";
-  out << state.throughput2 << " ";
-  out << state.abort_rate2 << "\n";
+  out << state.lock_free << "\n";
 
   //  out << state.payment_throughput << " ";
   //  out << state.payment_abort_rate << " ";

@@ -116,13 +116,9 @@ class configuration {
 
   std::vector<int> snapshot_memory;
 
-  double throughput1;
+  double throughput;
 
-  double abort_rate1;
-
-  double throughput2;
-
-  double abort_rate2;
+  double abort_rate;
 
   double generate_rate;
   double delay_ave;

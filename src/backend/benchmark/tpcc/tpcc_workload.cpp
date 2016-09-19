@@ -297,8 +297,9 @@ bool EnqueueCachedUpdate() {
   return true;
 }
 
-void RecordDelay(NewOrder *query, uint64_t &delay_total_ref,
-                 uint64_t &delay_max_ref, uint64_t &delay_min_ref) {
+void RecordDelay(concurrency::TransactionQuery *query,
+                 uint64_t &delay_total_ref, uint64_t &delay_max_ref,
+                 uint64_t &delay_min_ref) {
   std::chrono::system_clock::time_point end_time =
       std::chrono::system_clock::now();
   uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -352,6 +353,13 @@ void RunBackend(oid_t thread_id) {
   oid_t &abort_count_ref = abort_counts[thread_id];
   oid_t &commit_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
+
+  oid_t &new_order_abort_count_ref = new_order_abort_counts[thread_id];
+  oid_t &new_order_commit_count_ref = new_order_commit_counts[thread_id];
+
+  oid_t &payment_abort_count_ref = payment_abort_counts[thread_id];
+  oid_t &payment_commit_count_ref = payment_commit_counts[thread_id];
+
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
@@ -455,9 +463,27 @@ void RunBackend(oid_t thread_id) {
       // Increase the counter
       abort_count_ref++;
 
+      // Increase new order and payment txns' counter
+      switch (ret_query->GetTxnType()) {
+        case TXN_TYPE_NEW_ORDER: {
+          new_order_abort_count_ref++;
+          break;
+        }
+        case TXN_TYPE_PAYMENT: {
+          payment_abort_count_ref++;
+          break;
+        }
+        default: {
+          LOG_INFO("GetTxnType:: Unsupported scheduler: %d",
+                   ret_query->GetTxnType());
+          break;
+        }
+      }
+
       if (is_running == false) {
         break;
       }
+
       switch (state.scheduler) {
 
         case SCHEDULER_TYPE_NONE: {
@@ -467,40 +493,39 @@ void RunBackend(oid_t thread_id) {
           delete ret_query;
           break;
         }
-        case SCHEDULER_TYPE_CONTROL: {
+        case SCHEDULER_TYPE_CONTROL:
+        case SCHEDULER_TYPE_CONFLICT_LEANING:
+        case SCHEDULER_TYPE_CLUSTER:
+        case SCHEDULER_TYPE_CONFLICT_RANGE:
+        case SCHEDULER_TYPE_ABORT_QUEUE:
+        case SCHEDULER_TYPE_CONFLICT_DETECT: {
           // Control: The txn re-executed immediately
           while (ret_query->Run() == false) {
             // If still fail, the counter increase, then enter loop again
             abort_count_ref++;
+
+            // Increase new order and payment txns' counter
+            switch (ret_query->GetTxnType()) {
+              case TXN_TYPE_NEW_ORDER: {
+                new_order_abort_count_ref++;
+                break;
+              }
+              case TXN_TYPE_PAYMENT: {
+                payment_abort_count_ref++;
+                break;
+              }
+              default: {
+                LOG_INFO("GetTxnType:: Unsupported scheduler: %d ",
+                         ret_query->GetTxnType());
+                break;
+              }
+            }
 
             if (is_running == false) {
               break;
             }
           }
 
-          // If execute successfully, we should clean up the query
-          // First compute the delay
-          RecordDelay(reinterpret_cast<NewOrder *>(ret_query), delay_total_ref,
-                      delay_max_ref, delay_min_ref);
-
-          // Second, clean up
-          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-          delete ret_query;
-
-          // Increase the counter
-          commit_count_ref++;
-          break;
-        }
-        case SCHEDULER_TYPE_ABORT_QUEUE: {
-          // Queue: put the txn at the end of the queue
-          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
-              ret_query);
-          break;
-        }
-
-        case SCHEDULER_TYPE_CONFLICT_DETECT: {
-          concurrency::TransactionScheduler::GetInstance().CounterEnqueue(
-              ret_query);
           break;
         }
         case SCHEDULER_TYPE_HASH: {
@@ -512,57 +537,44 @@ void RunBackend(oid_t thread_id) {
             } else {
               ret_query->UpdateLogTable(state.single_ref, state.canonical);
             }
-
-            concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-                ret_query, state.single_ref);
-          }
-          // Log table is ready
-          else if (state.online) {
-
-            if (state.lock_free) {
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, true, state.single_ref, state.canonical,
-                  state.fraction);
-            }
-            // lock
-            else {
-              concurrency::TransactionScheduler::GetInstance().RunTableLock();
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, true, state.single_ref, state.canonical,
-                  state.fraction);
-              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
-            }
-          } else {
-            if (state.lock_free) {
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, false, state.single_ref, state.canonical,
-                  state.fraction);
-            }
-            // lock
-            else {
-              concurrency::TransactionScheduler::GetInstance().RunTableLock();
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, false, false, state.single_ref, state.canonical,
-                  state.fraction);
-              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
-            }
           }
 
-          break;
-        }
-        case SCHEDULER_TYPE_CONFLICT_LEANING: {
-          // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
-          //    ret_query);
-          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-          break;
-        }
-        case SCHEDULER_TYPE_CLUSTER: {
-          concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(
-              ret_query);
-          break;
-        }
-        case SCHEDULER_TYPE_CONFLICT_RANGE: {
-          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
+          // Control: The txn re-executed immediately
+          while (ret_query->Run() == false) {
+            if (state.log_table) {
+              if (state.fraction) {
+                ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                      state.canonical);
+              } else {
+                ret_query->UpdateLogTable(state.single_ref, state.canonical);
+              }
+            }
+
+            // If still fail, the counter increase, then enter loop again
+            abort_count_ref++;
+
+            // Increase new order and payment txns' counter
+            switch (ret_query->GetTxnType()) {
+              case TXN_TYPE_NEW_ORDER: {
+                new_order_abort_count_ref++;
+                break;
+              }
+              case TXN_TYPE_PAYMENT: {
+                payment_abort_count_ref++;
+                break;
+              }
+              default: {
+                LOG_INFO("GetTxnType:: Unsupported scheduler: %d ",
+                         ret_query->GetTxnType());
+                break;
+              }
+            }
+
+            if (is_running == false) {
+              break;
+            }
+          }
+
           break;
         }
 
@@ -577,97 +589,49 @@ void RunBackend(oid_t thread_id) {
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
     /////////////////////////////////////////////////
-    else {
-      // First compute the delay
-      ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
-      // clean up the hash table
-      if (state.scheduler == SCHEDULER_TYPE_HASH) {
-        // Update Log Table when success
-        if (state.log_table && state.fraction) {
-          ret_query->UpdateLogTableFullSuccess(state.single_ref,
-                                               state.canonical);
-        }
-        // Remove txn from Run Table
-        if (!state.lock_free) {
-          ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-        }
+    // First compute the delay
+    ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
+
+    // clean up the hash table
+    if (state.scheduler == SCHEDULER_TYPE_HASH) {
+      // Update Log Table when success
+      if (state.log_table && state.fraction) {
+        ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
       }
+      // Remove txn from Run Table
+      if (!state.lock_free) {
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+      }
+    }
 
-      // Second, clean up
-      ret_query->Cleanup();
-      delete ret_query;
+    // Increase the counter
+    commit_count_ref++;
 
-      // Increase the counter
+    switch (ret_query->GetTxnType()) {
+      case TXN_TYPE_NEW_ORDER: {
+        new_order_commit_count_ref++;
+        break;
+      }
+      case TXN_TYPE_PAYMENT: {
+        payment_commit_count_ref++;
+        break;
+      }
+      default: {
+        LOG_INFO("GetTxnType:: Unsupported scheduler: %d ",
+                 ret_query->GetTxnType());
+        break;
+      }
+    }
 
-      commit_count_ref++;
-      // LOG_INFO("Success:%d, fail:%d---%d", commit_count_ref,
-      //         abort_count_ref, thread_id);
-    }  // end else execute == true
-  }    // end big while
+    // Second, clean up
+    ret_query->Cleanup();
+    delete ret_query;
+
+    // LOG_INFO("Success:%d, fail:%d---%d", commit_count_ref,
+    //         abort_count_ref, thread_id);
+  }  // end big while
 }
-
-// void RunBackend(oid_t thread_id) {
-//  PinToCore(thread_id);
-//  oid_t &abort_count_ref = abort_counts[thread_id];
-//  oid_t &commit_count_ref = commit_counts[thread_id];
-//  oid_t &total_count_ref = total_counts[thread_id];
-//  //  uint64_t &delay_total_ref = delay_totals[thread_id];
-//  //  uint64_t &delay_max_ref = delay_maxs[thread_id];
-//  //  uint64_t &delay_min_ref = delay_mins[thread_id];
-//
-//  while (true) {
-//    if (is_running == false) {
-//      break;
-//    }
-//
-//    // Pop a query from a queue and execute
-//    concurrency::TransactionQuery *ret_query = nullptr;
-//    bool ret_pop = false;
-//
-//    //////////////////////////////////////////
-//    // Pop a query
-//    //////////////////////////////////////////
-//    ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
-//        ret_query, thread_id);
-//
-//    // process the pop result. If queue is empty, continue loop
-//    if (ret_pop == false) {
-//      LOG_INFO("Queue is empty");
-//      continue;
-//    }
-//
-//    PL_ASSERT(ret_query != nullptr);
-//    total_count_ref++;
-//
-//    // Before execute query, we should set the start time
-//    //(reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
-//    //////////////////////////////////////////
-//    // Execute query
-//    //////////////////////////////////////////
-//    if (RunNewOrder((reinterpret_cast<NewOrder *>(ret_query))) == false) {
-//      abort_count_ref++;
-//      LOG_INFO("Execution fail! put the txn at the end of the queue");
-//      if (is_running == false) {
-//        break;
-//      }
-//      concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-//    }
-//    /////////////////////////////////////////////////
-//    // Execute success: the memory should be deleted
-//    /////////////////////////////////////////////////
-//    else {
-//      // Second, clean up
-//      //      reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
-//      //      delete ret_query;
-//
-//      // Increase the counter
-//      commit_count_ref++;
-//      // LOG_INFO("Success:%d, fail:%d---%d", commit_count_ref,
-//      //         abort_count_ref, thread_id);
-//    }  // end else execute == true
-//  }    // end big while
-//}
 
 void QueryBackend(oid_t thread_id) {
 
@@ -932,27 +896,10 @@ void RunWorkload() {
     total_abort_count += abort_counts_snapshots[snapshot_round - 1][i];
   }
 
-  state.throughput1 = total_commit_count * 1.0 / state.duration;
-  state.abort_rate1 =
+  state.throughput = total_commit_count * 1.0 / state.duration;
+  state.abort_rate =
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
-
-  // Test to see
-  total_commit_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_commit_count += commit_counts[i];
-  }
-
-  total_abort_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_abort_count += abort_counts[i];
-  }
-
-  state.throughput2 = total_commit_count * 1.0 / state.duration;
-  state.abort_rate2 =
-      total_abort_count * 1.0 / (total_commit_count + total_abort_count);
-
-  // end
 
   oid_t total_payment_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -966,7 +913,8 @@ void RunWorkload() {
 
   state.payment_throughput = total_payment_commit_count * 1.0 / state.duration;
   state.payment_abort_rate =
-      total_payment_abort_count * 1.0 / total_payment_commit_count;
+      total_payment_abort_count * 1.0 /
+      (total_payment_abort_count + total_payment_commit_count);
 
   oid_t total_new_order_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -981,7 +929,8 @@ void RunWorkload() {
   state.new_order_throughput =
       total_new_order_commit_count * 1.0 / state.duration;
   state.new_order_abort_rate =
-      total_new_order_abort_count * 1.0 / total_new_order_commit_count;
+      total_new_order_abort_count * 1.0 /
+      (total_new_order_abort_count + total_new_order_commit_count);
 
   state.stock_level_latency = stock_level_avg_latency;
   state.order_status_latency = order_status_avg_latency;
