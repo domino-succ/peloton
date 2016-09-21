@@ -736,7 +736,7 @@ class Payment : public concurrency::TransactionQuery {
     if (queue_info != nullptr) {
       for (auto queue : (*queue_info)) {
 
-        // reference = 0 means there is txn (of this condition) executing
+        // reference = 0 means there is no txn executing
         if (queue.second > 0) {
           // Get the queue No.
           int queue_no = queue.first;

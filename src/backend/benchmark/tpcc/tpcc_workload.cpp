@@ -541,15 +541,6 @@ void RunBackend(oid_t thread_id) {
 
           // Control: The txn re-executed immediately
           while (ret_query->Run() == false) {
-            if (state.log_table) {
-              if (state.fraction) {
-                ret_query->UpdateLogTableFullConflict(state.single_ref,
-                                                      state.canonical);
-              } else {
-                ret_query->UpdateLogTable(state.single_ref, state.canonical);
-              }
-            }
-
             // If still fail, the counter increase, then enter loop again
             abort_count_ref++;
 
@@ -570,10 +561,19 @@ void RunBackend(oid_t thread_id) {
               }
             }
 
+            if (state.log_table) {
+              if (state.fraction) {
+                ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                      state.canonical);
+              } else {
+                ret_query->UpdateLogTable(state.single_ref, state.canonical);
+              }
+            }
+
             if (is_running == false) {
               break;
             }
-          }
+          }  // while
 
           break;
         }
