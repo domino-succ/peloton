@@ -154,15 +154,15 @@ class Payment : public concurrency::TransactionQuery {
   virtual SingleRegion& GetRegion() { return region_; }
 
   /*
+   *    UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
    *    UPDATE DISTRICT SET ** WHERE D_W_ID = ? AND D_ID = ?
-   *    UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
    *    UPDATE CUSTOMER SET ** WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = ?
    */
 
   virtual void UpdateLogTableSingleRef(bool canonical) {
     // canonical means transform all D_W_ID and C_W_ID to W_ID
     if (canonical) {
-      //
+      // UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
@@ -191,6 +191,7 @@ class Payment : public concurrency::TransactionQuery {
     }
     // No canonical, use original ID
     else {
+      // UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
@@ -228,7 +229,7 @@ class Payment : public concurrency::TransactionQuery {
     }
 
     if (canonical) {
-      //
+      // UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
@@ -256,7 +257,7 @@ class Payment : public concurrency::TransactionQuery {
     }
     // No canonical, use original ID
     else {
-      //
+      // UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       concurrency::TransactionScheduler::GetInstance().LogTableIncrease(key);
@@ -293,7 +294,7 @@ class Payment : public concurrency::TransactionQuery {
     std::map<std::string, int> key_counter;
 
     if (canonical) {
-      //
+      // UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       int conflict =
@@ -396,7 +397,7 @@ class Payment : public concurrency::TransactionQuery {
     }
     // Not canonical, use original ID
     else {
-      //
+      // UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
       std::string key =
           std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       int conflict =

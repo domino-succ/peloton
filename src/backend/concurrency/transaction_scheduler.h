@@ -115,6 +115,9 @@ class TransactionQuery {
     if (delay < delay_min_ref) {
       delay_min_ref = delay;
     }
+
+    std::cout << "Delay: " << delay << "Total Delay: " << delay_total_ref
+              << std::endl;
   }
 
   // virtual std::shared_ptr<Region> RegionTransform() = 0;
