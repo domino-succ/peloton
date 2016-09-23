@@ -297,23 +297,6 @@ bool EnqueueCachedUpdate() {
   return true;
 }
 
-void RecordDelay(concurrency::TransactionQuery *query,
-                 uint64_t &delay_total_ref, uint64_t &delay_max_ref,
-                 uint64_t &delay_min_ref) {
-  std::chrono::system_clock::time_point end_time =
-      std::chrono::system_clock::now();
-  uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
-      end_time - query->GetStartTime()).count();
-  delay_total_ref = delay_total_ref + delay;
-
-  if (delay > delay_max_ref) {
-    delay_max_ref = delay;
-  }
-  if (delay < delay_min_ref) {
-    delay_min_ref = delay;
-  }
-}
-
 void RunScanBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -677,8 +660,7 @@ void QueryBackend(oid_t thread_id) {
           now_time - start_time).count();
 
       std::cout << "elapsed_time: " << elapsed_time << std::endl;
-      std::cout << "-----------------------------------------------------------"
-                   "--------------------" << std::endl;
+      std::cout << "--------------------------------------------" << std::endl;
 
       // If elapsed time is still less than 1 second, sleep the rest of the time
       if ((elapsed_time) < 1000) {
