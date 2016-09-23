@@ -347,7 +347,8 @@ void PrintDelay(concurrency::TransactionQuery *query, uint64_t &delay_total_ref,
     delay_min_ref = delay;
   }
 
-  std::cout << "Delay: " << delay << "--Total:" << delay_total_ref << std::endl;
+  std::cout << "Delay: " << delay * 1.0 / 1000
+            << "--Total:" << delay_total_ref * 1.0 / 1000 << std::endl;
 }
 
 void RunBackend(oid_t thread_id) {
