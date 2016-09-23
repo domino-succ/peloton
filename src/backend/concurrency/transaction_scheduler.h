@@ -116,8 +116,8 @@ class TransactionQuery {
       delay_min_ref = delay;
     }
 
-    std::cout << "Delay: " << delay << "Total Delay: " << delay_total_ref
-              << std::endl;
+    std::cout << "Delay: " << delay * 1.0 / 1000
+              << "--Total: " << delay_total_ref * 1.0 / 1000 << std::endl;
   }
 
   // virtual std::shared_ptr<Region> RegionTransform() = 0;
