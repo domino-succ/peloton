@@ -412,9 +412,9 @@ void RunBackend(oid_t thread_id) {
         //                ret_query, thread_id);
 
         // Debug
-        if (ret_pop != false) {
-          PrintDelay(ret_query, delay_total_ref);
-        }
+        //        if (ret_pop != false) {
+        //          PrintDelay(ret_query, delay_total_ref);
+        //        }
 
         break;
       }
