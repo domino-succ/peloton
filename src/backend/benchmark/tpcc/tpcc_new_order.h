@@ -43,7 +43,7 @@ class NewOrder : public concurrency::TransactionQuery {
         stock_update_index_scan_executor_(nullptr),
         stock_update_executor_(nullptr),
         context_(nullptr),
-        start_time_(0),
+        start_time_(std::chrono::system_clock::now()),
         first_pop_(true),
         warehouse_id_(0),
         district_id_(0),

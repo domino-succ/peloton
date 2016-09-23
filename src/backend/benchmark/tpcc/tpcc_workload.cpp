@@ -330,24 +330,14 @@ void RunScanBackend(oid_t thread_id) {
   }
 }
 
-void PrintDelay(concurrency::TransactionQuery *query, uint64_t &delay_total_ref,
-                uint64_t &delay_max_ref, uint64_t &delay_min_ref) {
+void PrintDelay(concurrency::TransactionQuery *query, uint64_t delay_total) {
   std::chrono::system_clock::time_point end_time =
       std::chrono::system_clock::now();
 
-  uint64_t delay = std::chrono::duration_cast<std::chrono::milliseconds>(
+  auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(
       end_time - query->GetStartTime()).count();
 
-  delay_total_ref = delay_total_ref + delay;
-
-  if (delay > delay_max_ref) {
-    delay_max_ref = delay;
-  }
-  if (delay < delay_min_ref) {
-    delay_min_ref = delay;
-  }
-
-  std::cout << "Delay: " << delay << "--Total:" << delay_total_ref << std::endl;
+  std::cout << "Delay: " << delay << "--Total:" << delay_total << std::endl;
 }
 
 void RunBackend(oid_t thread_id) {
@@ -423,7 +413,7 @@ void RunBackend(oid_t thread_id) {
 
         // Debug
         if (ret_pop != false) {
-          PrintDelay(ret_query, delay_total_ref, delay_max_ref, delay_min_ref);
+          PrintDelay(ret_query, delay_total_ref);
         }
 
         break;
@@ -681,7 +671,7 @@ void QueryBackend(oid_t thread_id) {
       std::chrono::system_clock::time_point now_time =
           std::chrono::system_clock::now();
 
-      int elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+      auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(
           now_time - start_time).count();
 
       std::cout << "elapsed_time: " << elapsed_time << std::endl;
