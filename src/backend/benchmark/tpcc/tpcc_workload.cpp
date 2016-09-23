@@ -674,7 +674,8 @@ void QueryBackend(oid_t thread_id) {
       auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(
           now_time - start_time).count();
 
-      std::cout << "elapsed_time: " << elapsed_time << std::endl;
+      std::cout << "elapsed_time: " << elapsed_time << " ms, and will sleep "
+                << 1000 - (elapsed_time) << " ms" << std::endl;
       std::cout << "--------------------------------------------" << std::endl;
 
       // If elapsed time is still less than 1 second, sleep the rest of the time

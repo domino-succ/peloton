@@ -104,7 +104,7 @@ class TransactionQuery {
     std::chrono::system_clock::time_point end_time =
         std::chrono::system_clock::now();
 
-    uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
+    uint64_t delay = std::chrono::duration_cast<std::chrono::milliseconds>(
         end_time - GetStartTime()).count();
 
     delay_total_ref = delay_total_ref + delay;
