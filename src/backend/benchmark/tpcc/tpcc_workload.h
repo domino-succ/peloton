@@ -344,8 +344,10 @@ void GenerateALLAndCache(bool new_order);
 bool EnqueueCachedUpdate();
 std::unordered_map<int, ClusterRegion> ClusterAnalysis();
 
-/////////////////////////////////////////////////////////
+void PrintDelay(concurrency::TransactionQuery* query, uint64_t& delay_total_ref,
+                uint64_t& delay_max_ref, uint64_t& delay_min_ref);
 
+/////////////////////////////////////////////////////////
 std::vector<std::vector<Value>> ExecuteReadTest(
     executor::AbstractExecutor* executor);
 

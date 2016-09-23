@@ -330,6 +330,26 @@ void RunScanBackend(oid_t thread_id) {
   }
 }
 
+void PrintDelay(concurrency::TransactionQuery *query, uint64_t &delay_total_ref,
+                uint64_t &delay_max_ref, uint64_t &delay_min_ref) {
+  std::chrono::system_clock::time_point end_time =
+      std::chrono::system_clock::now();
+
+  uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
+      end_time - query->GetStartTime()).count();
+
+  delay_total_ref = delay_total_ref + delay;
+
+  if (delay > delay_max_ref) {
+    delay_max_ref = delay;
+  }
+  if (delay < delay_min_ref) {
+    delay_min_ref = delay;
+  }
+
+  std::cout << "Delay: " << delay << "--Total:" << delay_total_ref << std::endl;
+}
+
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -400,6 +420,11 @@ void RunBackend(oid_t thread_id) {
         //        ret_pop =
         //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
         //                ret_query, thread_id);
+
+        // Debug
+        if (ret_pop != false) {
+          PrintDelay(ret_query, delay_total_ref, delay_max_ref, delay_min_ref);
+        }
 
         break;
       }
