@@ -677,6 +677,8 @@ void QueryBackend(oid_t thread_id) {
           now_time - start_time).count();
 
       std::cout << "elapsed_time: " << elapsed_time << std::endl;
+      std::cout << "-----------------------------------------------------------"
+                   "--------------------" << std::endl;
 
       // If elapsed time is still less than 1 second, sleep the rest of the time
       if ((elapsed_time) < 1000) {
