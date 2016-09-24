@@ -165,7 +165,9 @@ void LoadQuery(uint64_t count) {
   if (state.generate_count == 0) {
     LOG_INFO("No enqueue thread");
     for (uint64_t i = 0; i < count; i++) {
-      EnqueueCachedUpdate();
+      std::chrono::system_clock::time_point start =
+          std::chrono::system_clock::now();
+      EnqueueCachedUpdate(start);
     }
   }
 

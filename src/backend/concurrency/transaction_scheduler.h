@@ -97,7 +97,9 @@ class TransactionQuery {
   virtual int GetQueueNo() = 0;
 
   // For experiment
-  virtual void ReSetStartTime() = 0;
+  virtual void SetStartTime(
+      std::chrono::system_clock::time_point& delay_start_time) = 0;
+
   virtual std::chrono::system_clock::time_point& GetStartTime() = 0;
   void RecordDelay(uint64_t& delay_total_ref, uint64_t& delay_max_ref,
                    uint64_t& delay_min_ref) {

@@ -77,12 +77,14 @@ class InsertCallForwarding : public concurrency::TransactionQuery {
   // Run txn
   virtual bool Run();
 
-  virtual void ReSetStartTime() {
+  virtual void SetStartTime(
+      std::chrono::system_clock::time_point& delay_start_time) {
     if (first_pop_ == true) {
-      start_time_ = std::chrono::system_clock::now();
+      start_time_ = delay_start_time;
       first_pop_ = false;
     }
   }
+
   std::chrono::system_clock::time_point& GetStartTime() {
     return start_time_;
   };

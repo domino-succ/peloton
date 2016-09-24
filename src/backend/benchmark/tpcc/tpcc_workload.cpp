@@ -205,7 +205,8 @@ std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
   return dbs.GetClusters();
 }
 
-bool EnqueueCachedUpdate() {
+bool EnqueueCachedUpdate(
+    std::chrono::system_clock::time_point &delay_start_time) {
 
   concurrency::TransactionQuery *query = nullptr;
 
@@ -218,7 +219,7 @@ bool EnqueueCachedUpdate() {
   }
 
   // Start counting the response time when entering the queue
-  query->ReSetStartTime();
+  query->SetStartTime(delay_start_time);
 
   // Push the query into the queue
   // Note: when popping the query and after executing it, the update_executor
@@ -312,14 +313,14 @@ void RunScanBackend(oid_t thread_id) {
       slept = true;
       std::this_thread::sleep_for(SLEEP_TIME);
     }
-    std::chrono::steady_clock::time_point start_time;
+    std::chrono::system_clock::time_point start_time;
     if (thread_id == 0) {
-      start_time = std::chrono::steady_clock::now();
+      start_time = std::chrono::system_clock::now();
     }
     RunScanStock();
     if (thread_id == 0) {
-      std::chrono::steady_clock::time_point end_time =
-          std::chrono::steady_clock::now();
+      std::chrono::system_clock::time_point end_time =
+          std::chrono::system_clock::now();
       double diff = std::chrono::duration_cast<std::chrono::microseconds>(
           end_time - start_time).count();
       scan_stock_avg_latency =
@@ -647,12 +648,16 @@ void QueryBackend(oid_t thread_id) {
   std::chrono::system_clock::time_point start_time =
       std::chrono::system_clock::now();
 
+  // used for each round
+  std::chrono::system_clock::time_point delay_start_time =
+      std::chrono::system_clock::now();
+
   while (true) {
     if (is_running == false) {
       break;
     }
 
-    if (EnqueueCachedUpdate() == false) {
+    if (EnqueueCachedUpdate(delay_start_time) == false) {
       _mm_pause();
       continue;
     }
@@ -695,6 +700,8 @@ void QueryBackend(oid_t thread_id) {
         // Rest start time
         start_time = std::chrono::system_clock::now();
       }
+
+      delay_start_time = std::chrono::system_clock::now();
     }
   }
 }

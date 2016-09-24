@@ -341,7 +341,8 @@ bool RunScanStock();
 /////////////////////////////////////////////////////////
 void GenerateAndCacheQuery();
 void GenerateALLAndCache(bool new_order);
-bool EnqueueCachedUpdate();
+bool EnqueueCachedUpdate(
+    std::chrono::system_clock::time_point& delay_start_time);
 std::unordered_map<int, ClusterRegion> ClusterAnalysis();
 
 void PrintDelay(concurrency::TransactionQuery* query, uint64_t delay_total);

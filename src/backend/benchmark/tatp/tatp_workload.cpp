@@ -255,7 +255,8 @@ std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
   return dbs.GetClusters();
 }
 
-bool EnqueueCachedUpdate() {
+bool EnqueueCachedUpdate(
+    std::chrono::system_clock::time_point &delay_start_time) {
 
   concurrency::TransactionQuery *query = nullptr;
 
@@ -270,7 +271,7 @@ bool EnqueueCachedUpdate() {
   PL_ASSERT(query != nullptr);
 
   // Start counting the response time when entering the queue
-  query->ReSetStartTime();
+  query->SetStartTime(delay_start_time);
 
   // Push the query into the queue
   // Note: when popping the query and after executing it, the update_executor
@@ -336,23 +337,6 @@ bool EnqueueCachedUpdate() {
   }
 
   return true;
-}
-
-void RecordDelay(concurrency::TransactionQuery *query,
-                 uint64_t &delay_total_ref, uint64_t &delay_max_ref,
-                 uint64_t &delay_min_ref) {
-  std::chrono::system_clock::time_point end_time =
-      std::chrono::system_clock::now();
-  uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
-      end_time - query->GetStartTime()).count();
-  delay_total_ref = delay_total_ref + delay;
-
-  if (delay > delay_max_ref) {
-    delay_max_ref = delay;
-  }
-  if (delay < delay_min_ref) {
-    delay_min_ref = delay;
-  }
 }
 
 void RunBackend(oid_t thread_id) {
@@ -497,7 +481,7 @@ void RunBackend(oid_t thread_id) {
 
           // If execute successfully, we should clean up the query
           // First compute the delay
-          RecordDelay(ret_query, delay_total_ref, delay_max_ref, delay_min_ref);
+          ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
           // Second, clean up
           ret_query->Cleanup();
@@ -634,12 +618,16 @@ void QueryBackend(oid_t thread_id) {
   std::chrono::system_clock::time_point start_time =
       std::chrono::system_clock::now();
 
+  // used for each round
+  std::chrono::system_clock::time_point delay_start_time =
+      std::chrono::system_clock::now();
+
   while (true) {
     if (is_running == false) {
       break;
     }
 
-    if (EnqueueCachedUpdate() == false) {
+    if (EnqueueCachedUpdate(delay_start_time) == false) {
       _mm_pause();
       continue;
     }
@@ -690,6 +678,8 @@ void QueryBackend(oid_t thread_id) {
         // Rest start time
         start_time = std::chrono::system_clock::now();
       }
+
+      delay_start_time = std::chrono::system_clock::now();
     }
   }
 }
