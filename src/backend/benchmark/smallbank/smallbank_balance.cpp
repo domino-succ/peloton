@@ -203,7 +203,7 @@ void Balance::SetValue(ZipfDistribution &zipf) {
 
 bool Balance::Run() {
   /*
-     "Amalgamate": {
+     "Balance": {
         "SELECT * FROM " + SmallBankConstants.TABLENAME_ACCOUNTS +
         " WHERE custid = ?" # id 0
 

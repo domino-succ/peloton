@@ -80,7 +80,7 @@ namespace smallbank {
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
-#define FREQUENCY_AMALGAMATE 0.04
+#define FREQUENCY_AMALGAMATE 0.00
 #define FREQUENCY_BALANCE 0.24
 #define FREQUENCY_DEPOSIT_CHECKING 0.24
 #define FREQUENCY_TRANSACT_SAVINGS 0.24
