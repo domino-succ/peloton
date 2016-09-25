@@ -25,7 +25,8 @@ void Usage(FILE *out) {
   fprintf(
       out,
       "Command line options : tpcc <options> \n"
-      "   -h --help              :  Print help message \n"
+      "   -h --help              :  state.hot_spot \n"
+      "   -a --affinity          :  state.run_continue \n"
       "   -i --index             :  index type could be btree or bwtree\n"
       "   -k --scale_factor      :  scale factor \n"
       "   -d --duration          :  execution duration \n"
@@ -35,7 +36,6 @@ void Usage(FILE *out) {
       "   -w --warehouse_count   :  # of warehouses \n"
       "   -r --order_range       :  order range \n"
       "   -e --exp_backoff       :  enable exponential backoff \n"
-      "   -a --affinity          :  enable client affinity \n"
       "   -p --protocol          :  choose protocol, default OCC\n"
       "                             protocol could be occ, pcc, pccopt, ssi, "
       "sread, ewrite, occrb, occn2o, to, torb, tofullrb, and ton2o\n"
