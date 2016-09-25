@@ -160,7 +160,7 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
 
   // Amalgamate
   if (rng_val <= FREQUENCY_AMALGAMATE) {
-    Amalgamate *amalgamate = GenerateAmalgamate(zipf);
+    Amalgamate *txn = GenerateAmalgamate(zipf);
     // Balance *txn = GenerateBalance(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
