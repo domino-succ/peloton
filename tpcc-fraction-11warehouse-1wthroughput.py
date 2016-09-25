@@ -193,6 +193,7 @@ for i in range(1, 11):
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
 
+##############
 result = open(output_file, "a")
 files = os.listdir(search_dir)
 ########################################################################################################
