@@ -80,7 +80,7 @@ namespace smallbank {
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
-#define FREQUENCY_AMALGAMATE 0.00
+#define FREQUENCY_AMALGAMATE 0.04
 #define FREQUENCY_BALANCE 0.24
 #define FREQUENCY_DEPOSIT_CHECKING 0.24
 #define FREQUENCY_TRANSACT_SAVINGS 0.24
@@ -160,8 +160,9 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
 
   // Amalgamate
   if (rng_val <= FREQUENCY_AMALGAMATE) {
-    Amalgamate *amalgamate = GenerateAmalgamate(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(amalgamate);
+    // Amalgamate *amalgamate = GenerateAmalgamate(zipf);
+    Balance *txn = GenerateBalance(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // Balance
   else if (rng_val <= FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
