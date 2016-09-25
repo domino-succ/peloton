@@ -290,7 +290,7 @@ bool EnqueueCachedUpdate(
     else if (state.online) {  // ONLINE means Run table
       if (state.lock_free) {
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, true, state.single_ref, state.canonical,
+            query, true, true, state.single_ref, state.canonical,
             state.fraction);
       }
       // lock run table
@@ -298,7 +298,7 @@ bool EnqueueCachedUpdate(
         concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, true, state.single_ref, state.canonical,
+            query, true, true, state.single_ref, state.canonical,
             state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
@@ -307,7 +307,7 @@ bool EnqueueCachedUpdate(
       if (state.lock_free) {
 
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, false, state.single_ref, state.canonical,
+            query, true, false, state.single_ref, state.canonical,
             state.fraction);
       }
       // lock run table
@@ -315,7 +315,7 @@ bool EnqueueCachedUpdate(
         concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, false, state.single_ref, state.canonical,
+            query, true, false, state.single_ref, state.canonical,
             state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();

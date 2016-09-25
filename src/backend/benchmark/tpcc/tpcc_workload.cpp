@@ -455,9 +455,6 @@ void RunBackend(oid_t thread_id) {
     PL_ASSERT(ret_query != nullptr);
     total_count_ref++;
 
-    // Before execute query, we should set the start time
-    // (reinterpret_cast<NewOrder *>(ret_query))->ReSetStartTime();
-
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
@@ -492,7 +489,7 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
-          reinterpret_cast<NewOrder *>(ret_query)->Cleanup();
+          ret_query->Cleanup();
           delete ret_query;
           break;
         }

@@ -269,10 +269,14 @@ bool EnqueueCachedUpdate(
     }
     // Run table is ready
     else if (state.online) {  // ONLINE means Run table
+
+      // Debug
+      // concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+
       if (state.lock_free) {
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, true, state.single_ref, state.canonical,
+            query, true, true, state.single_ref, state.canonical,
             state.fraction);
       }
       // lock run table
@@ -281,7 +285,7 @@ bool EnqueueCachedUpdate(
 
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, true, state.single_ref, state.canonical,
+            query, true, true, state.single_ref, state.canonical,
             state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
@@ -290,7 +294,7 @@ bool EnqueueCachedUpdate(
       if (state.lock_free) {
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, false, state.single_ref, state.canonical,
+            query, true, false, state.single_ref, state.canonical,
             state.fraction);
       }
       // lock run table
@@ -299,7 +303,7 @@ bool EnqueueCachedUpdate(
 
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, state.offline, false, state.single_ref, state.canonical,
+            query, true, false, state.single_ref, state.canonical,
             state.fraction);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
@@ -323,7 +327,7 @@ bool EnqueueCachedUpdate(
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
-  oid_t &execution_count_ref = abort_counts[thread_id];
+  oid_t &abort_count_ref = abort_counts[thread_id];
   oid_t &transaction_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
   uint64_t &delay_total_ref = delay_totals[thread_id];
@@ -405,25 +409,18 @@ void RunBackend(oid_t thread_id) {
     PL_ASSERT(ret_query != nullptr);
     total_count_ref++;
 
-    // Before execute query, update run table
-    //    if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    //      // Update Run Table with the queue. That is to increasing the queue
-    //      // reference in Run Table
-    //      int queue = ret_query->GetQueueNo();
-    //      ret_query->UpdateRunTable(queue, state.single_ref, state.canonical);
-    //    }
-
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
 
     if (ret_query->Run() == false) {
       // Increase the counter
-      execution_count_ref++;
+      abort_count_ref++;
 
       if (is_running == false) {
         break;
       }
+
       switch (state.scheduler) {
 
         case SCHEDULER_TYPE_NONE: {
@@ -433,97 +430,55 @@ void RunBackend(oid_t thread_id) {
           delete ret_query;
           break;
         }
-        case SCHEDULER_TYPE_CONTROL: {
+
+        case SCHEDULER_TYPE_CONTROL:
+        case SCHEDULER_TYPE_CONFLICT_LEANING:
+        case SCHEDULER_TYPE_CLUSTER:
+        case SCHEDULER_TYPE_CONFLICT_RANGE:
+        case SCHEDULER_TYPE_ABORT_QUEUE:
+        case SCHEDULER_TYPE_CONFLICT_DETECT: {
           // Control: The txn re-executed immediately
           while (ret_query->Run() == false) {
             // If still fail, the counter increase, then enter loop again
-            execution_count_ref++;
+            abort_count_ref++;
 
             if (is_running == false) {
               break;
             }
           }
 
-          // If execute successfully, we should clean up the query
-          // First compute the delay
-          ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
-
-          // Second, clean up
-          ret_query->Cleanup();
-          delete ret_query;
-
-          // Increase the counter
-          transaction_count_ref++;
-          break;
-        }
-        case SCHEDULER_TYPE_ABORT_QUEUE: {
-          // Queue: put the txn at the end of the queue
-          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
-              ret_query);
-          break;
-        }
-
-        case SCHEDULER_TYPE_CONFLICT_DETECT: {
-          concurrency::TransactionScheduler::GetInstance().CounterEnqueue(
-              ret_query);
           break;
         }
         case SCHEDULER_TYPE_HASH: {
 
           if (state.log_table) {
-            ret_query->UpdateLogTable(state.single_ref, state.canonical);
-            //            ret_query->UpdateLogTableFullConflict(state.single_ref,
-            //                                                  state.canonical);
-
-            concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-                ret_query, state.single_ref);
-          }
-          // Log table is ready
-          else if (state.online) {
-            if (state.lock_free) {
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, true, state.single_ref,
-                  state.canonical, state.fraction);
-            }
-            // lock
-            else {
-              concurrency::TransactionScheduler::GetInstance().RunTableLock();
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, true, state.single_ref,
-                  state.canonical, state.fraction);
-              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
-            }
-          } else {
-            if (state.lock_free) {
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, false, state.single_ref,
-                  state.canonical, state.fraction);
-            }
-            // lock
-            else {
-              concurrency::TransactionScheduler::GetInstance().RunTableLock();
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, false, state.single_ref,
-                  state.canonical, state.fraction);
-              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+            if (state.fraction) {
+              ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                    state.canonical);
+            } else {
+              ret_query->UpdateLogTable(state.single_ref, state.canonical);
             }
           }
 
-          break;
-        }
-        case SCHEDULER_TYPE_CONFLICT_LEANING: {
-          // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
-          //    ret_query);
-          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-          break;
-        }
-        case SCHEDULER_TYPE_CLUSTER: {
-          concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(
-              ret_query);
-          break;
-        }
-        case SCHEDULER_TYPE_CONFLICT_RANGE: {
-          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
+          // Control: The txn re-executed immediately
+          while (ret_query->Run() == false) {
+            // If still fail, the counter increase, then enter loop again
+            abort_count_ref++;
+
+            if (state.log_table) {
+              if (state.fraction) {
+                ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                      state.canonical);
+              } else {
+                ret_query->UpdateLogTable(state.single_ref, state.canonical);
+              }
+            }
+
+            if (is_running == false) {
+              break;
+            }
+          }  // while
+
           break;
         }
 
@@ -538,35 +493,35 @@ void RunBackend(oid_t thread_id) {
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
     /////////////////////////////////////////////////
-    else {
-      // First compute the delay
-      ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
-      // clean up the hash table
-      if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    // First compute the delay
+    ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
-        // Update Log Table when success
-        //        if (state.log_table) {
-        //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
-        //                                               state.canonical);
-        //        } else {
-        // Remove txn from Run Table
-        if (!state.lock_free) {
-          ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-        }
+    // clean up the hash table
+    if (state.scheduler == SCHEDULER_TYPE_HASH) {
+
+      // Update Log Table when success
+      //        if (state.log_table) {
+      //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
+      //                                               state.canonical);
+      //        } else {
+      // Remove txn from Run Table
+      if (!state.lock_free) {
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
       }
+    }
 
-      // Second, clean up
-      ret_query->Cleanup();
-      delete ret_query;
+    // Second, clean up
+    ret_query->Cleanup();
+    delete ret_query;
 
-      // Increase the counter
+    // Increase the counter
 
-      transaction_count_ref++;
-      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
-      //         execution_count_ref, thread_id);
-    }  // end else execute == true
-  }    // end big while
+    transaction_count_ref++;
+    // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
+    //         execution_count_ref, thread_id);
+
+  }  // end big while
 }
 
 void QueryBackend(oid_t thread_id) {

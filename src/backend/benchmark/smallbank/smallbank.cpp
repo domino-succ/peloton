@@ -181,16 +181,11 @@ void LoadLogTable() {
                                                                  conflict);
       }
 
-      //      while (infile >> condition >> conflict >> success) {
-      //        concurrency::TransactionScheduler::GetInstance().LoadLogFull(
-      //            condition, conflict, success);
-      //      }
-
       // Close file
       infile.close();
 
       // Debug
-      // concurrency::TransactionScheduler::GetInstance().DumpLogTable();
+      concurrency::TransactionScheduler::GetInstance().DumpLogTable();
     }
   }
 }
