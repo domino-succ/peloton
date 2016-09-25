@@ -111,7 +111,6 @@ void ValidateSnapshotDuration(const configuration &state) {
   if (state.snapshot_duration <= 0) {
     LOG_ERROR("Invalid snapshot_duration :: %lf", state.snapshot_duration);
     exit(EXIT_FAILURE);
-    13694.2 0.552655 2296.59 4975.73 0.338 106 6 11 60000 0 0 0 0
   }
 
   LOG_TRACE("%s : %lf", "snapshot_duration", state.snapshot_duration);
