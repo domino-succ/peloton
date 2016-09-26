@@ -24,7 +24,7 @@ namespace peloton {
 namespace benchmark {
 namespace smallbank {
 
-#define PRELOAD 1000000  // 2000,000
+#define PRELOAD 1200000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
 #define CONFLICT_THRESHHOLD 0
 #define LOGTABLE "logtable"
