@@ -102,7 +102,7 @@ class WriteCheck : public concurrency::TransactionQuery {
 
   // Common method
   virtual TxnType GetTxnType() {
-    return TXN_TYP_DEPOSIT_CHECKING;
+    return TXN_TYPE_WRITE_CHECK;
   };
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }

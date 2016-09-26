@@ -97,7 +97,7 @@ class TransactSaving : public concurrency::TransactionQuery {
 
   // Common method
   virtual TxnType GetTxnType() {
-    return TXN_TYP_DEPOSIT_CHECKING;
+    return TXN_TYPE_TRANSACT_SAVING;
   };
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }
