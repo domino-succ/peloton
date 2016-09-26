@@ -128,14 +128,19 @@ size_t GenerateAccountsId(const size_t &thread_id) {
 }
 
 size_t GenerateAccountsId() {
+  size_t id = 0;
+
   // hot spot : 0 - 99
   if (GetRandomInteger(0, 99) < state.hot_spot) {
-    return GetRandomInteger(0, HOTSPOT_FIXED_SIZE - 1);
+    id = GetRandomInteger(0, HOTSPOT_FIXED_SIZE - 1);
   }
   // return : 100 - others
   else {
-    return GetRandomInteger(0, (NUM_ACCOUNTS - HOTSPOT_FIXED_SIZE) - 1);
+    id = GetRandomInteger(0, (NUM_ACCOUNTS - HOTSPOT_FIXED_SIZE) - 1);
   }
+
+  LOG_INFO("id is : %lu", id);
+  return id;
 }
 
 size_t GenerateAmount() { return GetRandomInteger(1, 10); }
