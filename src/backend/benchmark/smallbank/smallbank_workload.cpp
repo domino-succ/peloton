@@ -272,6 +272,7 @@ bool EnqueueCachedUpdate(
 
       // Debug
       // concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+      // LOG_INFO("================================================");
 
       if (state.lock_free) {
         // enqueue

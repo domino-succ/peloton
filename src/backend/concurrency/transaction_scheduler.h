@@ -915,6 +915,7 @@ class TransactionScheduler {
     return is_empty;
   }
 
+  // Should consider conflict as the weight
   int GetMinQueueUsingAtomic() {
 
     std::vector<int> min_queues;
