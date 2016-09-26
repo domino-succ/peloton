@@ -57,8 +57,8 @@ static void WriteOutput() {
   std::ofstream out(oss.str(), std::ofstream::out);
 
   LOG_INFO("----------------------------------------------------------");
-  concurrency::TransactionScheduler::GetInstance().DumpRunTable();
-  LOG_INFO("----------------------------------------------------------");
+  // concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+  // LOG_INFO("----------------------------------------------------------");
   LOG_INFO(
       "scheduler:%d---%lf :: %lf tps, %lf abort, %lf delay, %lf generate, %d",
       state.scheduler, state.scale_factor, state.throughput, state.abort_rate,
