@@ -505,17 +505,19 @@ class TransactionScheduler {
       // queue = GetMinQueueUsingRunTable();
       queue = GetMinQueueUsingAtomic();
 
-      // Test
+      // Debug print
       //      std::cout << "Can't find a queue, so assign queue: " << queue
       //                << ". Queue size is: " << queues_[queue].Size()
       //                << ". Key: " << query->GetPrimaryKey()
       //                << ". Txn Type: " << query->GetTxnType() << std::endl;
       //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
       //      LOG_INFO("=========");
-      std::string info = "Key " + std::to_string(query->GetPrimaryKey()) +
-                         "Can't find a queue, assign to " +
-                         std::to_string(queue);
-      concurrency::TransactionScheduler::GetInstance().DumpRunTableToFile(info);
+      // Debug to log file
+      //      std::string info = "Key " + std::to_string(query->GetPrimaryKey())
+      // +
+      //                         "Can't find a queue, assign to " +
+      //                         std::to_string(queue);
+      //      concurrency::TransactionScheduler::GetInstance().DumpRunTableToFile(info);
       // end
     }
 
@@ -806,7 +808,6 @@ class TransactionScheduler {
     run_table_lock_.Unlock();
   }
 
-  // support multi-thread
   void RunTableIncreaseNoLock(std::string& key, int queue_no) {
     // Get the reference of the corresponding queue
     std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
@@ -831,6 +832,65 @@ class TransactionScheduler {
       run_table_.insert(std::make_pair(key, queue_map));
 
       ++run_table_queue_size_[queue_no];
+    }
+  }
+
+  // support multi-thread
+  void RunTableIncrease(std::string& key, int conflict, int queue_no) {
+    run_table_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
+
+    if (queue_info != nullptr) {
+      // Increase the reference for this queue
+      auto entry = queue_info->find(queue_no);
+
+      if (entry != queue_info->end()) {
+        (*queue_info)[queue_no] += conflict;
+        run_table_queue_size_[queue_no] += conflict;
+      }
+      // If there is no such entry, create it
+      else {
+        queue_info->insert(std::make_pair(queue_no, conflict));
+        run_table_queue_size_[queue_no] += conflict;
+      }
+    }
+    // If there is no such entry, create it
+    else {
+      std::unordered_map<int, int> queue_map = {{queue_no, conflict}};
+      run_table_.insert(std::make_pair(key, queue_map));
+
+      run_table_queue_size_[queue_no] += conflict;
+    }
+
+    run_table_lock_.Unlock();
+  }
+
+  void RunTableIncreaseNoLock(std::string& key, int conflict, int queue_no) {
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
+
+    if (queue_info != nullptr) {
+      // Increase the reference for this queue
+      auto entry = queue_info->find(queue_no);
+
+      if (entry != queue_info->end()) {
+        (*queue_info)[queue_no] += conflict;
+        run_table_queue_size_[queue_no] += conflict;
+      }
+      // If there is no such entry, create it
+      else {
+        queue_info->insert(std::make_pair(queue_no, conflict));
+        run_table_queue_size_[queue_no] += conflict;
+      }
+    }
+    // If there is no such entry, create it
+    else {
+      std::unordered_map<int, int> queue_map = {{queue_no, conflict}};
+      run_table_.insert(std::make_pair(key, queue_map));
+
+      run_table_queue_size_[queue_no] += conflict;
     }
   }
 
@@ -860,6 +920,44 @@ class TransactionScheduler {
 
           // decrease the number
           --run_table_queue_size_[queue_no];
+        }
+        // remove the item, otherwise the table will be too large
+        else {
+          // LOG_INFO("Remove item in Run Table: %lu", run_table_.size());
+          // queue_info->erase(queue);
+        }
+      }
+    }
+
+    run_table_lock_.Unlock();
+  }
+
+  // support multi-thread
+  void RunTableDecrease(std::string& key, int conflict, int queue_no) {
+    run_table_lock_.Lock();
+
+    // Get the reference of the corresponding queue
+    std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
+
+    // Decrease the reference for this queue
+    if (queue_info != nullptr) {
+      if (queue_info->size() == 0) {
+        // TODO: remove this item?
+        // remove
+      }
+
+      // Find out the entry with queue NO.
+      auto queue = queue_info->find(queue_no);
+
+      // If it exists, decrease the reference
+      if (queue != queue_info->end()) {
+
+        // If the reference is larger than 1, decrease
+        if (queue_info->at(queue_no) >= 1) {
+          (*queue_info)[queue_no] -= conflict;
+
+          // decrease the number
+          run_table_queue_size_[queue_no] -= conflict;
         }
         // remove the item, otherwise the table will be too large
         else {
