@@ -512,6 +512,10 @@ class TransactionScheduler {
       //                << ". Txn Type: " << query->GetTxnType() << std::endl;
       //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
       //      LOG_INFO("=========");
+      std::string info = "Key " + std::to_string(query->GetPrimaryKey()) +
+                         "Can't find a queue, assign to " +
+                         std::to_string(queue);
+      concurrency::TransactionScheduler::GetInstance().DumpRunTableToFile(info);
       // end
     }
 
@@ -1085,11 +1089,6 @@ class TransactionScheduler {
       out << entry.first << " ";
       out << entry.second << "\n";
     }
-    //    for (auto& entry : log_table_full_) {
-    //      out << entry.first << " ";
-    //      out << entry.second.first << " ";
-    //      out << entry.second.second << "\n";
-    //    }
 
     out.flush();
     out.close();
@@ -1137,6 +1136,30 @@ class TransactionScheduler {
                   << ". Txns: " << queue.second << std::endl;
       }
     }
+  }
+
+  void DumpRunTableToFile(std::string info) {
+    // Create file
+    std::string filename = "run_table";
+    std::stringstream oss;
+    oss << filename;
+    std::ofstream out(oss.str(), std::ofstream::app);
+
+    out << info << "\n";
+
+    // Iterate Log Table (map)
+    for (auto& entry : run_table_) {
+      for (auto& queue : entry.second) {
+        out << "Key: " << entry.first;
+        out << ". QueueNo: " << queue.first;
+        out << ". Txns: " << queue.second << "\n";
+      }
+    }
+
+    out << "=========================================\n";
+
+    out.flush();
+    out.close();
   }
 
   void DumpRunTable(int queue_no) {
