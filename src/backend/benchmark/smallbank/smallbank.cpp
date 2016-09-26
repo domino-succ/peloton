@@ -187,7 +187,7 @@ void LoadLogTable() {
       infile.close();
 
       // Debug
-      concurrency::TransactionScheduler::GetInstance().DumpLogTable();
+      // concurrency::TransactionScheduler::GetInstance().DumpLogTable();
     }
   }
 }

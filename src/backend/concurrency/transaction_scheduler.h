@@ -513,11 +513,10 @@ class TransactionScheduler {
       //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
       //      LOG_INFO("=========");
       // Debug to log file
-      //      std::string info = "Key " + std::to_string(query->GetPrimaryKey())
-      // +
-      //                         "Can't find a queue, assign to " +
-      //                         std::to_string(queue);
-      //      concurrency::TransactionScheduler::GetInstance().DumpRunTableToFile(info);
+      std::string info = "Key " + std::to_string(query->GetPrimaryKey()) +
+                         "Can't find a queue, assign to " +
+                         std::to_string(queue);
+      concurrency::TransactionScheduler::GetInstance().DumpRunTableToFile(info);
       // end
     }
 
