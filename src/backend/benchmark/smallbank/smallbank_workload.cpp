@@ -139,7 +139,6 @@ size_t GenerateAccountsId() {
     id = GetRandomInteger(0, (NUM_ACCOUNTS - HOTSPOT_FIXED_SIZE) - 1);
   }
 
-  LOG_INFO("id is : %lu", id);
   return id;
 }
 
