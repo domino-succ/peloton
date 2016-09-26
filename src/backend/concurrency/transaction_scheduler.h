@@ -506,12 +506,12 @@ class TransactionScheduler {
       queue = GetMinQueueUsingAtomic();
 
       // Test
-      std::cout << "Can't find a queue, so assign queue: " << queue
-                << ". Queue size is: " << queues_[queue].Size()
-                << ". Key: " << query->GetPrimaryKey()
-                << ". Txn Type: " << query->GetTxnType() << std::endl;
-      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
-      LOG_INFO("=========");
+      //      std::cout << "Can't find a queue, so assign queue: " << queue
+      //                << ". Queue size is: " << queues_[queue].Size()
+      //                << ". Key: " << query->GetPrimaryKey()
+      //                << ". Txn Type: " << query->GetTxnType() << std::endl;
+      //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+      //      LOG_INFO("=========");
       // end
     }
 
