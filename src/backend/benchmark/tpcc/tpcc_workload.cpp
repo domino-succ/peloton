@@ -348,15 +348,15 @@ void RunBackend(oid_t thread_id) {
   oid_t &commit_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
 
+  uint64_t &delay_total_ref = delay_totals[thread_id];
+  uint64_t &delay_max_ref = delay_maxs[thread_id];
+  uint64_t &delay_min_ref = delay_mins[thread_id];
+
   oid_t &new_order_abort_count_ref = new_order_abort_counts[thread_id];
   oid_t &new_order_commit_count_ref = new_order_commit_counts[thread_id];
 
   oid_t &payment_abort_count_ref = payment_abort_counts[thread_id];
   oid_t &payment_commit_count_ref = payment_commit_counts[thread_id];
-
-  uint64_t &delay_total_ref = delay_totals[thread_id];
-  uint64_t &delay_max_ref = delay_maxs[thread_id];
-  uint64_t &delay_min_ref = delay_mins[thread_id];
 
   // // backoff
   // uint32_t backoff_shifts = 0;
@@ -463,7 +463,7 @@ void RunBackend(oid_t thread_id) {
       // Increase the counter
       abort_count_ref++;
 
-      // Increase new order and payment txns' counter
+      // statics: Increase new order and payment txns' counter
       switch (ret_query->GetTxnType()) {
         case TXN_TYPE_NEW_ORDER: {
           new_order_abort_count_ref++;
@@ -479,6 +479,7 @@ void RunBackend(oid_t thread_id) {
           break;
         }
       }
+      // end statics
 
       if (is_running == false) {
         break;
@@ -504,7 +505,7 @@ void RunBackend(oid_t thread_id) {
             // If still fail, the counter increase, then enter loop again
             abort_count_ref++;
 
-            // Increase new order and payment txns' counter
+            // statics: Increase new order and payment txns' counter
             switch (ret_query->GetTxnType()) {
               case TXN_TYPE_NEW_ORDER: {
                 new_order_abort_count_ref++;
@@ -520,6 +521,7 @@ void RunBackend(oid_t thread_id) {
                 break;
               }
             }
+            // end
 
             if (is_running == false) {
               break;

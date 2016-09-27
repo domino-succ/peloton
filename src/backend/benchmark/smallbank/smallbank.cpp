@@ -65,6 +65,21 @@ static void WriteOutput() {
       state.delay_ave, state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
+  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.ama_throughput,
+           state.ama_abort_rate, state.ama_delay);
+
+  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.bal_throughput,
+           state.bal_abort_rate, state.bal_delay);
+
+  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.dep_throughput,
+           state.dep_abort_rate, state.dep_delay);
+
+  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.tra_throughput,
+           state.tra_abort_rate, state.tra_delay);
+
+  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.wri_throughput,
+           state.wri_abort_rate, state.wri_delay);
+
   // out << state.scale_factor << "\n";
 
   for (size_t round_id = 0; round_id < state.snapshot_throughput.size();

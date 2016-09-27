@@ -593,15 +593,13 @@ void RunBackend(oid_t thread_id) {
         }
       }
 
-      // Second, clean up
+      // Increase the counter
+      transaction_count_ref++;
+
+      // Finally, clean up
       ret_query->Cleanup();
       delete ret_query;
 
-      // Increase the counter
-
-      transaction_count_ref++;
-      // LOG_INFO("Success:%d, fail:%d---%d", transaction_count_ref,
-      //         execution_count_ref, thread_id);
     }  // end else execute == true
   }    // end big while
 }

@@ -119,6 +119,16 @@ class TransactionQuery {
     }
   }
 
+  void RecordDelay(uint64_t& delay_total_ref) {
+    std::chrono::system_clock::time_point end_time =
+        std::chrono::system_clock::now();
+
+    uint64_t delay = std::chrono::duration_cast<std::chrono::microseconds>(
+        end_time - GetStartTime()).count();
+
+    delay_total_ref = delay_total_ref + delay;
+  }
+
   // virtual std::shared_ptr<Region> RegionTransform() = 0;
 
   // private:

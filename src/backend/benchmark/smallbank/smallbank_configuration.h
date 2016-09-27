@@ -102,9 +102,25 @@ class configuration {
   double delay_max;
   double delay_min;
 
-  double payment_throughput;
+  double ama_throughput;
+  double ama_abort_rate;
+  double ama_delay;
 
-  double payment_abort_rate;
+  double bal_throughput;
+  double bal_abort_rate;
+  double bal_delay;
+
+  double dep_throughput;
+  double dep_abort_rate;
+  double dep_delay;
+
+  double tra_throughput;
+  double tra_abort_rate;
+  double tra_delay;
+
+  double wri_throughput;
+  double wri_abort_rate;
+  double wri_delay;
 
   double new_order_throughput;
 
