@@ -610,6 +610,14 @@ void RunBackend(oid_t thread_id) {
     UpdateDelayCounter(ret_query, ama_delay_ref, bal_delay_ref, dep_delay_ref,
                        tra_delay_ref, wri_delay_ref);
 
+    // Increase commit counter
+    commit_count_ref++;
+
+    // Increase commit counter for others
+    UpdateCommitAbortCouter(ret_query, ama_commit_count_ref,
+                            bal_commit_count_ref, dep_commit_count_ref,
+                            tra_commit_count_ref, wri_commit_count_ref);
+
     // clean up the hash table
     if (state.scheduler == SCHEDULER_TYPE_HASH) {
 
@@ -624,18 +632,12 @@ void RunBackend(oid_t thread_id) {
       }
     }
 
-    // Increase the counter
-    commit_count_ref++;
-
-    // Increase abort counter for others
-    UpdateCommitAbortCouter(ret_query, ama_commit_count_ref,
-                            bal_commit_count_ref, dep_commit_count_ref,
-                            tra_commit_count_ref, wri_commit_count_ref);
-
   program_end:
     // Finally, clean up
-    ret_query->Cleanup();
-    delete ret_query;
+    if (ret_query != nullptr) {
+      ret_query->Cleanup();
+      delete ret_query;
+    }
 
   }  // end big while
 }
@@ -876,14 +878,6 @@ void RunWorkload() {
 
   is_running = false;
 
-  // If this is offline analysis, write Log Table into a file. It is a
-  // map: int-->int (reference-key, conflict-counts)
-  if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    if (state.log_table) {
-      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
-    }
-  }
-
   // Join the threads with the main thread
   for (oid_t thread_itr = 0; thread_itr < num_threads + num_generate;
        ++thread_itr) {
@@ -891,6 +885,14 @@ void RunWorkload() {
   }
 
   std::cout << "Is running: " << is_running << std::endl;
+
+  // If this is offline analysis, write Log Table into a file. It is a
+  // map: int-->int (reference-key, conflict-counts)
+  if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    if (state.log_table) {
+      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
+    }
+  }
 
   // calculate the generate rate
   oid_t total_generate_count = 0;
@@ -962,6 +964,8 @@ void RunWorkload() {
   state.throughput2 = total_commit_count * 1.0 / state.duration;
   state.abort_rate2 =
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
+
+  std::cout << "total commit : " << total_commit_count << std::endl;
 
   // calculate the average delay: ms
   uint64_t total_delay = 0;
