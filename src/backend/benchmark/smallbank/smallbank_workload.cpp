@@ -573,7 +573,10 @@ void RunBackend(oid_t thread_id) {
     // dep_delay_ref,
     //                       tra_delay_ref, wri_delay_ref);
     ret_query->RecordDelay(tra_delay_ref, delay_max_ref, delay_min_ref);
-
+    ret_query->RecordDelay(ama_delay_ref, delay_max_ref, delay_min_ref);
+    ret_query->RecordDelay(bal_delay_ref, delay_max_ref, delay_min_ref);
+    ret_query->RecordDelay(dep_delay_ref, delay_max_ref, delay_min_ref);
+    ret_query->RecordDelay(wri_delay_ref, delay_max_ref, delay_min_ref);
     // Increase commit counter
     commit_count_ref++;
 
