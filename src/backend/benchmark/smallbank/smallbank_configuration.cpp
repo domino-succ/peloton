@@ -190,6 +190,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.delay_ave = 0.0;
   state.delay_max = 0.0;
   state.delay_min = 0.0;
+  state.exe_time = 0.0;
   state.warehouse_count = 1;
   state.running_ref = 0;
   state.order_range = 20;

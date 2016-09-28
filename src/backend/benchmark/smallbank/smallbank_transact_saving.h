@@ -39,7 +39,9 @@ class TransactSaving : public concurrency::TransactionQuery {
         saving_update_executor_(nullptr),
         context_(nullptr),
         start_time_(std::chrono::system_clock::now()),
+        exe_start_time_(std::chrono::system_clock::now()),
         first_pop_(true),
+        first_pop_exe_time_(true),
         custid_(0),
         queue_(-1) {}
 
@@ -88,6 +90,18 @@ class TransactSaving : public concurrency::TransactionQuery {
 
   std::chrono::system_clock::time_point& GetStartTime() {
     return start_time_;
+  };
+
+  virtual void SetExeStartTime(
+      std::chrono::system_clock::time_point& delay_start_time) {
+    if (first_pop_exe_time_ == true) {
+      exe_start_time_ = delay_start_time;
+      first_pop_exe_time_ = false;
+    }
+  }
+
+  std::chrono::system_clock::time_point& GetExeStartTime() {
+    return exe_start_time_;
   };
 
   // TODO: just passing the compile
@@ -393,9 +407,11 @@ class TransactSaving : public concurrency::TransactionQuery {
   executor::ExecutorContext* context_;
 
   std::chrono::system_clock::time_point start_time_;
+  std::chrono::system_clock::time_point exe_start_time_;
 
   // Flag to compute the execution time
   bool first_pop_;
+  bool first_pop_exe_time_;
 
   // uint64_t primary_key_;
   std::vector<uint64_t> primary_keys_;

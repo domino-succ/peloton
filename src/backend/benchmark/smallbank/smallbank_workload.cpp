@@ -97,6 +97,8 @@ uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
 
+uint64_t *exe_totals;
+
 oid_t *ama_abort_counts;
 oid_t *ama_commit_counts;
 uint64_t *ama_delays;
@@ -414,6 +416,8 @@ void RunBackend(oid_t thread_id) {
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
 
+  uint64_t &exe_total_ref = exe_totals[thread_id];
+
   oid_t &ama_abort_count_ref = ama_abort_counts[thread_id];
   oid_t &ama_commit_count_ref = ama_commit_counts[thread_id];
   uint64_t &ama_delay_ref = ama_delays[thread_id];
@@ -508,6 +512,11 @@ void RunBackend(oid_t thread_id) {
 
     PL_ASSERT(ret_query != nullptr);
 
+    // Now record start time for execution
+    std::chrono::system_clock::time_point exe_start_time =
+        std::chrono::system_clock::now();
+    ret_query->SetExeStartTime(exe_start_time);
+
     //////////////////////////////////////////////////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////////////////////////////////////////////////
@@ -569,14 +578,12 @@ void RunBackend(oid_t thread_id) {
     ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
     // Update txn type
-    //    UpdateDelayCounter(ret_query, ama_delay_ref, bal_delay_ref,
-    // dep_delay_ref,
-    //                       tra_delay_ref, wri_delay_ref);
-    ret_query->RecordDelay(tra_delay_ref, delay_max_ref, delay_min_ref);
-    ret_query->RecordDelay(ama_delay_ref, delay_max_ref, delay_min_ref);
-    ret_query->RecordDelay(bal_delay_ref, delay_max_ref, delay_min_ref);
-    ret_query->RecordDelay(dep_delay_ref, delay_max_ref, delay_min_ref);
-    ret_query->RecordDelay(wri_delay_ref, delay_max_ref, delay_min_ref);
+    UpdateDelayCounter(ret_query, ama_delay_ref, bal_delay_ref, dep_delay_ref,
+                       tra_delay_ref, wri_delay_ref);
+
+    // For execution time
+    ret_query->RecordExetime(exe_total_ref);
+
     // Increase commit counter
     commit_count_ref++;
 
@@ -710,6 +717,9 @@ void RunWorkload() {
   memset(delay_maxs, 0, sizeof(uint64_t) * num_threads);
   delay_mins = new uint64_t[num_threads];
   std::fill_n(delay_mins, num_threads, 1000000);
+
+  exe_totals = new uint64_t[num_threads];
+  memset(exe_totals, 0, sizeof(uint64_t) * num_threads);
 
   // amalgmate
   ama_abort_counts = new oid_t[num_threads];
@@ -943,6 +953,15 @@ void RunWorkload() {
   }
   state.delay_ave = (total_delay * 1.0) / (total_commit_count * 1000);
 
+  // calculate the exe time: ms
+  uint64_t total_exe = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_exe += exe_totals[i];
+    std::cout << "Thread" << i << "'s exe: " << exe_totals[i]
+              << ". Totoal: " << total_exe << std::endl;
+  }
+  state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
+
   // calculate the max delay
   uint64_t max_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -1100,6 +1119,9 @@ void RunWorkload() {
   delay_maxs = nullptr;
   delete[] delay_mins;
   delay_mins = nullptr;
+
+  delete[] exe_totals;
+  exe_totals = nullptr;
 
   // For others
   delete[] ama_abort_counts;

@@ -124,6 +124,8 @@ class configuration {
   double wri_abort_rate;
   double wri_delay;
 
+  double exe_time;
+
   double new_order_throughput;
 
   double new_order_abort_rate;

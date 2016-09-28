@@ -44,7 +44,9 @@ class NewOrder : public concurrency::TransactionQuery {
         stock_update_executor_(nullptr),
         context_(nullptr),
         start_time_(std::chrono::system_clock::now()),
+        exe_start_time_(std::chrono::system_clock::now()),
         first_pop_(true),
+        first_pop_exe_time_(true),
         warehouse_id_(0),
         district_id_(0),
         customer_id_(0),
@@ -124,8 +126,20 @@ class NewOrder : public concurrency::TransactionQuery {
     }
   }
 
-  std::chrono::system_clock::time_point& GetStartTime() {
+  virtual std::chrono::system_clock::time_point& GetStartTime() {
     return start_time_;
+  };
+
+  virtual void SetExeStartTime(
+      std::chrono::system_clock::time_point& delay_start_time) {
+    if (first_pop_exe_time_ == true) {
+      exe_start_time_ = delay_start_time;
+      first_pop_exe_time_ = false;
+    }
+  }
+
+  virtual std::chrono::system_clock::time_point& GetExeStartTime() {
+    return exe_start_time_;
   };
 
   virtual const std::vector<Value>& GetCompareKeys() const {
@@ -2220,9 +2234,11 @@ class NewOrder : public concurrency::TransactionQuery {
   executor::ExecutorContext* context_;
 
   std::chrono::system_clock::time_point start_time_;
+  std::chrono::system_clock::time_point exe_start_time_;
 
   // Flag to compute the execution time
   bool first_pop_;
+  bool first_pop_exe_time_;
 
   // uint64_t primary_key_;
   std::vector<uint64_t> primary_keys_;
