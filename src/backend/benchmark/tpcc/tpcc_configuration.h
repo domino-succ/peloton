@@ -125,6 +125,8 @@ class configuration {
   double delay_max;
   double delay_min;
 
+  double exe_time;
+
   double payment_throughput;
 
   double payment_abort_rate;

@@ -93,6 +93,8 @@ uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
 
+uint64_t *exe_totals;
+
 oid_t *payment_abort_counts;
 oid_t *payment_commit_counts;
 
@@ -348,6 +350,8 @@ void RunBackend(oid_t thread_id) {
   oid_t &commit_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
 
+  uint64_t &exe_total_ref = exe_totals[thread_id];
+
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
@@ -595,6 +599,9 @@ void RunBackend(oid_t thread_id) {
     // First compute the delay
     ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
+    // For execution time
+    ret_query->RecordExetime(exe_total_ref);
+
     // clean up the hash table
     if (state.scheduler == SCHEDULER_TYPE_HASH) {
       // Update Log Table when success
@@ -712,6 +719,9 @@ void RunWorkload() {
   oid_t num_threads = state.backend_count;
   oid_t num_scan_threads = state.scan_backend_count;
   oid_t num_generate = state.generate_count;
+
+  exe_totals = new uint64_t[num_threads];
+  memset(exe_totals, 0, sizeof(uint64_t) * num_threads);
 
   abort_counts = new oid_t[num_threads];
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
@@ -1011,6 +1021,9 @@ void RunWorkload() {
   delay_maxs = nullptr;
   delete[] delay_mins;
   delay_mins = nullptr;
+
+  delete[] exe_totals;
+  exe_totals = nullptr;
 
   LOG_INFO("============TABLE SIZES==========");
   LOG_INFO("warehouse count = %u", warehouse_table->GetAllCurrentTupleCount());
