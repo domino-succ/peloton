@@ -183,25 +183,29 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
   }
   // Balance
   else if (rng_val <= FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
-    Balance *balance = GenerateBalance(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(balance);
+    Amalgamate *txn = GenerateAmalgamate(zipf);
+    // Balance *txn = GenerateBalance(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // DEPOSIT_CHECKING
   else if (rng_val <= FREQUENCY_DEPOSIT_CHECKING + FREQUENCY_BALANCE +
                           FREQUENCY_AMALGAMATE) {
-    DepositChecking *dc = GenerateDepositChecking(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(dc);
+    Amalgamate *txn = GenerateAmalgamate(zipf);
+    // DepositChecking *txn = GenerateDepositChecking(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // TRANSACT_SAVINGS
   else if (rng_val <= FREQUENCY_TRANSACT_SAVINGS + FREQUENCY_DEPOSIT_CHECKING +
                           FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
-    TransactSaving *ts = GenerateTransactSaving(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(ts);
+    Amalgamate *txn = GenerateAmalgamate(zipf);
+    // TransactSaving *txn = GenerateTransactSaving(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // WRITE_CHECK
   else {
-    WriteCheck *wc = GenerateWriteCheck(zipf);
-    concurrency::TransactionScheduler::GetInstance().CacheQuery(wc);
+    Amalgamate *txn = GenerateAmalgamate(zipf);
+    // WriteCheck *txn = GenerateWriteCheck(zipf);
+    concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
 }
 
