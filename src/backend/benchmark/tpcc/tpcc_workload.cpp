@@ -459,6 +459,11 @@ void RunBackend(oid_t thread_id) {
     PL_ASSERT(ret_query != nullptr);
     total_count_ref++;
 
+    // Now record start time for execution
+    std::chrono::system_clock::time_point exe_start_time =
+        std::chrono::system_clock::now();
+    ret_query->SetExeStartTime(exe_start_time);
+
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
