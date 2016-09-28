@@ -752,7 +752,7 @@ void RunWorkload() {
   ama_commit_counts = new oid_t[num_threads];
   memset(ama_commit_counts, 0, sizeof(oid_t) * num_threads);
   ama_delays = new uint64_t[num_threads];
-  memset(ama_delays, 0, sizeof(oid_t) * num_threads);
+  memset(ama_delays, 0, sizeof(uint64_t) * num_threads);
 
   // bal
   bal_abort_counts = new oid_t[num_threads];
@@ -760,28 +760,28 @@ void RunWorkload() {
   bal_commit_counts = new oid_t[num_threads];
   memset(bal_commit_counts, 0, sizeof(oid_t) * num_threads);
   bal_delays = new uint64_t[num_threads];
-  memset(bal_delays, 0, sizeof(oid_t) * num_threads);
+  memset(bal_delays, 0, sizeof(uint64_t) * num_threads);
 
   dep_abort_counts = new oid_t[num_threads];
   memset(dep_abort_counts, 0, sizeof(oid_t) * num_threads);
   dep_commit_counts = new oid_t[num_threads];
   memset(dep_commit_counts, 0, sizeof(oid_t) * num_threads);
   dep_delays = new uint64_t[num_threads];
-  memset(dep_delays, 0, sizeof(oid_t) * num_threads);
+  memset(dep_delays, 0, sizeof(uint64_t) * num_threads);
 
   tra_abort_counts = new oid_t[num_threads];
   memset(tra_abort_counts, 0, sizeof(oid_t) * num_threads);
   tra_commit_counts = new oid_t[num_threads];
   memset(tra_commit_counts, 0, sizeof(oid_t) * num_threads);
   tra_delays = new uint64_t[num_threads];
-  memset(tra_delays, 0, sizeof(oid_t) * num_threads);
+  memset(tra_delays, 0, sizeof(uint64_t) * num_threads);
 
   wri_abort_counts = new oid_t[num_threads];
   memset(wri_abort_counts, 0, sizeof(oid_t) * num_threads);
   wri_commit_counts = new oid_t[num_threads];
   memset(wri_commit_counts, 0, sizeof(oid_t) * num_threads);
   wri_delays = new uint64_t[num_threads];
-  memset(wri_delays, 0, sizeof(oid_t) * num_threads);
+  memset(wri_delays, 0, sizeof(uint64_t) * num_threads);
 
   stock_level_count = 0;
   stock_level_avg_latency = 0.0;
