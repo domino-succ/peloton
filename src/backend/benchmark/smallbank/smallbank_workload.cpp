@@ -161,8 +161,8 @@ size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
   // Amalgamate *txn = GenerateAmalgamate(zipf);
-  Balance *txn = GenerateBalance(zipf);
-  // DepositChecking *txn = GenerateDepositChecking(zipf);
+  // Balance *txn = GenerateBalance(zipf);
+  DepositChecking *txn = GenerateDepositChecking(zipf);
 
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
