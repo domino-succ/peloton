@@ -938,7 +938,8 @@ void RunWorkload() {
   uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_delay += delay_totals[i];
-    std::cout << "Thread" << i << "'s delay: " << delay_totals[i] << std::endl;
+    std::cout << "Thread" << i << "'s delay: " << delay_totals[i]
+              << ". Totoal: " << total_delay << std::endl;
   }
   state.delay_ave = (total_delay * 1.0) / (total_commit_count * 1000);
 
@@ -1038,7 +1039,7 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_tra_delay += tra_delays[i];
     std::cout << "Thread" << i << "'s tra delay: " << tra_delays[i]
-              << std::endl;
+              << ". Totoal: " << total_tra_delay << std::endl;
   }
 
   state.tra_throughput = total_tra_commit_count * 1.0 / state.duration;
