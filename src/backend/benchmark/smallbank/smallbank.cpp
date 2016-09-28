@@ -60,25 +60,27 @@ static void WriteOutput() {
   // concurrency::TransactionScheduler::GetInstance().DumpRunTable();
   // LOG_INFO("----------------------------------------------------------");
   LOG_INFO(
-      "scheduler:%d---%lf :: %lf tps, %lf abort, %lf delay, %lf generate, %d",
-      state.scheduler, state.scale_factor, state.throughput, state.abort_rate,
-      state.delay_ave, state.generate_rate,
+      "scheduler:%d---%lf :: %lf tps, %lf abort, %lf tps2, %lf abort2, %lf "
+      "delay, %lf generate, %d",
+      state.scheduler, state.scale_factor, state.throughput1, state.abort_rate1,
+      state.throughput2, state.abort_rate2, state.delay_ave,
+      state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
-  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.ama_throughput,
-           state.ama_abort_rate, state.ama_delay);
+  LOG_INFO("sub txn type -- ama :: %lf tps_, %lf abort, %lf delay",
+           state.ama_throughput, state.ama_abort_rate, state.ama_delay);
 
-  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.bal_throughput,
-           state.bal_abort_rate, state.bal_delay);
+  LOG_INFO("sub txn type -- bal :: %lf tps, %lf abort, %lf delay",
+           state.bal_throughput, state.bal_abort_rate, state.bal_delay);
 
-  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.dep_throughput,
-           state.dep_abort_rate, state.dep_delay);
+  LOG_INFO("sub txn type -- dep :: %lf tps, %lf abort, %lf delay",
+           state.dep_throughput, state.dep_abort_rate, state.dep_delay);
 
-  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.tra_throughput,
-           state.tra_abort_rate, state.tra_delay);
+  LOG_INFO("sub txn type -- tra :: %lf tps, %lf abort, %lf delay",
+           state.tra_throughput, state.tra_abort_rate, state.tra_delay);
 
-  LOG_INFO("%lf tps_ama, %lf abort_ama, %lf delay_ama", state.wri_throughput,
-           state.wri_abort_rate, state.wri_delay);
+  LOG_INFO("sub txn type -- wri :: %lf tps, %lf abort, %lf delay",
+           state.wri_throughput, state.wri_abort_rate, state.wri_delay);
 
   // out << state.scale_factor << "\n";
 
@@ -92,8 +94,8 @@ static void WriteOutput() {
         << state.snapshot_memory[round_id] << "\n";
   }
 
-  out << state.throughput << " ";
-  out << state.abort_rate << " ";
+  out << state.throughput1 << " ";
+  out << state.abort_rate1 << " ";
   out << state.delay_ave << " ";
   out << state.delay_max << " ";
   out << state.delay_min << " ";

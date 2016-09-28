@@ -92,7 +92,6 @@ volatile bool is_run_table = false;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
-oid_t *total_counts;
 oid_t *generate_counts;
 uint64_t *delay_totals;
 uint64_t *delay_maxs;
@@ -408,8 +407,7 @@ void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
   oid_t &abort_count_ref = abort_counts[thread_id];
-  oid_t &transaction_count_ref = commit_counts[thread_id];
-  oid_t &total_count_ref = total_counts[thread_id];
+  oid_t &commit_count_ref = commit_counts[thread_id];
 
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
@@ -508,7 +506,6 @@ void RunBackend(oid_t thread_id) {
     }
 
     PL_ASSERT(ret_query != nullptr);
-    total_count_ref++;
 
     //////////////////////////////////////////////////////////////////////////////////////
     // Execute query
@@ -632,7 +629,7 @@ void RunBackend(oid_t thread_id) {
     }
 
     // Increase the counter
-    transaction_count_ref++;
+    commit_count_ref++;
 
     // Increase abort counter for others
     UpdateCommitAbortCouter(ret_query, ama_commit_count_ref,
@@ -737,8 +734,6 @@ void RunWorkload() {
   commit_counts = new oid_t[num_threads];
   memset(commit_counts, 0, sizeof(oid_t) * num_threads);
 
-  total_counts = new oid_t[num_threads];
-  memset(total_counts, 0, sizeof(oid_t) * num_threads);
   generate_counts = new oid_t[num_generate];
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
@@ -907,12 +902,6 @@ void RunWorkload() {
   }
   state.generate_rate = total_generate_count * 1.0 / state.duration;
 
-  // calculate the total execution count
-  oid_t total_exe_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_exe_count += total_counts[i];
-  }
-
   // calculate the throughput and abort rate for the first round.
   oid_t total_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -960,12 +949,22 @@ void RunWorkload() {
     total_abort_count += abort_counts_snapshots[snapshot_round - 1][i];
   }
 
-  state.throughput = total_commit_count * 1.0 / state.duration;
-  state.abort_rate =
+  state.throughput1 = total_commit_count * 1.0 / state.duration;
+  state.abort_rate1 =
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
-  state.stock_level_latency = stock_level_avg_latency;
-  state.order_status_latency = order_status_avg_latency;
-  state.scan_stock_latency = scan_stock_avg_latency;
+
+  total_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_commit_count += commit_counts[i];
+  }
+  total_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_abort_count += abort_counts[i];
+  }
+
+  state.throughput2 = total_commit_count * 1.0 / state.duration;
+  state.abort_rate2 =
+      total_abort_count * 1.0 / (total_commit_count + total_abort_count);
 
   // calculate the average delay: ms
   uint64_t total_delay = 0;
@@ -991,6 +990,11 @@ void RunWorkload() {
     }
   }
   state.delay_min = min_delay * 1.0 / 1000;
+
+  // No use for now
+  state.stock_level_latency = stock_level_avg_latency;
+  state.order_status_latency = order_status_avg_latency;
+  state.scan_stock_latency = scan_stock_avg_latency;
 
   // Amalgamate
   oid_t total_ama_commit_count = 0;
