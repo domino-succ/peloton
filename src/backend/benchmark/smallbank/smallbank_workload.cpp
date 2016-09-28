@@ -162,7 +162,8 @@ void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
   // Amalgamate *txn = GenerateAmalgamate(zipf);
   // Balance *txn = GenerateBalance(zipf);
-  DepositChecking *txn = GenerateDepositChecking(zipf);
+  // DepositChecking *txn = GenerateDepositChecking(zipf);
+  TransactSaving *txn = GenerateTransactSaving(zipf);
 
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
