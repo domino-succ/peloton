@@ -569,8 +569,10 @@ void RunBackend(oid_t thread_id) {
     ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
     // Update txn type
-    UpdateDelayCounter(ret_query, ama_delay_ref, bal_delay_ref, dep_delay_ref,
-                       tra_delay_ref, wri_delay_ref);
+    //    UpdateDelayCounter(ret_query, ama_delay_ref, bal_delay_ref,
+    // dep_delay_ref,
+    //                       tra_delay_ref, wri_delay_ref);
+    ret_query->RecordDelay(tra_delay_ref, delay_max_ref, delay_min_ref);
 
     // Increase commit counter
     commit_count_ref++;
