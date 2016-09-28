@@ -61,9 +61,9 @@ static void WriteOutput() {
   // LOG_INFO("----------------------------------------------------------");
   LOG_INFO(
       "scheduler:%d---%lf :: %lf tps, %lf abort, %lf tps2, %lf abort2, %lf "
-      "delay, %lf generate, %d",
+      "delay, %lf exe, %lf generate, %d",
       state.scheduler, state.scale_factor, state.throughput1, state.abort_rate1,
-      state.throughput2, state.abort_rate2, state.delay_ave,
+      state.throughput2, state.abort_rate2, state.delay_ave, state.exe_time,
       state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
