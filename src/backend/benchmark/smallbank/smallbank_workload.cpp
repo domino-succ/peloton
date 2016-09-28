@@ -978,7 +978,7 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_ama_abort_count += ama_abort_counts[i];
   }
-  oid_t total_ama_delay = 0;
+  uint64_t total_ama_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_ama_delay += ama_delays[i];
   }
@@ -997,7 +997,7 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_bal_abort_count += bal_abort_counts[i];
   }
-  oid_t total_bal_delay = 0;
+  uint64_t total_bal_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_bal_delay += bal_delays[i];
   }
@@ -1016,7 +1016,7 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_dep_abort_count += dep_abort_counts[i];
   }
-  oid_t total_dep_delay = 0;
+  uint64_t total_dep_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_dep_delay += dep_delays[i];
   }
@@ -1035,7 +1035,7 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_tra_abort_count += tra_abort_counts[i];
   }
-  oid_t total_tra_delay = 0;
+  uint64_t total_tra_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_tra_delay += tra_delays[i];
     std::cout << "Thread" << i << "'s tra delay: " << tra_delays[i]
@@ -1060,7 +1060,7 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_wri_abort_count += wri_abort_counts[i];
   }
-  oid_t total_wri_delay = 0;
+  uint64_t total_wri_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_wri_delay += wri_delays[i];
   }
