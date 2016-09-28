@@ -512,7 +512,12 @@ void RunBackend(oid_t thread_id) {
     // Execute query
     //////////////////////////////////////////////////////////////////////////////////////
 
-    if (ret_query->Run() == false) {
+    // Re-exeucte a txn until success
+    while (ret_query->Run() == false) {
+      if (is_running == false) {
+        break;
+      }
+
       // Increase the counter
       abort_count_ref++;
 
@@ -522,13 +527,11 @@ void RunBackend(oid_t thread_id) {
                               tra_abort_count_ref, wri_abort_count_ref);
 
       switch (state.scheduler) {
-
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
           goto program_end;
         }
-
         case SCHEDULER_TYPE_CONTROL:
         case SCHEDULER_TYPE_CONFLICT_LEANING:
         case SCHEDULER_TYPE_CLUSTER:
@@ -536,24 +539,9 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_ABORT_QUEUE:
         case SCHEDULER_TYPE_CONFLICT_DETECT: {
           // Control: The txn re-executed immediately
-          while (ret_query->Run() == false) {
-            // If still fail, the counter increase, then enter loop again
-            abort_count_ref++;
-
-            // Increase abort counter for others
-            UpdateCommitAbortCouter(ret_query, ama_abort_count_ref,
-                                    bal_abort_count_ref, dep_abort_count_ref,
-                                    tra_abort_count_ref, wri_abort_count_ref);
-
-            if (is_running == false) {
-              goto program_end;
-            }
-          }
-
           break;
         }
         case SCHEDULER_TYPE_HASH: {
-
           if (state.log_table) {
             if (state.fraction) {
               ret_query->UpdateLogTableFullConflict(state.single_ref,
@@ -562,35 +550,9 @@ void RunBackend(oid_t thread_id) {
               ret_query->UpdateLogTable(state.single_ref, state.canonical);
             }
           }
-
-          // Control: The txn re-executed immediately
-          while (ret_query->Run() == false) {
-            // If still fail, the counter increase, then enter loop again
-            abort_count_ref++;
-
-            // Increase abort counter for others
-            UpdateCommitAbortCouter(ret_query, ama_abort_count_ref,
-                                    bal_abort_count_ref, dep_abort_count_ref,
-                                    tra_abort_count_ref, wri_abort_count_ref);
-
-            // time end
-            if (is_running == false) {
-              goto program_end;
-            }
-
-            if (state.log_table) {
-              if (state.fraction) {
-                ret_query->UpdateLogTableFullConflict(state.single_ref,
-                                                      state.canonical);
-              } else {
-                ret_query->UpdateLogTable(state.single_ref, state.canonical);
-              }
-            }
-          }  // while
-
+          // The txn re-executed immediately
           break;
         }
-
         default: {
           LOG_INFO("Scheduler_type :: Unsupported scheduler: %u ",
                    state.scheduler);
