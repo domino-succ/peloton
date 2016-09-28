@@ -992,6 +992,9 @@ void RunWorkload() {
   }
   state.delay_min = min_delay * 1.0 / 1000;
 
+  std::cout << "delay_total: " << total_delay
+            << ". total_commit_count: " << total_commit_count << std::endl;
+
   // No use for now
   state.stock_level_latency = stock_level_avg_latency;
   state.order_status_latency = order_status_avg_latency;
