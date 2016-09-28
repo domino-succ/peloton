@@ -926,6 +926,15 @@ void RunWorkload() {
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
+  // calculate the exe time: ms
+  uint64_t total_exe = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_exe += exe_totals[i];
+    std::cout << "Thread" << i << "'s exe: " << exe_totals[i]
+              << ". Totoal: " << total_exe << std::endl;
+  }
+  state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
+
   oid_t total_payment_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_payment_commit_count += payment_commit_counts[i];
