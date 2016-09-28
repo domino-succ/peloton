@@ -521,18 +521,12 @@ void RunBackend(oid_t thread_id) {
                               bal_abort_count_ref, dep_abort_count_ref,
                               tra_abort_count_ref, wri_abort_count_ref);
 
-      if (is_running == false) {
-        break;
-      }
-
       switch (state.scheduler) {
 
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
-          ret_query->Cleanup();
-          delete ret_query;
-          break;
+          goto program_end;
         }
 
         case SCHEDULER_TYPE_CONTROL:
@@ -552,7 +546,7 @@ void RunBackend(oid_t thread_id) {
                                     tra_abort_count_ref, wri_abort_count_ref);
 
             if (is_running == false) {
-              break;
+              goto program_end;
             }
           }
 
@@ -579,6 +573,11 @@ void RunBackend(oid_t thread_id) {
                                     bal_abort_count_ref, dep_abort_count_ref,
                                     tra_abort_count_ref, wri_abort_count_ref);
 
+            // time end
+            if (is_running == false) {
+              goto program_end;
+            }
+
             if (state.log_table) {
               if (state.fraction) {
                 ret_query->UpdateLogTableFullConflict(state.single_ref,
@@ -586,10 +585,6 @@ void RunBackend(oid_t thread_id) {
               } else {
                 ret_query->UpdateLogTable(state.single_ref, state.canonical);
               }
-            }
-
-            if (is_running == false) {
-              break;
             }
           }  // while
 
@@ -637,6 +632,7 @@ void RunBackend(oid_t thread_id) {
                             bal_commit_count_ref, dep_commit_count_ref,
                             tra_commit_count_ref, wri_commit_count_ref);
 
+  program_end:
     // Finally, clean up
     ret_query->Cleanup();
     delete ret_query;
