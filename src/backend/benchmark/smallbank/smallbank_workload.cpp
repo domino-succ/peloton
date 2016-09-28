@@ -1073,6 +1073,10 @@ void RunWorkload() {
                          (total_tra_commit_count + total_tra_abort_count);
   state.tra_delay = total_tra_delay * 1.0 / (total_tra_commit_count * 1000);
 
+  std::cout << "tra_delay_total: " << total_tra_delay
+            << ". total_tra_commit_count: " << total_tra_commit_count
+            << std::endl;
+
   // wri
   oid_t total_wri_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
