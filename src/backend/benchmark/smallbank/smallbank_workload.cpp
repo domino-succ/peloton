@@ -161,7 +161,8 @@ size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
   // Amalgamate *txn = GenerateAmalgamate(zipf);
-  DepositChecking *txn = GenerateDepositChecking(zipf);
+  Balance *txn = GenerateBalance(zipf);
+  // DepositChecking *txn = GenerateDepositChecking(zipf);
 
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
@@ -178,33 +179,28 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
   // Amalgamate
   if (rng_val <= FREQUENCY_AMALGAMATE) {
     Amalgamate *txn = GenerateAmalgamate(zipf);
-    // Balance *txn = GenerateBalance(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // Balance
   else if (rng_val <= FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
-    Amalgamate *txn = GenerateAmalgamate(zipf);
-    // Balance *txn = GenerateBalance(zipf);
+    Balance *txn = GenerateBalance(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // DEPOSIT_CHECKING
   else if (rng_val <= FREQUENCY_DEPOSIT_CHECKING + FREQUENCY_BALANCE +
                           FREQUENCY_AMALGAMATE) {
-    Amalgamate *txn = GenerateAmalgamate(zipf);
-    // DepositChecking *txn = GenerateDepositChecking(zipf);
+    DepositChecking *txn = GenerateDepositChecking(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // TRANSACT_SAVINGS
   else if (rng_val <= FREQUENCY_TRANSACT_SAVINGS + FREQUENCY_DEPOSIT_CHECKING +
                           FREQUENCY_BALANCE + FREQUENCY_AMALGAMATE) {
-    Amalgamate *txn = GenerateAmalgamate(zipf);
-    // TransactSaving *txn = GenerateTransactSaving(zipf);
+    TransactSaving *txn = GenerateTransactSaving(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
   // WRITE_CHECK
   else {
-    Amalgamate *txn = GenerateAmalgamate(zipf);
-    // WriteCheck *txn = GenerateWriteCheck(zipf);
+    WriteCheck *txn = GenerateWriteCheck(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
 }
