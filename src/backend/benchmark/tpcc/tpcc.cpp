@@ -64,8 +64,7 @@ static void WriteOutput() {
       state.scheduler, state.scale_factor, state.throughput, state.abort_rate,
       state.new_order_throughput, state.new_order_abort_rate,
       state.payment_throughput, state.payment_abort_rate, state.delay_ave,
-      state.exe_time, state.steal_rate, state.generate_rate,
-      state.generate_rate,
+      state.exe_time, state.steal, state.steal_rate, state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
   // out << state.scale_factor << "\n";
