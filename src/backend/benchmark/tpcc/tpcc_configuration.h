@@ -116,6 +116,9 @@ class configuration {
 
   std::vector<int> snapshot_memory;
 
+  double steal;
+  double steal_rate;
+
   double throughput;
 
   double abort_rate;

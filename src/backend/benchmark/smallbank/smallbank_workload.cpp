@@ -1125,6 +1125,9 @@ void RunWorkload() {
   delete[] commit_counts;
   commit_counts = nullptr;
 
+  delete[] steal_counts;
+  steal_counts = nullptr;
+
   delete[] generate_counts;
   generate_counts = nullptr;
 

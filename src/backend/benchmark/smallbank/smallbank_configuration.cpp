@@ -179,6 +179,8 @@ void ValidateGenerateSpeed(const configuration &state) {
 
 void ParseArguments(int argc, char *argv[], configuration &state) {
   // Default Values
+  state.steal = 0.0;
+  state.steal_rate = 0.0;
   state.scale_factor = 1;
   state.zipf_theta = -1;
   state.duration = 10;
