@@ -92,6 +92,7 @@ volatile bool is_run_table = false;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
+oid_t *steal_counts;
 oid_t *generate_counts;
 uint64_t *delay_totals;
 uint64_t *delay_maxs;
@@ -409,6 +410,7 @@ void UpdateDelayCounter(concurrency::TransactionQuery *query, uint64_t &ama,
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
+  oid_t &steal_count_ref = steal_counts[thread_id];
   oid_t &abort_count_ref = abort_counts[thread_id];
   oid_t &commit_count_ref = commit_counts[thread_id];
 
@@ -446,6 +448,7 @@ void RunBackend(oid_t thread_id) {
     // Pop a query from a queue and execute
     concurrency::TransactionQuery *ret_query = nullptr;
     bool ret_pop = false;
+    bool ret_steal = false;
 
     //////////////////////////////////////////
     // Pop a query
@@ -469,11 +472,11 @@ void RunBackend(oid_t thread_id) {
         if (state.log_table) {
           ret_pop =
               concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                  ret_query, thread_id);
+                  ret_query, thread_id, ret_steal);
         }
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
 
         //        ret_pop =
         //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
@@ -484,7 +487,7 @@ void RunBackend(oid_t thread_id) {
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
         //        ret_pop =
         //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
         //                ret_query, thread_id);
@@ -493,7 +496,7 @@ void RunBackend(oid_t thread_id) {
       case SCHEDULER_TYPE_CLUSTER: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_RANGE: {
@@ -514,6 +517,11 @@ void RunBackend(oid_t thread_id) {
     }
 
     PL_ASSERT(ret_query != nullptr);
+
+    // Record stealing
+    if (ret_steal) {
+      steal_count_ref++;
+    }
 
     // Now record start time for execution
     std::chrono::system_clock::time_point exe_start_time =
@@ -704,6 +712,9 @@ void RunWorkload() {
   oid_t num_threads = state.backend_count;
   // oid_t num_scan_threads = state.scan_backend_count;
   oid_t num_generate = state.generate_count;
+
+  steal_counts = new oid_t[num_threads];
+  memset(steal_counts, 0, sizeof(oid_t) * num_threads);
 
   abort_counts = new oid_t[num_threads];
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
@@ -940,6 +951,13 @@ void RunWorkload() {
   for (size_t i = 0; i < num_threads; ++i) {
     total_abort_count += abort_counts[i];
   }
+  oid_t total_steal_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_steal_count += steal_counts[i];
+  }
+
+  state.steal = total_steal_count * 1.0 / state.duration;
+  state.steal_rate = total_steal_count * 1.0 / total_commit_count;
 
   state.throughput2 = total_commit_count * 1.0 / state.duration;
   state.abort_rate2 =

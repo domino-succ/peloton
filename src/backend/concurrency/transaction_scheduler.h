@@ -573,7 +573,8 @@ class TransactionScheduler {
    *
    * Note: if the # of warehouse is larger than the # of queues, idx will exceed
    */
-  bool PartitionDequeue(TransactionQuery*& query, uint64_t thread_id) {
+  bool PartitionDequeue(TransactionQuery*& query, uint64_t thread_id,
+                        bool& steal) {
 
     // If the # of warehouse is larger than the # of queues, call Dequeue,
     // otherwise idx will exceed memory bound
@@ -586,7 +587,18 @@ class TransactionScheduler {
       uint64_t idx = (thread_id + loop) % partition_counts_;
       bool ret = queues_[idx].Dequeue(query);
 
-      if (ret == true) return true;
+      if (ret == true) {
+        // stealing
+        if (loop != 0) {
+          steal = true;
+        }
+        // no stealing
+        else {
+          steal = false;
+        }
+
+        return true;
+      }
     }
     // LOG_INFO("Queue is empty: %ld", thread_id);
 

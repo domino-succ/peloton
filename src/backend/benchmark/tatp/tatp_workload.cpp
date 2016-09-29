@@ -357,6 +357,7 @@ void RunBackend(oid_t thread_id) {
     // Pop a query from a queue and execute
     concurrency::TransactionQuery *ret_query = nullptr;
     bool ret_pop = false;
+    bool ret_steal = false;
 
     //////////////////////////////////////////
     // Pop a query
@@ -375,7 +376,7 @@ void RunBackend(oid_t thread_id) {
         //                ret_query);
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_DETECT: {
@@ -388,11 +389,11 @@ void RunBackend(oid_t thread_id) {
         if (state.log_table) {
           ret_pop =
               concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                  ret_query, thread_id);
+                  ret_query, thread_id, ret_steal);
         }
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
 
         //        ret_pop =
         //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
@@ -403,13 +404,13 @@ void RunBackend(oid_t thread_id) {
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
         break;
       }
       case SCHEDULER_TYPE_CLUSTER: {
         ret_pop =
             concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
+                ret_query, thread_id, ret_steal);
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_RANGE: {
