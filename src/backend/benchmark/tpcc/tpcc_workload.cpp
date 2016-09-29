@@ -693,7 +693,6 @@ void QueryBackend(oid_t thread_id) {
     if (count >= speed) {
       // Reset the counter
       count = 0;
-      // SleepMilliseconds(1000);
 
       // Compute the elapsed time
       std::chrono::system_clock::time_point now_time =

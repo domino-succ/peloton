@@ -1181,6 +1181,11 @@ void RunWorkload() {
   LOG_INFO("accounts count = %u", accounts_table->GetAllCurrentTupleCount());
   LOG_INFO("savings count  = %u", savings_table->GetAllCurrentTupleCount());
   LOG_INFO("checking count = %u", checking_table->GetAllCurrentTupleCount());
+
+  LOG_INFO("============TILEGROUP SIZES==========");
+  LOG_INFO("accounts tile group = %lu", accounts_table->GetTileGroupCount());
+  LOG_INFO("savings tile group  = %lu", savings_table->GetTileGroupCount());
+  LOG_INFO("checking tile group = %lu", checking_table->GetTileGroupCount());
 }
 
 /////////////////////////////////////////////////////////
