@@ -471,13 +471,13 @@ void RunBackend(oid_t thread_id) {
               concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                   ret_query, thread_id);
         }
-        ret_pop =
-            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id);
-
         //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
         //                ret_query, thread_id);
+
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                ret_query, thread_id);
 
         break;
       }
@@ -488,8 +488,11 @@ void RunBackend(oid_t thread_id) {
         break;
       }
       case SCHEDULER_TYPE_CLUSTER: {
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+        //                ret_query, thread_id);
         ret_pop =
-            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
                 ret_query, thread_id);
         break;
       }
