@@ -471,23 +471,23 @@ void RunBackend(oid_t thread_id) {
               concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                   ret_query, thread_id);
         }
-        //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-        //                ret_query, thread_id);
-
         ret_pop =
-            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                 ret_query, thread_id);
+
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //                ret_query, thread_id);
 
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
-        //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-        //                ret_query, thread_id);
         ret_pop =
-            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                 ret_query, thread_id);
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //                ret_query, thread_id);
         break;
       }
       case SCHEDULER_TYPE_CLUSTER: {
@@ -951,8 +951,6 @@ void RunWorkload() {
   uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_delay += delay_totals[i];
-    std::cout << "Thread" << i << "'s delay: " << delay_totals[i]
-              << ". Totoal: " << total_delay << std::endl;
   }
   state.delay_ave = (total_delay * 1.0) / (total_commit_count * 1000);
 
@@ -960,8 +958,6 @@ void RunWorkload() {
   uint64_t total_exe = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_exe += exe_totals[i];
-    std::cout << "Thread" << i << "'s exe: " << exe_totals[i]
-              << ". Totoal: " << total_exe << std::endl;
   }
   state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
 
@@ -1060,8 +1056,6 @@ void RunWorkload() {
   uint64_t total_tra_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
     total_tra_delay += tra_delays[i];
-    std::cout << "Thread" << i << "'s tra delay: " << tra_delays[i]
-              << ". Totoal: " << total_tra_delay << std::endl;
   }
 
   state.tra_throughput = total_tra_commit_count * 1.0 / state.duration;
