@@ -1187,6 +1187,10 @@ void RunWorkload() {
   LOG_INFO("accounts tile group = %lu", accounts_table->GetTileGroupCount());
   LOG_INFO("savings tile group  = %lu", savings_table->GetTileGroupCount());
   LOG_INFO("checking tile group = %lu", checking_table->GetTileGroupCount());
+
+  std::cout << "------------Empty count:"
+            << catalog::Manager::GetInstance().count << "-----------"
+            << std::endl;
 }
 
 /////////////////////////////////////////////////////////

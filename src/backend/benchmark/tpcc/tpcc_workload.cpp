@@ -999,7 +999,6 @@ void RunWorkload() {
   std::cout << "------------Empty count:"
             << catalog::Manager::GetInstance().count << "-----------"
             << std::endl;
-  ;
 }
 
 /////////////////////////////////////////////////////////
