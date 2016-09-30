@@ -163,8 +163,8 @@ size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 // Only generate New-Order
 void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
-  Amalgamate *txn = GenerateAmalgamate(zipf);
-  // Balance *txn = GenerateBalance(zipf);
+  // Amalgamate *txn = GenerateAmalgamate(zipf);
+  Balance *txn = GenerateBalance(zipf);
   // DepositChecking *txn = GenerateDepositChecking(zipf);
   // TransactSaving *txn = GenerateTransactSaving(zipf);
 
