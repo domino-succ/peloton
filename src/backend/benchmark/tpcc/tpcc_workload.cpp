@@ -344,6 +344,24 @@ void PrintDelay(concurrency::TransactionQuery *query, uint64_t delay_total) {
   std::cout << "Delay: " << delay << "--Total:" << delay_total << std::endl;
 }
 
+void UpdateCommitAbortCouter(concurrency::TransactionQuery *query,
+                             oid_t &new_order, oid_t &payment) {
+  switch (query->GetTxnType()) {
+    case TXN_TYPE_NEW_ORDER: {
+      new_order++;
+      break;
+    }
+    case TXN_TYPE_PAYMENT: {
+      payment++;
+      break;
+    }
+    default: {
+      LOG_INFO("GetTxnType:: Unsupported scheduler: %d", query->GetTxnType());
+      break;
+    }
+  }
+}
+
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -476,40 +494,24 @@ void RunBackend(oid_t thread_id) {
     // Execute query
     //////////////////////////////////////////
 
-    if (ret_query->Run() == false) {
-      // Increase the counter
-      abort_count_ref++;
-
-      // statics: Increase new order and payment txns' counter
-      switch (ret_query->GetTxnType()) {
-        case TXN_TYPE_NEW_ORDER: {
-          new_order_abort_count_ref++;
-          break;
-        }
-        case TXN_TYPE_PAYMENT: {
-          payment_abort_count_ref++;
-          break;
-        }
-        default: {
-          LOG_INFO("GetTxnType:: Unsupported scheduler: %d",
-                   ret_query->GetTxnType());
-          break;
-        }
-      }
-      // end statics
-
+    // Re-exeucte a txn until success
+    while (ret_query->Run() == false) {
       if (is_running == false) {
         break;
       }
 
-      switch (state.scheduler) {
+      // Increase the counter
+      abort_count_ref++;
 
+      // Increase abort counter for others
+      UpdateCommitAbortCouter(ret_query, new_order_abort_count_ref,
+                              payment_abort_count_ref);
+
+      switch (state.scheduler) {
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
-          ret_query->Cleanup();
-          delete ret_query;
-          break;
+          goto program_end;
         }
         case SCHEDULER_TYPE_CONTROL:
         case SCHEDULER_TYPE_CONFLICT_LEANING:
@@ -518,37 +520,9 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_ABORT_QUEUE:
         case SCHEDULER_TYPE_CONFLICT_DETECT: {
           // Control: The txn re-executed immediately
-          while (ret_query->Run() == false) {
-            // If still fail, the counter increase, then enter loop again
-            abort_count_ref++;
-
-            // statics: Increase new order and payment txns' counter
-            switch (ret_query->GetTxnType()) {
-              case TXN_TYPE_NEW_ORDER: {
-                new_order_abort_count_ref++;
-                break;
-              }
-              case TXN_TYPE_PAYMENT: {
-                payment_abort_count_ref++;
-                break;
-              }
-              default: {
-                LOG_INFO("GetTxnType:: Unsupported scheduler: %d ",
-                         ret_query->GetTxnType());
-                break;
-              }
-            }
-            // end
-
-            if (is_running == false) {
-              break;
-            }
-          }
-
           break;
         }
         case SCHEDULER_TYPE_HASH: {
-
           if (state.log_table) {
             if (state.fraction) {
               ret_query->UpdateLogTableFullConflict(state.single_ref,
@@ -557,46 +531,9 @@ void RunBackend(oid_t thread_id) {
               ret_query->UpdateLogTable(state.single_ref, state.canonical);
             }
           }
-
-          // Control: The txn re-executed immediately
-          while (ret_query->Run() == false) {
-            // If still fail, the counter increase, then enter loop again
-            abort_count_ref++;
-
-            // Increase new order and payment txns' counter
-            switch (ret_query->GetTxnType()) {
-              case TXN_TYPE_NEW_ORDER: {
-                new_order_abort_count_ref++;
-                break;
-              }
-              case TXN_TYPE_PAYMENT: {
-                payment_abort_count_ref++;
-                break;
-              }
-              default: {
-                LOG_INFO("GetTxnType:: Unsupported scheduler: %d ",
-                         ret_query->GetTxnType());
-                break;
-              }
-            }
-
-            if (state.log_table) {
-              if (state.fraction) {
-                ret_query->UpdateLogTableFullConflict(state.single_ref,
-                                                      state.canonical);
-              } else {
-                ret_query->UpdateLogTable(state.single_ref, state.canonical);
-              }
-            }
-
-            if (is_running == false) {
-              break;
-            }
-          }  // while
-
+          // The txn re-executed immediately
           break;
         }
-
         default: {
           LOG_INFO("Scheduler_type :: Unsupported scheduler: %u ",
                    state.scheduler);
@@ -615,6 +552,13 @@ void RunBackend(oid_t thread_id) {
     // For execution time
     ret_query->RecordExetime(exe_total_ref);
 
+    // Increase the counter
+    commit_count_ref++;
+
+    // Increase commit counter for others
+    UpdateCommitAbortCouter(ret_query, new_order_commit_count_ref,
+                            payment_commit_count_ref);
+
     // clean up the hash table
     if (state.scheduler == SCHEDULER_TYPE_HASH) {
       // Update Log Table when success
@@ -627,29 +571,12 @@ void RunBackend(oid_t thread_id) {
       }
     }
 
-    // Increase the counter
-    commit_count_ref++;
-
-    switch (ret_query->GetTxnType()) {
-      case TXN_TYPE_NEW_ORDER: {
-        new_order_commit_count_ref++;
-        break;
-      }
-      case TXN_TYPE_PAYMENT: {
-        payment_commit_count_ref++;
-        break;
-      }
-      default: {
-        LOG_INFO("GetTxnType:: Unsupported scheduler: %d ",
-                 ret_query->GetTxnType());
-        break;
-      }
+  program_end:
+    // Finally, clean up
+    if (ret_query != nullptr) {
+      ret_query->Cleanup();
+      delete ret_query;
     }
-
-    // Second, clean up
-    ret_query->Cleanup();
-    delete ret_query;
-
     // LOG_INFO("Success:%d, fail:%d---%d", commit_count_ref,
     //         abort_count_ref, thread_id);
   }  // end big while
