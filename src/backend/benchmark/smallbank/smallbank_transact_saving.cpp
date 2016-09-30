@@ -111,9 +111,8 @@ TransactSaving *GenerateTransactSaving(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PLAN FOR SAVING
   /////////////////////////////////////////////////////////
-  std::vector<oid_t> saving_key_column_ids;
+  std::vector<oid_t> saving_key_column_ids = {0};  // CUSTID
   std::vector<ExpressionType> saving_expr_types;
-  saving_key_column_ids.push_back(0);  // CUSTID
   saving_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
   std::vector<Value> saving_key_values;
@@ -148,8 +147,8 @@ TransactSaving *GenerateTransactSaving(ZipfDistribution &zipf) {
   TargetList saving_target_list;
   DirectMapList saving_direct_map_list;
 
-  // Keep the first 2 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 2; ++col_itr) {
+  // Keep the first 1 column unchanged
+  for (oid_t col_itr = 0; col_itr < 1; ++col_itr) {
     saving_direct_map_list.emplace_back(col_itr,
                                         std::pair<oid_t, oid_t>(0, col_itr));
   }
@@ -300,6 +299,8 @@ bool TransactSaving::Run() {
   saving_update_index_scan_executor_->ResetState();
 
   saving_update_index_scan_executor_->SetValues(saving_key_values);
+
+  // Update the 2th column (bal)
 
   TargetList saving_target_list;
 

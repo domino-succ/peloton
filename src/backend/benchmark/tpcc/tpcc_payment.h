@@ -2395,16 +2395,23 @@ class Payment : public concurrency::TransactionQuery {
  public:
   executor::IndexScanExecutor* customer_pindex_scan_executor_;
   executor::IndexScanExecutor* customer_index_scan_executor_;
+
   executor::IndexScanExecutor* customer_update_bc_index_scan_executor_;
   executor::UpdateExecutor* customer_update_bc_executor_;
+
   executor::IndexScanExecutor* customer_update_gc_index_scan_executor_;
   executor::UpdateExecutor* customer_update_gc_executor_;
+
   executor::IndexScanExecutor* warehouse_index_scan_executor_;
+
   executor::IndexScanExecutor* warehouse_update_index_scan_executor_;
   executor::UpdateExecutor* warehouse_update_executor_;
+
   executor::IndexScanExecutor* district_index_scan_executor_;
+
   executor::IndexScanExecutor* district_update_index_scan_executor_;
   executor::UpdateExecutor* district_update_executor_;
+
   executor::ExecutorContext* context_;
 
   std::chrono::system_clock::time_point start_time_;

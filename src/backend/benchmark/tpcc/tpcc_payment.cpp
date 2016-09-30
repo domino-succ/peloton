@@ -422,10 +422,12 @@ bool Payment::Run() {
      W_ZIP FROM WAREHOUSE WHERE W_ID = ?", # w_id
      "updateWarehouseBalance": "UPDATE WAREHOUSE SET W_YTD = W_YTD + ? WHERE
      W_ID = ?", # h_amount, w_id
+
      "getDistrict": "SELECT D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE,
      D_ZIP FROM DISTRICT WHERE D_W_ID = ? AND D_ID = ?", # w_id, d_id
      "updateDistrictBalance": "UPDATE DISTRICT SET D_YTD = D_YTD + ? WHERE
      D_W_ID = ? AND D_ID = ?", # h_amount, d_w_id, d_id
+
      "getCustomerByCustomerId": "SELECT C_ID, C_FIRST, C_MIDDLE, C_LAST,
      C_STREET_1, C_STREET_2, C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT,
      C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_DATA
