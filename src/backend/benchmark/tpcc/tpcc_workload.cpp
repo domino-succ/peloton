@@ -540,7 +540,9 @@ void RunBackend(oid_t thread_id) {
           break;
         }
       }  // end switch
-    }    // end if execute fail
+
+      _mm_pause();
+    }  // end if execute fail
 
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
