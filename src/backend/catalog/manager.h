@@ -46,11 +46,10 @@ const int MaxTileGroupCount = 102400;
 
 class Manager {
  public:
-  Manager() {
+  Manager() : count(0) {
     for (int i = 0; i < MaxTileGroupCount; ++i) {
       locator[i] = nullptr;
     }
-
   }
 
   // Singleton
@@ -108,6 +107,9 @@ class Manager {
 
   Manager(Manager const &) = delete;
 
+  // TODO: Debug should be deleted later
+  uint64_t count;
+
  private:
   //===--------------------------------------------------------------------===//
   // Data members
@@ -115,7 +117,7 @@ class Manager {
 
   std::atomic<oid_t> oid = ATOMIC_VAR_INIT(START_OID);
 
-  //lookup_dir locator;
+  // lookup_dir locator;
   std::shared_ptr<storage::TileGroup> locator[MaxTileGroupCount];
   oid_t last_tile_group_id = 0;
 

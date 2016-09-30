@@ -22,7 +22,7 @@
 namespace peloton {
 
 namespace concurrency {
-  class TransactionManagerFactory;
+class TransactionManagerFactory;
 }
 
 namespace catalog {
@@ -38,7 +38,7 @@ Manager &Manager::GetInstance() {
 
 void Manager::AddTileGroup(
     const oid_t oid, const std::shared_ptr<storage::TileGroup> &location) {
-    LOG_TRACE("create tile group %d\n", oid);
+  LOG_TRACE("create tile group %d\n", oid);
 
   // drop the catalog reference to the old tile group
   // locator.erase(oid);
@@ -55,7 +55,7 @@ void Manager::DropTileGroup(const oid_t oid) {
   {
     LOG_TRACE("Dropping tile group %u", oid);
     // drop the catalog reference to the tile group
-    //locator.erase(oid);
+    // locator.erase(oid);
     locator[oid] = nullptr;
   }
 }
@@ -68,10 +68,12 @@ std::shared_ptr<storage::TileGroup> Manager::GetTileGroup(const oid_t oid) {
   // }
   // return location;
 
-  if (oid > MaxTileGroupCount) {
-    LOG_ERROR("exceed max tile group count! oid = %u", oid);
+  //  if (oid > MaxTileGroupCount) {
+  //    LOG_ERROR("exceed max tile group count! oid = %u", oid);
+  //  }
+  while (locator[oid].get() == nullptr) {
+    count++;
   }
-  while (locator[oid].get() == nullptr);
   return locator[oid];
 }
 

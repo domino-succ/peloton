@@ -996,6 +996,10 @@ void RunWorkload() {
   LOG_INFO("new order count = %u", new_order_table->GetAllCurrentTupleCount());
   LOG_INFO("order line count = %u",
            order_line_table->GetAllCurrentTupleCount());
+  std::cout << "------------Empty count:"
+            << catalog::Manager::GetInstance().count << "-----------"
+            << std::endl;
+  ;
 }
 
 /////////////////////////////////////////////////////////
