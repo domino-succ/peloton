@@ -181,7 +181,7 @@ WriteCheck *GenerateWriteCheck(ZipfDistribution &zipf) {
   DirectMapList checking_direct_map_list;
 
   // Keep the first 2 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 2; ++col_itr) {
+  for (oid_t col_itr = 0; col_itr < 1; ++col_itr) {
     checking_direct_map_list.emplace_back(col_itr,
                                           std::pair<oid_t, oid_t>(0, col_itr));
   }

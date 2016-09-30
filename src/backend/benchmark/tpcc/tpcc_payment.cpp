@@ -307,7 +307,7 @@ Payment *GeneratePayment() {
   TargetList district_target_list;
   DirectMapList district_direct_map_list;
 
-  // Keep all columns unchanged except for the
+  // Keep all columns unchanged except for the 9th
   for (oid_t col_itr = 0; col_itr < 11; ++col_itr) {
     if (col_itr != 9) {
       district_direct_map_list.emplace_back(
