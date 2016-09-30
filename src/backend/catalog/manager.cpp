@@ -73,6 +73,7 @@ std::shared_ptr<storage::TileGroup> Manager::GetTileGroup(const oid_t oid) {
   //  }
   while (locator[oid].get() == nullptr) {
     count++;
+    std::cout << "=========cout: " << count << "=========" << std::endl;
   }
   return locator[oid];
 }
