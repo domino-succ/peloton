@@ -580,7 +580,9 @@ void RunBackend(oid_t thread_id) {
           break;
         }
       }  // end switch
-    }    // end if execute fail
+
+      _mm_pause();
+    }  // end if execute fail
 
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
@@ -617,6 +619,8 @@ void RunBackend(oid_t thread_id) {
         ret_query->DecreaseRunTable(state.single_ref, state.canonical);
       }
     }
+
+    _mm_pause();
 
   program_end:
     // Finally, clean up
