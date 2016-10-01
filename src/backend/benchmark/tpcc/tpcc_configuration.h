@@ -24,7 +24,7 @@ namespace peloton {
 namespace benchmark {
 namespace tpcc {
 
-#define PRELOAD 500000  // 2000,000
+#define PRELOAD 800000  // 2000,000
 #define CLUSTER_ANALYSIS_TXN 10000
 #define CONFLICT_THRESHHOLD 0
 #define LOGTABLE "logtable"
