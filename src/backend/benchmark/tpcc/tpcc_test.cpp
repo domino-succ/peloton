@@ -604,6 +604,7 @@ bool Test::Run() {
   LOG_TRACE("c_last: %s, c_credit: %s, c_discount: %s",
             c_last.GetInfo().c_str(), c_credit.GetInfo().c_str(),
             c_discount.GetInfo().c_str());
+  */
 
   int district_update_value = ValuePeeker::PeekAsInteger(d_next_o_id) + 1;
   LOG_TRACE("district update value = %d", district_update_value);
@@ -612,8 +613,6 @@ bool Test::Run() {
       "incrementNextOrderId: UPDATE DISTRICT SET D_NEXT_O_ID = %d WHERE D_ID = "
       "%d AND D_W_ID = %d",
       district_update_value, district_id, warehouse_id);
-
-  */
 
   /////////////////////////////////////////////////////////
   // DISTRICT UPDATE
