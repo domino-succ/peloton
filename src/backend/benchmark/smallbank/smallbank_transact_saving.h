@@ -399,8 +399,8 @@ class TransactSaving : public concurrency::TransactionQuery {
   // Make them public for convenience
  public:
   executor::IndexScanExecutor* accounts_index_scan_executor_;
-  executor::IndexScanExecutor* saving_index_scan_executor_;
 
+  executor::IndexScanExecutor* saving_index_scan_executor_;
   executor::IndexScanExecutor* saving_update_index_scan_executor_;
   executor::UpdateExecutor* saving_update_executor_;
 

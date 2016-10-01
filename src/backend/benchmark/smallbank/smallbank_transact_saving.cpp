@@ -170,8 +170,8 @@ TransactSaving *GenerateTransactSaving(ZipfDistribution &zipf) {
   TransactSaving *ts = new TransactSaving();
 
   ts->accounts_index_scan_executor_ = accounts_index_scan_executor;
-  ts->saving_index_scan_executor_ = saving_index_scan_executor;
 
+  ts->saving_index_scan_executor_ = saving_index_scan_executor;
   ts->saving_update_index_scan_executor_ = saving_update_index_scan_executor;
   ts->saving_update_executor_ = saving_update_executor;
 
