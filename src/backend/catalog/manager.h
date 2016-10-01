@@ -46,7 +46,7 @@ const int MaxTileGroupCount = 102400;
 
 class Manager {
  public:
-  Manager() : count(0) {
+  Manager() {
     for (int i = 0; i < MaxTileGroupCount; ++i) {
       locator[i] = nullptr;
     }
@@ -106,9 +106,6 @@ class Manager {
                                 const oid_t index_oid) const;
 
   Manager(Manager const &) = delete;
-
-  // TODO: Debug should be deleted later
-  uint64_t count;
 
  private:
   //===--------------------------------------------------------------------===//
