@@ -441,9 +441,9 @@ bool Test::Run() {
   // int o_ol_cnt = o_ol_cnt_;
   // auto o_entry_ts = GetTimeStamp();
 
-  std::vector<int> &i_ids = i_ids_;
-  std::vector<int> &ol_w_ids = ol_w_ids_;
-  std::vector<int> &ol_qtys = ol_qtys_;
+  // std::vector<int> &i_ids = i_ids_;
+  // std::vector<int> &ol_w_ids = ol_w_ids_;
+  // std::vector<int> &ol_qtys = ol_qtys_;
 
   // bool o_all_local = o_all_local_;
 
@@ -606,6 +606,10 @@ bool Test::Run() {
             c_discount.GetInfo().c_str());
   */
 
+  /////////////////////////////////////////////////////////
+  // DISTRICT UPDATE
+  /////////////////////////////////////////////////////////
+
   int district_update_value = ValuePeeker::PeekAsInteger(d_next_o_id) + 1;
   LOG_TRACE("district update value = %d", district_update_value);
 
@@ -614,9 +618,6 @@ bool Test::Run() {
       "%d AND D_W_ID = %d",
       district_update_value, district_id, warehouse_id);
 
-  /////////////////////////////////////////////////////////
-  // DISTRICT UPDATE
-  /////////////////////////////////////////////////////////
   district_update_index_scan_executor_->ResetState();
 
   district_update_index_scan_executor_->SetValues(district_key_values);
@@ -739,6 +740,9 @@ bool Test::Run() {
   /////////////////////////////////////////////////////////
   // FOR EACH ITEM: STOCK SELECTION AND UPDATE
   /////////////////////////////////////////////////////////
+
+  /*
+
   for (size_t i = 0; i < i_ids.size(); ++i) {
     int item_id = i_ids.at(i);
     int ol_w_id = ol_w_ids.at(i);
@@ -752,6 +756,9 @@ bool Test::Run() {
     /////////////////////////////////////////////////////////
     // STOCK SELECTION
     /////////////////////////////////////////////////////////
+
+
+
     stock_index_scan_executor_->ResetState();
 
     std::vector<Value> stock_key_values;
@@ -860,7 +867,7 @@ bool Test::Run() {
     // ORDER LINE INSERT
     /////////////////////////////////////////////////////////
 
-    /*
+
 
     // OL_O_ID
     order_line_tuple->SetValue(0, ValueFactory::GetIntegerValue(
@@ -903,8 +910,9 @@ bool Test::Run() {
       return false;
     }
 
-    */
   }
+
+*/
 
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);

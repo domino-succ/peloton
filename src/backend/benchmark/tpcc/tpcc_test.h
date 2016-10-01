@@ -67,9 +67,9 @@ class Test : public concurrency::TransactionQuery {
 
     // customer_index_scan_executor_->SetContext(context);
 
-    stock_index_scan_executor_->SetContext(context);
-    stock_update_index_scan_executor_->SetContext(context);
-    stock_update_executor_->SetContext(context);
+    //    stock_index_scan_executor_->SetContext(context);
+    //    stock_update_index_scan_executor_->SetContext(context);
+    //    stock_update_executor_->SetContext(context);
 
     context_ = context;
   }
@@ -98,14 +98,14 @@ class Test : public concurrency::TransactionQuery {
     //    delete customer_index_scan_executor_;
     //    customer_index_scan_executor_ = nullptr;
 
-    delete stock_index_scan_executor_;
-    stock_index_scan_executor_ = nullptr;
-
-    delete stock_update_index_scan_executor_;
-    stock_update_index_scan_executor_ = nullptr;
-
-    delete stock_update_executor_;
-    stock_update_executor_ = nullptr;
+    //    delete stock_index_scan_executor_;
+    //    stock_index_scan_executor_ = nullptr;
+    //
+    //    delete stock_update_index_scan_executor_;
+    //    stock_update_index_scan_executor_ = nullptr;
+    //
+    //    delete stock_update_executor_;
+    //    stock_update_executor_ = nullptr;
   }
 
   // Run txn
