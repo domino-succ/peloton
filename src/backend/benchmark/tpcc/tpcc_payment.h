@@ -58,12 +58,12 @@ class Payment : public concurrency::TransactionQuery {
   ~Payment() {}
 
   void SetContext(executor::ExecutorContext* context) {
-    //    customer_pindex_scan_executor_->SetContext(context);
-    //    customer_index_scan_executor_->SetContext(context);
-    //    customer_update_bc_index_scan_executor_->SetContext(context);
-    //    customer_update_bc_executor_->SetContext(context);
-    //    customer_update_gc_index_scan_executor_->SetContext(context);
-    //    customer_update_gc_executor_->SetContext(context);
+    customer_pindex_scan_executor_->SetContext(context);
+    customer_index_scan_executor_->SetContext(context);
+    customer_update_bc_index_scan_executor_->SetContext(context);
+    customer_update_bc_executor_->SetContext(context);
+    customer_update_gc_index_scan_executor_->SetContext(context);
+    customer_update_gc_executor_->SetContext(context);
 
     warehouse_index_scan_executor_->SetContext(context);
     warehouse_update_index_scan_executor_->SetContext(context);
@@ -82,18 +82,18 @@ class Payment : public concurrency::TransactionQuery {
     // delete context_;
     // context_ = nullptr;
 
-    //    delete customer_pindex_scan_executor_;
-    //    customer_pindex_scan_executor_ = nullptr;
-    //    delete customer_index_scan_executor_;
-    //    customer_index_scan_executor_ = nullptr;
-    //    delete customer_update_bc_index_scan_executor_;
-    //    customer_update_bc_index_scan_executor_ = nullptr;
-    //    delete customer_update_bc_executor_;
-    //    customer_update_bc_executor_ = nullptr;
-    //    delete customer_update_gc_index_scan_executor_;
-    //    customer_update_gc_index_scan_executor_ = nullptr;
-    //    delete customer_update_gc_executor_;
-    //    customer_update_gc_executor_ = nullptr;
+    delete customer_pindex_scan_executor_;
+    customer_pindex_scan_executor_ = nullptr;
+    delete customer_index_scan_executor_;
+    customer_index_scan_executor_ = nullptr;
+    delete customer_update_bc_index_scan_executor_;
+    customer_update_bc_index_scan_executor_ = nullptr;
+    delete customer_update_bc_executor_;
+    customer_update_bc_executor_ = nullptr;
+    delete customer_update_gc_index_scan_executor_;
+    customer_update_gc_index_scan_executor_ = nullptr;
+    delete customer_update_gc_executor_;
+    customer_update_gc_executor_ = nullptr;
 
     delete warehouse_index_scan_executor_;
     warehouse_index_scan_executor_ = nullptr;

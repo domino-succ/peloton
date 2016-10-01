@@ -16,6 +16,7 @@
 #include "backend/benchmark/tpcc/tpcc_loader.h"
 #include "backend/benchmark/tpcc/tpcc_new_order.h"
 #include "backend/benchmark/tpcc/tpcc_payment.h"
+#include "backend/benchmark/tpcc/tpcc_test_payment.h"
 #include "backend/benchmark/tpcc/tpcc_test.h"
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/executor/abstract_executor.h"
@@ -332,6 +333,9 @@ void SetPayment(Payment* new_order);
 
 Test* GenerateTest();
 void SetTest(Test* test);
+
+TestPayment* GenerateTestPayment();
+void SetTestPayment(TestPayment* payment);
 
 bool RunDelivery(DeliveryPlans& delivery_plans, const size_t& thread_id);
 

@@ -460,9 +460,9 @@ bool Payment::Run() {
   /////////////////////////////////////////////////////////
   int warehouse_id = warehouse_id_;
   int district_id = district_id_;
-  //  int customer_warehouse_id = customer_warehouse_id_;
-  //  int customer_district_id = customer_district_id_;
-  //  int customer_id = customer_id_;
+  int customer_warehouse_id = customer_warehouse_id_;
+  int customer_district_id = customer_district_id_;
+  int customer_id = customer_id_;
   std::string customer_lastname = customer_lastname_;
   double h_amount = h_amount_;
 
@@ -479,88 +479,79 @@ bool Payment::Run() {
 
   auto txn = txn_manager.BeginTransaction();
 
-  /////////////////////////////////////////////////////////////////
-  // Read Customer
-  /////////////////////////////////////////////////////////////////
+  std::vector<Value> customer;
 
-  /*
+  if (customer_id >= 0) {
+    LOG_TRACE(
+        "getCustomerByCustomerId:  WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID = "
+        "? , # w_id = %d, d_id = %d, c_id = %d",
+        warehouse_id, district_id, customer_id);
 
-    std::vector<Value> customer;
+    customer_pindex_scan_executor_->ResetState();
 
-    if (customer_id >= 0) {
-      LOG_TRACE(
-          "getCustomerByCustomerId:  WHERE C_W_ID = ? AND C_D_ID = ? AND C_ID =
-    "
-          "? , # w_id = %d, d_id = %d, c_id = %d",
-          warehouse_id, district_id, customer_id);
+    std::vector<Value> customer_pkey_values;
 
-      customer_pindex_scan_executor_->ResetState();
+    customer_pkey_values.push_back(ValueFactory::GetIntegerValue(customer_id));
+    customer_pkey_values.push_back(ValueFactory::GetIntegerValue(district_id));
+    customer_pkey_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
 
-      std::vector<Value> customer_pkey_values;
+    customer_pindex_scan_executor_->SetValues(customer_pkey_values);
 
-      customer_pkey_values.push_back(ValueFactory::GetIntegerValue(customer_id));
-      customer_pkey_values.push_back(ValueFactory::GetIntegerValue(district_id));
-      customer_pkey_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
+    auto customer_list = ExecuteReadTest(customer_pindex_scan_executor_);
 
-      customer_pindex_scan_executor_->SetValues(customer_pkey_values);
-
-      auto customer_list = ExecuteReadTest(customer_pindex_scan_executor_);
-
-      // Check if aborted
-      if (txn->GetResult() != Result::RESULT_SUCCESS) {
-        LOG_TRACE("abort transaction");
-        txn_manager.AbortTransaction();
-        return false;
-      }
-
-      if (customer_list.size() != 1) {
-        assert(false);
-      }
-
-      customer = customer_list[0];
-
-    } else {
-      assert(customer_lastname.empty() == false);
-
-      LOG_TRACE(
-          "getCustomersByLastName: WHERE C_W_ID = ? AND C_D_ID = ? AND C_LAST =
-    "
-          "? ORDER BY C_FIRST, # w_id = %d, d_id = %d, c_last = %s",
-          warehouse_id, district_id, customer_lastname.c_str());
-
-      customer_index_scan_executor_->ResetState();
-
-      std::vector<Value> customer_key_values;
-
-      customer_key_values.push_back(ValueFactory::GetIntegerValue(district_id));
-      customer_key_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
-      customer_key_values.push_back(
-          ValueFactory::GetStringValue(customer_lastname));
-
-      customer_index_scan_executor_->SetValues(customer_key_values);
-
-      auto customer_list = ExecuteReadTest(customer_index_scan_executor_);
-
-      // Check if aborted
-      if (txn->GetResult() != Result::RESULT_SUCCESS) {
-        LOG_TRACE("abort transaction");
-        txn_manager.AbortTransaction();
-        return false;
-      }
-
-      if (customer_list.size() < 1) {
-        LOG_INFO("C_W_ID=%d, C_D_ID=%d", warehouse_id, district_id);
-        assert(false);
-      }
-
-      // Get the midpoint customer's id
-      auto mid_pos = (customer_list.size() - 1) / 2;
-      customer = customer_list[mid_pos];
+    // Check if aborted
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      LOG_TRACE("abort transaction");
+      txn_manager.AbortTransaction();
+      return false;
     }
-  */
+
+    if (customer_list.size() != 1) {
+      assert(false);
+    }
+
+    customer = customer_list[0];
+
+  } else {
+    assert(customer_lastname.empty() == false);
+
+    LOG_TRACE(
+        "getCustomersByLastName: WHERE C_W_ID = ? AND C_D_ID = ? AND C_LAST = "
+        "? ORDER BY C_FIRST, # w_id = %d, d_id = %d, c_last = %s",
+        warehouse_id, district_id, customer_lastname.c_str());
+
+    customer_index_scan_executor_->ResetState();
+
+    std::vector<Value> customer_key_values;
+
+    customer_key_values.push_back(ValueFactory::GetIntegerValue(district_id));
+    customer_key_values.push_back(ValueFactory::GetIntegerValue(warehouse_id));
+    customer_key_values.push_back(
+        ValueFactory::GetStringValue(customer_lastname));
+
+    customer_index_scan_executor_->SetValues(customer_key_values);
+
+    auto customer_list = ExecuteReadTest(customer_index_scan_executor_);
+
+    // Check if aborted
+    if (txn->GetResult() != Result::RESULT_SUCCESS) {
+      LOG_TRACE("abort transaction");
+      txn_manager.AbortTransaction();
+      return false;
+    }
+
+    if (customer_list.size() < 1) {
+      LOG_INFO("C_W_ID=%d, C_D_ID=%d", warehouse_id, district_id);
+      assert(false);
+    }
+
+    // Get the midpoint customer's id
+    auto mid_pos = (customer_list.size() - 1) / 2;
+    customer = customer_list[mid_pos];
+  }
 
   /////////////////////////////////////////////////////////////////
-  // Read and UPdate Warehouse
+  // Read warehouse
   /////////////////////////////////////////////////////////////////
 
   LOG_TRACE("getWarehouse:WHERE W_ID = ? # w_id = %d", warehouse_id);
@@ -686,8 +677,6 @@ bool Payment::Run() {
     return false;
   }
 
-  /*
-
   std::string customer_credit =
       ValuePeeker::PeekStringCopyWithoutNull(customer[11]);
 
@@ -800,8 +789,6 @@ bool Payment::Run() {
     txn_manager.AbortTransaction();
     return false;
   }
-
-*/
 
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
 
