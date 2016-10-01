@@ -551,7 +551,8 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
-          goto program_end;
+          // goto program_end;
+          break;
         }
         case SCHEDULER_TYPE_CONTROL:
         case SCHEDULER_TYPE_CONFLICT_LEANING:
@@ -618,12 +619,12 @@ void RunBackend(oid_t thread_id) {
       }
     }
 
-  program_end:
-    // Finally, clean up
-    if (ret_query != nullptr) {
-      ret_query->Cleanup();
-      delete ret_query;
-    }
+    //  program_end:
+    //    // Finally, clean up
+    //    if (ret_query != nullptr) {
+    //      ret_query->Cleanup();
+    //      delete ret_query;
+    //    }
 
   }  // end big while
 }
