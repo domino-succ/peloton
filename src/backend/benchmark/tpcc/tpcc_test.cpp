@@ -209,6 +209,9 @@ Test *GenerateTest() {
   // PLAN FOR CUSTOMER
   /////////////////////////////////////////////////////////
 
+  /*
+
+
   std::vector<oid_t> customer_key_column_ids;
   std::vector<ExpressionType> customer_expr_types;
 
@@ -239,6 +242,8 @@ Test *GenerateTest() {
       new executor::IndexScanExecutor(&customer_index_scan_node, nullptr);
 
   customer_index_scan_executor->Init();
+
+*/
 
   /////////////////////////////////////////////////////////
   // PLAN FOR STOCK
@@ -321,7 +326,7 @@ Test *GenerateTest() {
 
   test->district_update_executor_ = district_update_executor;
 
-  test->customer_index_scan_executor_ = customer_index_scan_executor;
+  // test->customer_index_scan_executor_ = customer_index_scan_executor;
 
   test->stock_index_scan_executor_ = stock_index_scan_executor;
 
@@ -565,6 +570,9 @@ bool Test::Run() {
   /////////////////////////////////////////////////////////
   // CUSTOMER SELECTION
   /////////////////////////////////////////////////////////
+
+  /*
+
   customer_index_scan_executor_->ResetState();
 
   std::vector<Value> customer_key_values;
@@ -604,6 +612,8 @@ bool Test::Run() {
       "incrementNextOrderId: UPDATE DISTRICT SET D_NEXT_O_ID = %d WHERE D_ID = "
       "%d AND D_W_ID = %d",
       district_update_value, district_id, warehouse_id);
+
+  */
 
   /////////////////////////////////////////////////////////
   // DISTRICT UPDATE
