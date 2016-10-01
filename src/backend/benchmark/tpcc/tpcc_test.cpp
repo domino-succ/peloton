@@ -85,28 +85,31 @@ Test *GenerateTest() {
   /////////////////////////////////////////////////////////
   // PLAN FOR ITEM
   /////////////////////////////////////////////////////////
-  std::vector<oid_t> item_key_column_ids;
-  std::vector<ExpressionType> item_expr_types;
-  item_key_column_ids.push_back(0);  // I_ID
-  item_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  /*
+    std::vector<oid_t> item_key_column_ids;
+    std::vector<ExpressionType> item_expr_types;
+    item_key_column_ids.push_back(0);  // I_ID
+    item_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  std::vector<Value> item_key_values;
+    std::vector<Value> item_key_values;
 
-  auto item_pkey_index = item_table->GetIndexWithOid(item_table_pkey_index_oid);
+    auto item_pkey_index =
+    item_table->GetIndexWithOid(item_table_pkey_index_oid);
 
-  planner::IndexScanPlan::IndexScanDesc item_index_scan_desc(
-      item_pkey_index, item_key_column_ids, item_expr_types, item_key_values,
-      runtime_keys);
+    planner::IndexScanPlan::IndexScanDesc item_index_scan_desc(
+        item_pkey_index, item_key_column_ids, item_expr_types, item_key_values,
+        runtime_keys);
 
-  std::vector<oid_t> item_column_ids = {2, 3, 4};  // I_NAME, I_PRICE, I_DATA
+    std::vector<oid_t> item_column_ids = {2, 3, 4};  // I_NAME, I_PRICE, I_DATA
 
-  planner::IndexScanPlan item_index_scan_node(
-      item_table, nullptr, item_column_ids, item_index_scan_desc);
+    planner::IndexScanPlan item_index_scan_node(
+        item_table, nullptr, item_column_ids, item_index_scan_desc);
 
-  executor::IndexScanExecutor *item_index_scan_executor =
-      new executor::IndexScanExecutor(&item_index_scan_node, nullptr);
+    executor::IndexScanExecutor *item_index_scan_executor =
+        new executor::IndexScanExecutor(&item_index_scan_node, nullptr);
 
-  item_index_scan_executor->Init();
+    item_index_scan_executor->Init();
+  */
 
   /////////////////////////////////////////////////////////
   // PLAN FOR WAREHOUSE
@@ -307,7 +310,7 @@ Test *GenerateTest() {
 
   Test *test = new Test();
 
-  test->item_index_scan_executor_ = item_index_scan_executor;
+  // test->item_index_scan_executor_ = item_index_scan_executor;
 
   test->warehouse_index_scan_executor_ = warehouse_index_scan_executor;
 
@@ -452,6 +455,8 @@ bool Test::Run() {
 
   auto txn = txn_manager.BeginTransaction();
 
+  /*
+
   // std::vector<float> i_prices;
   for (auto item_id : i_ids) {
 
@@ -484,6 +489,7 @@ bool Test::Run() {
 
   LOG_TRACE("getWarehouseTaxRate: SELECT W_TAX FROM WAREHOUSE WHERE W_ID = %d",
             warehouse_id);
+*/
 
   /////////////////////////////////////////////////////////
   // WAREHOUSE SELECTION
