@@ -75,20 +75,20 @@ for i in range(1, 12):
 ########################################################################################################
 #   Request speed from 1000 to 12000 per second
 #######################################################################################################
-for i in range(10000, 80000, 10000):
+for i in range(20000, 150000, 20000):
     for k in range(1, 11):
         cmd = "./src/smallbank -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z control -v" + " " + str(i)
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
-for i in range(10000, 80000, 10000):
+for i in range(20000, 150000, 20000):
     for k in range(1, 11):
         cmd = "./src/smallbank -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z ml -v" + " " + str(i)
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 #############################
-for i in range(10000, 80000, 10000):
+for i in range(20000, 150000, 20000):
     cmd = "./src/smallbank -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
@@ -97,7 +97,7 @@ for i in range(10000, 80000, 10000):
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
-for i in range(10000, 80000, 10000):
+for i in range(20000, 150000, 20000):
     cmd = "./src/smallbank -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
@@ -106,7 +106,7 @@ for i in range(10000, 80000, 10000):
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 #####################
-for i in range(10000, 80000, 10000):
+for i in range(20000, 150000, 20000):
     cmd = "./src/smallbank -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
@@ -115,7 +115,7 @@ for i in range(10000, 80000, 10000):
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
-for i in range(10000, 80000, 10000):
+for i in range(20000, 150000, 20000):
     cmd = "./src/smallbank -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
