@@ -437,15 +437,15 @@ bool Test::Run() {
   /////////////////////////////////////////////////////////
   int warehouse_id = warehouse_id_;
   int district_id = district_id_;
-  int customer_id = customer_id_;
-  int o_ol_cnt = o_ol_cnt_;
+  // int customer_id = customer_id_;
+  // int o_ol_cnt = o_ol_cnt_;
   // auto o_entry_ts = GetTimeStamp();
 
   std::vector<int> &i_ids = i_ids_;
   std::vector<int> &ol_w_ids = ol_w_ids_;
   std::vector<int> &ol_qtys = ol_qtys_;
 
-  bool o_all_local = o_all_local_;
+  // bool o_all_local = o_all_local_;
 
   /////////////////////////////////////////////////////////
   // BEGIN TRANSACTION
@@ -647,6 +647,9 @@ bool Test::Run() {
   /////////////////////////////////////////////////////////
   // ORDERS INSERT
   /////////////////////////////////////////////////////////
+
+  /*
+
   std::unique_ptr<storage::Tuple> orders_tuple(
       new storage::Tuple(orders_table->GetSchema(), true));
 
@@ -698,9 +701,14 @@ bool Test::Run() {
       "createTest: INSERT INTO NEW_ORDER (NO_O_ID, NO_D_ID, NO_W_ID) "
       "VALUES (?, ?, ?)");
 
+   */
+
   /////////////////////////////////////////////////////////
   // NEW ORDER INSERT
   /////////////////////////////////////////////////////////
+
+  /*
+
   std::unique_ptr<storage::Tuple> new_order_tuple(
       new storage::Tuple(new_order_table->GetSchema(), true));
 
@@ -725,6 +733,8 @@ bool Test::Run() {
     txn_manager.AbortTransaction();
     return false;
   }
+
+  */
 
   /////////////////////////////////////////////////////////
   // FOR EACH ITEM: STOCK SELECTION AND UPDATE
@@ -849,6 +859,9 @@ bool Test::Run() {
     /////////////////////////////////////////////////////////
     // ORDER LINE INSERT
     /////////////////////////////////////////////////////////
+
+    /*
+
     // OL_O_ID
     order_line_tuple->SetValue(0, ValueFactory::GetIntegerValue(
                                       ValuePeeker::PeekAsInteger(d_next_o_id)),
@@ -889,6 +902,8 @@ bool Test::Run() {
       txn_manager.AbortTransaction();
       return false;
     }
+
+    */
   }
 
   // transaction passed execution.
