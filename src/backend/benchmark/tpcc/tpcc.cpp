@@ -153,7 +153,8 @@ void LoadQuery(uint64_t count) {
   bool new_order = true;
   for (uint64_t i = 0; i < count; i++) {
     // GenerateALLAndCache(new_order);
-    GenerateALLAndCache(false);
+    // GenerateALLAndCache(false);
+    GenerateSimpleTxn();
 
     // change generating
     if (new_order) {

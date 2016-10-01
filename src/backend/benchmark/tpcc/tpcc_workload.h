@@ -16,6 +16,7 @@
 #include "backend/benchmark/tpcc/tpcc_loader.h"
 #include "backend/benchmark/tpcc/tpcc_new_order.h"
 #include "backend/benchmark/tpcc/tpcc_payment.h"
+#include "backend/benchmark/tpcc/tpcc_test.h"
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/executor/abstract_executor.h"
 #include "backend/storage/data_table.h"
@@ -320,7 +321,6 @@ size_t GenerateWarehouseId(const size_t& thread_id);
 size_t GenerateWarehouseId();
 
 NewOrder* GenerateNewOrder();
-
 bool RunNewOrder(NewOrderPlans& new_order_plans, const size_t& thread_id);
 bool RunNewOrder(NewOrder* new_order);
 void SetNewOrder(NewOrder* new_order);
@@ -329,6 +329,9 @@ Payment* GeneratePayment();
 bool RunPayment(PaymentPlans& payment_plans, const size_t& thread_id);
 bool RunPayment(Payment* new_order);
 void SetPayment(Payment* new_order);
+
+Test* GenerateTest();
+void SetTest(Test* test);
 
 bool RunDelivery(DeliveryPlans& delivery_plans, const size_t& thread_id);
 
@@ -339,6 +342,7 @@ bool RunStockLevel(const size_t& thread_id, const int& order_range);
 bool RunScanStock();
 
 /////////////////////////////////////////////////////////
+void GenerateSimpleTxn();
 void GenerateAndCacheQuery();
 void GenerateALLAndCache(bool new_order);
 bool EnqueueCachedUpdate(

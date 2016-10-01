@@ -158,6 +158,15 @@ void GenerateALLAndCache(bool new_order) {
   }
 }
 
+void GenerateSimpleTxn() {
+
+  // NewOrder *txn = GenerateNewOrder();
+  // Payment *txn = GeneratePayment();
+  Test *txn = GenerateTest();
+
+  concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
+}
+
 std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
   std::vector<SingleRegion> txn_regions;
 
