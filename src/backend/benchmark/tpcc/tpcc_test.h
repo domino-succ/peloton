@@ -57,7 +57,7 @@ class Test : public concurrency::TransactionQuery {
   ~Test() {}
 
   void SetContext(executor::ExecutorContext* context) {
-    item_index_scan_executor_->SetContext(context);
+    // item_index_scan_executor_->SetContext(context);
 
     warehouse_index_scan_executor_->SetContext(context);
 
@@ -80,8 +80,8 @@ class Test : public concurrency::TransactionQuery {
     // delete context_;
     // context_ = nullptr;
 
-    delete item_index_scan_executor_;
-    item_index_scan_executor_ = nullptr;
+    // delete item_index_scan_executor_;
+    // item_index_scan_executor_ = nullptr;
 
     delete warehouse_index_scan_executor_;
     warehouse_index_scan_executor_ = nullptr;
