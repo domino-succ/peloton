@@ -59,6 +59,8 @@ class TestPayment : public concurrency::TransactionQuery {
     // item_index_scan_executor_->SetContext(context);
 
     warehouse_index_scan_executor_->SetContext(context);
+    warehouse_update_index_scan_executor_->SetContext(context);
+    warehouse_update_executor_->SetContext(context);
 
     district_index_scan_executor_->SetContext(context);
     district_update_index_scan_executor_->SetContext(context);
@@ -85,8 +87,11 @@ class TestPayment : public concurrency::TransactionQuery {
     delete warehouse_index_scan_executor_;
     warehouse_index_scan_executor_ = nullptr;
 
-    delete district_index_scan_executor_;
-    district_index_scan_executor_ = nullptr;
+    delete warehouse_update_index_scan_executor_;
+    warehouse_update_executor_ = nullptr;
+
+    delete warehouse_update_executor_;
+    warehouse_update_executor_ = nullptr;
 
     delete district_update_index_scan_executor_;
     district_update_index_scan_executor_ = nullptr;
