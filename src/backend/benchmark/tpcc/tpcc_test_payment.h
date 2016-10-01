@@ -35,6 +35,8 @@ class TestPayment : public concurrency::TransactionQuery {
   TestPayment()
       : item_index_scan_executor_(nullptr),
         warehouse_index_scan_executor_(nullptr),
+        warehouse_update_index_scan_executor_(nullptr),
+        warehouse_update_executor_(nullptr),
         district_index_scan_executor_(nullptr),
         district_update_index_scan_executor_(nullptr),
         district_update_executor_(nullptr),
@@ -2213,7 +2215,8 @@ class TestPayment : public concurrency::TransactionQuery {
   executor::IndexScanExecutor* item_index_scan_executor_;
 
   executor::IndexScanExecutor* warehouse_index_scan_executor_;
-
+  executor::IndexScanExecutor* warehouse_update_index_scan_executor_;
+  executor::UpdateExecutor* warehouse_update_executor_;
   executor::IndexScanExecutor* district_index_scan_executor_;
   executor::IndexScanExecutor* district_update_index_scan_executor_;
   executor::UpdateExecutor* district_update_executor_;

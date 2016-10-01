@@ -140,6 +140,40 @@ TestPayment *GenerateTestPayment() {
 
   warehouse_index_scan_executor->Init();
 
+  // update plan
+  std::vector<oid_t> warehouse_update_column_ids = {8};  // D_NEXT_O_ID
+
+  // Create plan node.
+  planner::IndexScanPlan warehouse_update_index_scan_node(
+      warehouse_table, nullptr, warehouse_update_column_ids,
+      warehouse_index_scan_desc);
+
+  executor::IndexScanExecutor *warehouse_update_index_scan_executor =
+      new executor::IndexScanExecutor(&warehouse_update_index_scan_node,
+                                      nullptr);
+
+  TargetList warehouse_target_list;
+  DirectMapList warehouse_direct_map_list;
+
+  // Update the last attribute
+  for (oid_t col_itr = 0; col_itr < 8; col_itr++) {
+    warehouse_direct_map_list.emplace_back(col_itr,
+                                           std::pair<oid_t, oid_t>(0, col_itr));
+  }
+
+  std::unique_ptr<const planner::ProjectInfo> warehouse_project_info(
+      new planner::ProjectInfo(std::move(warehouse_target_list),
+                               std::move(warehouse_direct_map_list)));
+  planner::UpdatePlan warehouse_update_node(warehouse_table,
+                                            std::move(warehouse_project_info));
+
+  executor::UpdateExecutor *warehouse_update_executor =
+      new executor::UpdateExecutor(&warehouse_update_node, nullptr);
+
+  warehouse_update_executor->AddChild(warehouse_update_index_scan_executor);
+
+  warehouse_update_executor->Init();
+
   /////////////////////////////////////////////////////////
   // PLAN FOR DISTRICT
   /////////////////////////////////////////////////////////
@@ -253,12 +287,13 @@ TestPayment *GenerateTestPayment() {
   // test->customer_index_scan_executor_ = customer_index_scan_executor;
 
   test->warehouse_index_scan_executor_ = warehouse_index_scan_executor;
+  test->warehouse_update_index_scan_executor_ =
+      warehouse_update_index_scan_executor;
+  test->warehouse_update_executor_ = warehouse_update_executor;
 
   test->district_index_scan_executor_ = district_index_scan_executor;
-
   test->district_update_index_scan_executor_ =
       district_update_index_scan_executor;
-
   test->district_update_executor_ = district_update_executor;
 
   // Set values
@@ -416,6 +451,35 @@ bool TestPayment::Run() {
       "getDistrict: SELECT D_TAX, D_NEXT_O_ID FROM DISTRICT WHERE D_ID = %d "
       "AND D_W_ID = %d",
       district_id, warehouse_id);
+
+  // Update Warehouse
+  double warehouse_new_balance = 30.3;
+
+  warehouse_update_index_scan_executor_->ResetState();
+
+  warehouse_update_index_scan_executor_->SetValues(warehouse_key_values);
+
+  TargetList warehouse_target_list;
+
+  // Update the 9th column
+  Value warehouse_new_balance_value =
+      ValueFactory::GetDoubleValue(warehouse_new_balance);
+
+  warehouse_target_list.emplace_back(
+      8, expression::ExpressionUtil::ConstantValueFactory(
+             warehouse_new_balance_value));
+
+  warehouse_update_executor_->SetTargetList(warehouse_target_list);
+
+  // Execute the query
+  ExecuteUpdateTest(warehouse_update_executor_);
+
+  // Check if aborted
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   /////////////////////////////////////////////////////////
   // DISTRICT SELECTION
