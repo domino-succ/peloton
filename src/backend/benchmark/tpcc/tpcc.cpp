@@ -161,8 +161,6 @@ void LoadQuery(uint64_t count) {
     } else {
       new_order = true;
     }
-
-    _mm_pause();
   }
 
   if (state.generate_count == 0) {
@@ -171,8 +169,6 @@ void LoadQuery(uint64_t count) {
       std::chrono::system_clock::time_point start =
           std::chrono::system_clock::now();
       EnqueueCachedUpdate(start);
-
-      _mm_pause();
     }
   }
 
