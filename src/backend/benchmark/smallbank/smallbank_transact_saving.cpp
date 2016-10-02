@@ -259,10 +259,12 @@ bool TransactSaving::Run() {
     return false;
   }
 
-  if (ga1_lists_values.size() != 1) {
-    LOG_ERROR("ACCOUNTS return size incorrect : %lu", ga1_lists_values.size());
-    assert(false);
-  }
+  // FIXME: should we comment out this?
+  //  if (ga1_lists_values.size() != 1) {
+  //    LOG_ERROR("ACCOUNTS return size incorrect : %lu",
+  // ga1_lists_values.size());
+  //    assert(false);
+  //  }
 
   /////////////////////////////////////////////////////////
   // CHECKING
@@ -287,11 +289,12 @@ bool TransactSaving::Run() {
     return false;
   }
 
-  if (gc_lists_values.size() != 1) {
-    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
-              gc_lists_values.size());
-    assert(false);
-  }
+  // FIXME: should we comment out this?
+  //  if (gc_lists_values.size() != 1) {
+  //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+  //              gc_lists_values.size());
+  //    assert(false);
+  //  }
 
   auto bal_saving = gc_lists_values[0][0];
 

@@ -257,10 +257,12 @@ bool Balance::Run() {
     return false;
   }
 
-  if (ga1_lists_values.size() != 1) {
-    LOG_ERROR("ACCOUNTS return size incorrect : %lu", ga1_lists_values.size());
-    assert(false);
-  }
+  // FIXME: should we comment out this?
+  //  if (ga1_lists_values.size() != 1) {
+  //    LOG_ERROR("ACCOUNTS return size incorrect : %lu",
+  // ga1_lists_values.size());
+  //    assert(false);
+  //  }
 
   /////////////////////////////////////////////////////////
   // SAVINGS SELECTION (id 0)
@@ -283,11 +285,12 @@ bool Balance::Run() {
     return false;
   }
 
-  if (gs_lists_values.size() != 1) {
-    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
-              gs_lists_values.size());
-    assert(false);
-  }
+  // FIXME: should we comment out this?
+  //  if (gs_lists_values.size() != 1) {
+  //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+  //              gs_lists_values.size());
+  //    assert(false);
+  //  }
 
   // auto bal_saving = gs_lists_values[0][0];
 
@@ -312,17 +315,12 @@ bool Balance::Run() {
     return false;
   }
 
-  if (gc_lists_values.size() != 1) {
-    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
-              gc_lists_values.size());
-    assert(false);
-  }
-
-  //  auto bal_checking = gc_lists_values[0][0];
-  //
-  //  // Total
-  //  double total =
-  //      GetDoubleFromValue(bal_saving) + GetDoubleFromValue(bal_checking);
+  // FIXME: should we comment out this?
+  //  if (gc_lists_values.size() != 1) {
+  //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+  //              gc_lists_values.size());
+  //    assert(false);
+  //  }
 
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
