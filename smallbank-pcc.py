@@ -25,50 +25,50 @@ if os.path.isfile(output_file):
 
 for i in range(1, 12):
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z control"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z control"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z ml"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z ml"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 ####################
 for i in range(1, 12):   
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 #####################
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
@@ -77,50 +77,50 @@ for i in range(1, 12):
 #######################################################################################################
 for i in range(20000, 150000, 20000):
     for k in range(1, 11):
-        cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z control -v" + " " + str(i)
+        cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -z control -v" + " " + str(i)
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(20000, 150000, 20000):
     for k in range(1, 11):
-        cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z ml -v" + " " + str(i)
+        cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -z ml -v" + " " + str(i)
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 #############################
 for i in range(20000, 150000, 20000):
-    cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -j"
+    cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -f"
+        cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(20000, 150000, 20000):
-    cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -c -j"
+    cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -c -f"
+        cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -o -l -c -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 #####################
 for i in range(20000, 150000, 20000):
-    cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -j"
+    cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -f"
+        cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(20000, 150000, 20000):
-    cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -c -j"
+    cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -c -f"
+        cmd = "./src/smallbank -b 11 -k 1 -p pcc -g co -d 5 -w 11 -n 1 -h 90 -v" + " " + str(i) + " " + "-z hash -l -c -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
@@ -130,38 +130,38 @@ for i in range(20000, 150000, 20000):
 #######################################################################################################
 ####################
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -c"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 #####################
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -c"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
@@ -169,53 +169,53 @@ for i in range(1, 12):
 # hot spot = 10
 #########################################################################################################
 #for i in range(1, 12):
-#    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z control"
+#    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z control"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 #for i in range(1, 12):
-#    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z ml"
+#    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z ml"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 #####################
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -j"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -j"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 #
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -f"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -f"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 #
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -c -j"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -c -j"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 #
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -c -f"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -o -l -c -f"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 ######################
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -j"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -j"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 #
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -f"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -f"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 #
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -c -j"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -c -j"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 #
 #for i in range(1, 12):
-#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -c -f"
+#   cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 10 -z hash -l -c -f"
 #   pid = subprocess.Popen(cmd, shell=True)
 #   pid.wait()
 
@@ -225,49 +225,50 @@ for i in range(1, 12):
 #########################################################################################################
 for i in range(1, 12):
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z control"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z control"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z ml"
+    for k in range(1, 11):
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z ml"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 ####################
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -c -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -c -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -o -l -c -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 #####################
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
 for i in range(1, 12):
-    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -c -j"
+    cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -c -j"
     pid = subprocess.Popen(cmd, shell=True)
     pid.wait()
     for k in range(1, 11):
-        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p occ -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -c -f"
+        cmd = "./src/smallbank -k 1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -h 50 -z hash -l -c -f"
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
