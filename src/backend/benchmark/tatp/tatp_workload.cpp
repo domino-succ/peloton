@@ -80,10 +80,10 @@ namespace tatp {
 
 #define FREQUENCY_GET_ACCESS_DATA 0.14         // Single
 #define FREQUENCY_GET_NEW_DESTINATION 0.1      // Single
-#define FREQUENCY_GET_SUBSCRIBER_DATA 0.20     // Single
+#define FREQUENCY_GET_SUBSCRIBER_DATA 0.35     // Single
 #define FREQUENCY_INSERT_CALL_FORWARDING 0.02  // Multi
 #define FREQUENCY_DELETE_CALL_FORWARDING 0.02  // Multi
-#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.17  // Single
+#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.02  // Single
 #define FREQUENCY_UPDATE_LOCATION 0.35         // Multi
 
 volatile bool is_running = true;
