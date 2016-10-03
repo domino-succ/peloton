@@ -458,6 +458,11 @@ void RunBackend(oid_t thread_id) {
         case SCHEDULER_TYPE_CONFLICT_RANGE:
         case SCHEDULER_TYPE_ABORT_QUEUE:
         case SCHEDULER_TYPE_CONFLICT_DETECT: {
+          // Note: otherwise it will cause failed insert continuly execute
+          if (ret_query->GetTxnType() == TXN_TYPE_INSERT_CALL_FORWARDING) {
+            goto program_end;
+          }
+
           // Control: The txn re-executed immediately
           break;
         }
