@@ -266,7 +266,7 @@ bool DeteteCallForwarding::Run() {
   if (ga1_lists_values.size() != 1) {
     LOG_ERROR("SUBSCRIBER return size incorrect : %lu",
               ga1_lists_values.size());
-    assert(false);
+    // assert(false);
   }
 
   /////////////////////////////////////////////////////////

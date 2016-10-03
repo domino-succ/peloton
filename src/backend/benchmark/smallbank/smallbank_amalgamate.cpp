@@ -404,11 +404,12 @@ bool Amalgamate::Run() {
     return false;
   }
 
-  if (gs_lists_values.size() != 1) {
-    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
-              gs_lists_values.size());
-    assert(false);
-  }
+  // FIXME: COMMENT OUT
+  //  if (gs_lists_values.size() != 1) {
+  //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+  //              gs_lists_values.size());
+  //    assert(false);
+  //  }
 
   auto bal_saving = gs_lists_values[0][0];
 

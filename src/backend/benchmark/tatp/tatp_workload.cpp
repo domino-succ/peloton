@@ -342,8 +342,8 @@ bool EnqueueCachedUpdate(
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
-  oid_t &execution_count_ref = abort_counts[thread_id];
-  oid_t &transaction_count_ref = commit_counts[thread_id];
+  oid_t &abort_count_ref = abort_counts[thread_id];
+  oid_t &commit_count_ref = commit_counts[thread_id];
   oid_t &total_count_ref = total_counts[thread_id];
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
@@ -433,176 +433,90 @@ void RunBackend(oid_t thread_id) {
     PL_ASSERT(ret_query != nullptr);
     total_count_ref++;
 
-    // Before execute query, update run table
-    //    if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    //      // Update Run Table with the queue. That is to increasing the queue
-    //      // reference in Run Table
-    //      int queue = ret_query->GetQueueNo();
-    //      ret_query->UpdateRunTable(queue, state.single_ref, state.canonical);
-    //    }
-
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
 
-    if (ret_query->Run() == false) {
-      // Increase the counter
-      execution_count_ref++;
-
+    // Re-exeucte a txn until success
+    while (ret_query->Run() == false) {
       if (is_running == false) {
         break;
       }
-      switch (state.scheduler) {
 
+      // Increase the counter
+      abort_count_ref++;
+
+      switch (state.scheduler) {
         case SCHEDULER_TYPE_NONE: {
           // We do nothing in this case.Just delete the query
           // Since we discard the txn, do not record the throughput and delay
-          ret_query->Cleanup();
-          delete ret_query;
-          break;
+          goto program_end;
         }
-        case SCHEDULER_TYPE_CONTROL: {
-          // Control: The txn re-executed immediately
-
-          // Note: otherwise it will cause failed insert continuly execute
-          if (ret_query->GetTxnType() == TXN_TYPE_INSERT_CALL_FORWARDING) {
-            ret_query->Cleanup();
-            delete ret_query;
-            break;
-          }
-
-          while (ret_query->Run() == false) {
-            // If still fail, the counter increase, then enter loop again
-            execution_count_ref++;
-
-            if (is_running == false) {
-              break;
-            }
-          }
-
-          // If execute successfully, we should clean up the query
-          // First compute the delay
-          ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
-
-          // Second, clean up
-          ret_query->Cleanup();
-          delete ret_query;
-
-          // Increase the counter
-          transaction_count_ref++;
-          break;
-        }
-        case SCHEDULER_TYPE_ABORT_QUEUE: {
-          // Queue: put the txn at the end of the queue
-          //          concurrency::TransactionScheduler::GetInstance().SingleEnqueue(
-          //              ret_query);
-          concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-              ret_query, state.single_ref);
-          break;
-        }
-
+        case SCHEDULER_TYPE_CONTROL:
+        case SCHEDULER_TYPE_CONFLICT_LEANING:
+        case SCHEDULER_TYPE_CLUSTER:
+        case SCHEDULER_TYPE_CONFLICT_RANGE:
+        case SCHEDULER_TYPE_ABORT_QUEUE:
         case SCHEDULER_TYPE_CONFLICT_DETECT: {
-          concurrency::TransactionScheduler::GetInstance().CounterEnqueue(
-              ret_query);
+          // Control: The txn re-executed immediately
           break;
         }
         case SCHEDULER_TYPE_HASH: {
+          // Note: otherwise it will cause failed insert continuly execute
+          if (ret_query->GetTxnType() == TXN_TYPE_INSERT_CALL_FORWARDING) {
+            goto program_end;
+          }
 
           if (state.log_table) {
-            ret_query->UpdateLogTable(state.single_ref, state.canonical);
-            //            ret_query->UpdateLogTableFullConflict(state.single_ref,
-            //                                                  state.canonical);
-
-            concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-                ret_query, state.single_ref);
-          }
-          // Log table is ready
-          else if (state.online) {
-            if (state.lock_free) {
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, true, state.single_ref,
-                  state.canonical, state.fraction);
-            }
-            // lock
-            else {
-              concurrency::TransactionScheduler::GetInstance().RunTableLock();
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, true, state.single_ref,
-                  state.canonical, state.fraction);
-              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
-            }
-          } else {
-            if (state.lock_free) {
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, false, state.single_ref,
-                  state.canonical, state.fraction);
-            }
-            // lock
-            else {
-              concurrency::TransactionScheduler::GetInstance().RunTableLock();
-              concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-                  ret_query, state.offline, false, state.single_ref,
-                  state.canonical, state.fraction);
-              concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+            if (state.fraction) {
+              ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                    state.canonical);
+            } else {
+              ret_query->UpdateLogTable(state.single_ref, state.canonical);
             }
           }
-
+          // The txn re-executed immediately
           break;
         }
-        case SCHEDULER_TYPE_CONFLICT_LEANING: {
-          // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(
-          //    ret_query);
-          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-          break;
-        }
-        case SCHEDULER_TYPE_CLUSTER: {
-          concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(
-              ret_query);
-          break;
-        }
-        case SCHEDULER_TYPE_CONFLICT_RANGE: {
-          concurrency::TransactionScheduler::GetInstance().Enqueue(ret_query);
-          break;
-        }
-
         default: {
           LOG_INFO("Scheduler_type :: Unsupported scheduler: %u ",
                    state.scheduler);
           break;
         }
       }  // end switch
-    }    // end if execute fail
+
+      _mm_pause();
+    }  // end if execute fail
 
     /////////////////////////////////////////////////
     // Execute success: the memory should be deleted
     /////////////////////////////////////////////////
-    else {
-      // First compute the delay
-      ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
-      // clean up the hash table
-      if (state.scheduler == SCHEDULER_TYPE_HASH) {
+    // First compute the delay
+    ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
-        // Update Log Table when success
-        //        if (state.log_table) {
-        //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
-        //                                               state.canonical);
-        //        } else {
-        // Remove txn from Run Table
-        if (!state.lock_free) {
-          ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-        }
+    // Increase the counter
+    commit_count_ref++;
+
+    // clean up the hash table
+    if (state.scheduler == SCHEDULER_TYPE_HASH) {
+      // Update Log Table when success
+      if (state.log_table && state.fraction) {
+        ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
       }
+      // Remove txn from Run Table
+      if (!state.lock_free) {
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+      }
+    }
 
-      // Increase the counter
-      transaction_count_ref++;
-
-      // Finally, clean up
+  program_end:
+    // Finally, clean up
+    if (ret_query != nullptr) {
       ret_query->Cleanup();
       delete ret_query;
-
-    }  // end else execute == true
-  }    // end big while
+    }
+  }  // end big while
 }
 
 void QueryBackend(oid_t thread_id) {
