@@ -446,6 +446,10 @@ void RunBackend(oid_t thread_id) {
       break;
     }
 
+    LOG_INFO("accounts tile group = %lu", accounts_table->GetTileGroupCount());
+    LOG_INFO("savings tile group  = %lu", savings_table->GetTileGroupCount());
+    LOG_INFO("checking tile group = %lu", checking_table->GetTileGroupCount());
+
     // Pop a query from a queue and execute
     concurrency::TransactionQuery *ret_query = nullptr;
     bool ret_pop = false;
