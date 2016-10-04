@@ -67,7 +67,7 @@ static void WriteOutput() {
       state.steal, state.steal_rate, state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
-  LOG_INFO("sub txn type -- ama :: %lf tps_, %lf abort, %lf delay",
+  LOG_INFO("sub txn type -- ama :: %lf tps, %lf abort, %lf delay",
            state.ama_throughput, state.ama_abort_rate, state.ama_delay);
 
   LOG_INFO("sub txn type -- bal :: %lf tps, %lf abort, %lf delay",

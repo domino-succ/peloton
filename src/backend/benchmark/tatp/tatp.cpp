@@ -65,13 +65,13 @@ static void WriteOutput() {
       state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
 
-  LOG_INFO("sub txn type -- del :: %lf tps_, %lf abort, %lf delay",
+  LOG_INFO("sub txn type -- del :: %lf tps, %lf abort, %lf delay",
            state.del_throughput, state.del_abort_rate, state.del_delay);
 
   LOG_INFO("sub txn type -- acc :: %lf tps, %lf abort, %lf delay",
            state.acc_throughput, state.acc_abort_rate, state.acc_delay);
 
-  LOG_INFO("sub txn type -- new_d :: %lf tps, %lf abort, %lf delay",
+  LOG_INFO("sub txn type -- new :: %lf tps, %lf abort, %lf delay",
            state.new_throughput, state.new_abort_rate, state.new_delay);
 
   LOG_INFO("sub txn type -- sub :: %lf tps, %lf abort, %lf delay",
