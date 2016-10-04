@@ -52,7 +52,7 @@ const size_t SF_TYPE_SIZE = 4;
 const size_t BASIC_SUBSCRIBERS = 10000;
 size_t NUM_SUBSCRIBERS = 0;
 
-const size_t HOTSPOT_FIXED_SIZE = 15;  // fixed number of tuples
+const size_t HOTSPOT_FIXED_SIZE = 20;  // fixed number of tuples
 
 double data_length_3 = 3;
 double data_length_5 = 4;
