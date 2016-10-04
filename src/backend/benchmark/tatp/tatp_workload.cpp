@@ -91,11 +91,11 @@ volatile bool is_run_table = false;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
-oid_t *total_counts;
 oid_t *generate_counts;
 uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
+oid_t *steal_counts;
 
 // execute time
 uint64_t *exe_totals;
@@ -445,9 +445,9 @@ void UpdateDelayCounter(concurrency::TransactionQuery *query, uint64_t &del,
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
+  oid_t &steal_count_ref = steal_counts[thread_id];
   oid_t &abort_count_ref = abort_counts[thread_id];
   oid_t &commit_count_ref = commit_counts[thread_id];
-  oid_t &total_count_ref = total_counts[thread_id];
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
@@ -564,7 +564,11 @@ void RunBackend(oid_t thread_id) {
     }
 
     PL_ASSERT(ret_query != nullptr);
-    total_count_ref++;
+
+    // Record stealing
+    if (ret_steal) {
+      steal_count_ref++;
+    }
 
     // Now record start time for execution
     std::chrono::system_clock::time_point exe_start_time =
@@ -768,6 +772,9 @@ void RunWorkload() {
   // oid_t num_scan_threads = state.scan_backend_count;
   oid_t num_generate = state.generate_count;
 
+  steal_counts = new oid_t[num_threads];
+  memset(steal_counts, 0, sizeof(oid_t) * num_threads);
+
   abort_counts = new oid_t[num_threads];
   memset(abort_counts, 0, sizeof(oid_t) * num_threads);
 
@@ -783,8 +790,6 @@ void RunWorkload() {
   scan_stock_count = 0;
   scan_stock_avg_latency = 0.0;
 
-  total_counts = new oid_t[num_threads];
-  memset(total_counts, 0, sizeof(oid_t) * num_threads);
   generate_counts = new oid_t[num_generate];
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
@@ -961,12 +966,6 @@ void RunWorkload() {
   }
   state.generate_rate = total_generate_count * 1.0 / state.duration;
 
-  // calculate the total execution count
-  oid_t total_exe_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_exe_count += total_counts[i];
-  }
-
   // calculate the throughput and abort rate for the first round.
   oid_t total_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -982,6 +981,14 @@ void RunWorkload() {
                                       state.snapshot_duration);
   state.snapshot_abort_rate.push_back(total_abort_count * 1.0 /
                                       (total_commit_count + total_abort_count));
+
+  oid_t total_steal_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_steal_count += steal_counts[i];
+  }
+
+  state.steal = total_steal_count * 1.0 / state.duration;
+  state.steal_rate = total_steal_count * 1.0 / total_commit_count;
 
   // calculate the throughput and abort rate for the remaining rounds.
   for (size_t round_id = 0; round_id < snapshot_round - 1; ++round_id) {
@@ -1208,6 +1215,9 @@ void RunWorkload() {
   abort_counts = nullptr;
   delete[] commit_counts;
   commit_counts = nullptr;
+
+  delete[] steal_counts;
+  steal_counts = nullptr;
 
   delete[] generate_counts;
   generate_counts = nullptr;
