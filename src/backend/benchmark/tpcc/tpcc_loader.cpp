@@ -2048,6 +2048,18 @@ void LoadTPCCDatabase() {
   LOG_TRACE("new order count = %u", new_order_table->GetAllCurrentTupleCount());
   LOG_TRACE("order line count = %u",
             order_line_table->GetAllCurrentTupleCount());
+
+  LOG_INFO("============TABLE SIZES==========");
+  LOG_INFO("warehouse count = %u", warehouse_table->GetAllCurrentTupleCount());
+  LOG_INFO("district count  = %u", district_table->GetAllCurrentTupleCount());
+  LOG_INFO("item count = %u", item_table->GetAllCurrentTupleCount());
+  LOG_INFO("customer count = %u", customer_table->GetAllCurrentTupleCount());
+  LOG_INFO("history count = %u", history_table->GetAllCurrentTupleCount());
+  LOG_INFO("stock count = %u", stock_table->GetAllCurrentTupleCount());
+  LOG_INFO("orders count = %u", orders_table->GetAllCurrentTupleCount());
+  LOG_INFO("new order count = %u", new_order_table->GetAllCurrentTupleCount());
+  LOG_INFO("order line count = %u",
+           order_line_table->GetAllCurrentTupleCount());
 }
 
 }  // namespace tpcc
