@@ -78,13 +78,13 @@ namespace tatp {
 // WORKLOAD
 /////////////////////////////////////////////////////////
 
-#define FREQUENCY_GET_ACCESS_DATA 0.02         // Single
-#define FREQUENCY_GET_NEW_DESTINATION 0.02     // Single
-#define FREQUENCY_GET_SUBSCRIBER_DATA 0.37     // Single
+#define FREQUENCY_GET_ACCESS_DATA 0.03         // Single
+#define FREQUENCY_GET_NEW_DESTINATION 0.03     // Single
+#define FREQUENCY_GET_SUBSCRIBER_DATA 0.40     // Single
 #define FREQUENCY_INSERT_CALL_FORWARDING 0.02  // Multi
 #define FREQUENCY_DELETE_CALL_FORWARDING 0.02  // Multi
-#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.21  // Single
-#define FREQUENCY_UPDATE_LOCATION 0.34         // Multi
+#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.1   // Single
+#define FREQUENCY_UPDATE_LOCATION 0.40         // Multi
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
