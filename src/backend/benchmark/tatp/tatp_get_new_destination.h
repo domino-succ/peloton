@@ -105,7 +105,7 @@ class GetNewDestination : public concurrency::TransactionQuery {
 
   // Common method
   virtual TxnType GetTxnType() {
-    return TXN_TYPE_DELETE_CALL_FORWARDING;
+    return TXN_TYPE_GET_NEW_DESTINATION;
   };
 
   virtual std::vector<uint64_t>& GetPrimaryKeysByint() { return primary_keys_; }
