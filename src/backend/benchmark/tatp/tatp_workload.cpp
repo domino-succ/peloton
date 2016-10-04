@@ -330,7 +330,6 @@ bool EnqueueCachedUpdate(
       }
     } else {  // otherwise use OOHASH method
       if (state.lock_free) {
-
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, false, state.single_ref, state.canonical,
             state.fraction);
