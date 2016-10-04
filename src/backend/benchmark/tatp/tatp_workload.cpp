@@ -523,13 +523,13 @@ void RunBackend(oid_t thread_id) {
               concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                   ret_query, thread_id, ret_steal);
         }
-        //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-        //                ret_query, thread_id, ret_steal);
-
         ret_pop =
-            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
-                ret_query, thread_id);
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                ret_query, thread_id, ret_steal);
+
+        //        ret_pop =
+        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+        //                ret_query, thread_id);
 
         break;
       }
