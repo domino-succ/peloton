@@ -112,6 +112,36 @@ class configuration {
   double delay_max;
   double delay_min;
 
+  double del_throughput;
+  double del_abort_rate;
+  double del_delay;
+
+  double acc_throughput;
+  double acc_abort_rate;
+  double acc_delay;
+
+  double new_throughput;
+  double new_abort_rate;
+  double new_delay;
+
+  double sub_throughput;
+  double sub_abort_rate;
+  double sub_delay;
+
+  double ins_throughput;
+  double ins_abort_rate;
+  double ins_delay;
+
+  double upl_throughput;
+  double upl_abort_rate;
+  double upl_delay;
+
+  double ups_throughput;
+  double ups_abort_rate;
+  double ups_delay;
+
+  double exe_time;
+
   double payment_throughput;
 
   double payment_abort_rate;

@@ -58,10 +58,32 @@ static void WriteOutput() {
 
   LOG_INFO("----------------------------------------------------------");
   LOG_INFO(
-      "scheduler:%d---%lf :: %lf tps, %lf abort, %lf delay, %lf generate, %d",
+      "scheduler:%d---%lf :: %lf tps, %lf abort, %lf "
+      "delay, %lf exe, %lf generate, %d",
       state.scheduler, state.scale_factor, state.throughput, state.abort_rate,
-      state.delay_ave, state.generate_rate,
+      state.delay_ave, state.exe_time, state.generate_rate,
       state.snapshot_memory[state.snapshot_throughput.size() - 1]);
+
+  LOG_INFO("sub txn type -- del :: %lf tps_, %lf abort, %lf delay",
+           state.del_throughput, state.del_abort_rate, state.del_delay);
+
+  LOG_INFO("sub txn type -- acc :: %lf tps, %lf abort, %lf delay",
+           state.acc_throughput, state.acc_abort_rate, state.acc_delay);
+
+  LOG_INFO("sub txn type -- new_d :: %lf tps, %lf abort, %lf delay",
+           state.new_throughput, state.new_abort_rate, state.new_delay);
+
+  LOG_INFO("sub txn type -- sub :: %lf tps, %lf abort, %lf delay",
+           state.sub_throughput, state.sub_abort_rate, state.sub_delay);
+
+  LOG_INFO("sub txn type -- ins :: %lf tps, %lf abort, %lf delay",
+           state.ins_throughput, state.ins_abort_rate, state.ins_delay);
+
+  LOG_INFO("sub txn type -- upl :: %lf tps, %lf abort, %lf delay",
+           state.upl_throughput, state.upl_abort_rate, state.upl_delay);
+
+  LOG_INFO("sub txn type -- ups :: %lf tps, %lf abort, %lf delay",
+           state.ups_throughput, state.ups_abort_rate, state.ups_delay);
 
   // out << state.scale_factor << "\n";
 

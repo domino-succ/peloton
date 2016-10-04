@@ -50,7 +50,7 @@ const size_t BATCH_SIZE = 5000;
 const size_t BASIC_ACCOUNTS = 10000;
 size_t NUM_ACCOUNTS = 0;
 
-const size_t HOTSPOT_FIXED_SIZE = 11;  // fixed number of tuples
+const size_t HOTSPOT_FIXED_SIZE = 50;  // fixed number of tuples
 
 double accounts_name_length = 16;
 bool HOTSPOT_USE_FIXED_SIZE = false;

@@ -97,11 +97,36 @@ uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
 
-oid_t *payment_abort_counts;
-oid_t *payment_commit_counts;
+// execute time
+uint64_t *exe_totals;
 
-oid_t *new_order_abort_counts;
-oid_t *new_order_commit_counts;
+oid_t *del_abort_counts;
+oid_t *del_commit_counts;
+uint64_t *del_delays;
+
+oid_t *acc_abort_counts;
+oid_t *acc_commit_counts;
+uint64_t *acc_delays;
+
+oid_t *new_abort_counts;
+oid_t *new_commit_counts;
+uint64_t *new_delays;
+
+oid_t *sub_abort_counts;
+oid_t *sub_commit_counts;
+uint64_t *sub_delays;
+
+oid_t *ins_abort_counts;
+oid_t *ins_commit_counts;
+uint64_t *ins_delays;
+
+oid_t *upl_abort_counts;
+oid_t *upl_commit_counts;
+uint64_t *upl_delays;
+
+oid_t *ups_abort_counts;
+oid_t *ups_commit_counts;
+uint64_t *ups_delays;
 
 oid_t stock_level_count;
 double stock_level_avg_latency;
@@ -339,6 +364,84 @@ bool EnqueueCachedUpdate(
   return true;
 }
 
+void UpdateCommitAbortCouter(concurrency::TransactionQuery *query, oid_t &del,
+                             oid_t &acc, oid_t &new_des, oid_t &sub, oid_t &ins,
+                             oid_t &upl, oid_t &ups) {
+  switch (query->GetTxnType()) {
+    case TXN_TYPE_DELETE_CALL_FORWARDING: {
+      del++;
+      break;
+    }
+    case TXN_TYPE_GET_ACCESS_DATA: {
+      acc++;
+      break;
+    }
+    case TXN_TYPE_GET_NEW_DESTINATION: {
+      new_des++;
+      break;
+    }
+    case TXN_TYPE_GET_SUBSCRIBER_DATA: {
+      sub++;
+      break;
+    }
+    case TXN_TYPE_INSERT_CALL_FORWARDING: {
+      ins++;
+      break;
+    }
+    case TXN_TYPE_UPDATE_LOCATION: {
+      upl++;
+      break;
+    }
+    case TXN_TYPE_UPDATE_SUBSCRIBER_DATA: {
+      ups++;
+      break;
+    }
+    default: {
+      LOG_INFO("GetTxnType:: Unsupported scheduler: %d", query->GetTxnType());
+      break;
+    }
+  }
+}
+
+void UpdateDelayCounter(concurrency::TransactionQuery *query, uint64_t &del,
+                        uint64_t &acc, uint64_t &new_des, uint64_t &sub,
+                        uint64_t &ins, uint64_t &upl, uint64_t &ups) {
+  switch (query->GetTxnType()) {
+    case TXN_TYPE_DELETE_CALL_FORWARDING: {
+      query->RecordDelay(del);
+      break;
+    }
+    case TXN_TYPE_GET_ACCESS_DATA: {
+      query->RecordDelay(acc);
+      break;
+    }
+    case TXN_TYPE_GET_NEW_DESTINATION: {
+      query->RecordDelay(new_des);
+      break;
+    }
+    case TXN_TYPE_GET_SUBSCRIBER_DATA: {
+      query->RecordDelay(sub);
+      break;
+    }
+    case TXN_TYPE_INSERT_CALL_FORWARDING: {
+      query->RecordDelay(ins);
+      break;
+    }
+    case TXN_TYPE_UPDATE_LOCATION: {
+      query->RecordDelay(upl);
+      break;
+    }
+    case TXN_TYPE_UPDATE_SUBSCRIBER_DATA: {
+      query->RecordDelay(ups);
+      break;
+    }
+    default: {
+      LOG_INFO("GetTxnType:: Unsupported scheduler: %d", query->GetTxnType());
+      break;
+    }
+  }
+}
+
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -348,6 +451,36 @@ void RunBackend(oid_t thread_id) {
   uint64_t &delay_total_ref = delay_totals[thread_id];
   uint64_t &delay_max_ref = delay_maxs[thread_id];
   uint64_t &delay_min_ref = delay_mins[thread_id];
+
+  uint64_t &exe_total_ref = exe_totals[thread_id];
+
+  oid_t &del_abort_count_ref = del_abort_counts[thread_id];
+  oid_t &del_commit_count_ref = del_commit_counts[thread_id];
+  uint64_t &del_delay_ref = del_delays[thread_id];
+
+  oid_t &acc_abort_count_ref = acc_abort_counts[thread_id];
+  oid_t &acc_commit_count_ref = acc_commit_counts[thread_id];
+  uint64_t &acc_delay_ref = acc_delays[thread_id];
+
+  oid_t &new_abort_count_ref = new_abort_counts[thread_id];
+  oid_t &new_commit_count_ref = new_commit_counts[thread_id];
+  uint64_t &new_delay_ref = new_delays[thread_id];
+
+  oid_t &sub_abort_count_ref = sub_abort_counts[thread_id];
+  oid_t &sub_commit_count_ref = sub_commit_counts[thread_id];
+  uint64_t &sub_delay_ref = sub_delays[thread_id];
+
+  oid_t &ins_abort_count_ref = ins_abort_counts[thread_id];
+  oid_t &ins_commit_count_ref = ins_commit_counts[thread_id];
+  uint64_t &ins_delay_ref = ins_delays[thread_id];
+
+  oid_t &upl_abort_count_ref = upl_abort_counts[thread_id];
+  oid_t &upl_commit_count_ref = upl_commit_counts[thread_id];
+  uint64_t &upl_delay_ref = upl_delays[thread_id];
+
+  oid_t &ups_abort_count_ref = ups_abort_counts[thread_id];
+  oid_t &ups_commit_count_ref = ups_commit_counts[thread_id];
+  uint64_t &ups_delay_ref = ups_delays[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -433,6 +566,11 @@ void RunBackend(oid_t thread_id) {
     PL_ASSERT(ret_query != nullptr);
     total_count_ref++;
 
+    // Now record start time for execution
+    std::chrono::system_clock::time_point exe_start_time =
+        std::chrono::system_clock::now();
+    ret_query->SetExeStartTime(exe_start_time);
+
     //////////////////////////////////////////
     // Execute query
     //////////////////////////////////////////
@@ -445,6 +583,12 @@ void RunBackend(oid_t thread_id) {
 
       // Increase the counter
       abort_count_ref++;
+
+      // Increase abort counter for others
+      UpdateCommitAbortCouter(ret_query, del_abort_count_ref,
+                              acc_abort_count_ref, new_abort_count_ref,
+                              sub_abort_count_ref, ins_abort_count_ref,
+                              upl_abort_count_ref, ups_abort_count_ref);
 
       switch (state.scheduler) {
         case SCHEDULER_TYPE_NONE: {
@@ -500,8 +644,22 @@ void RunBackend(oid_t thread_id) {
     // First compute the delay
     ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
 
+    // Update txn type
+    UpdateDelayCounter(ret_query, del_delay_ref, acc_delay_ref, new_delay_ref,
+                       sub_delay_ref, ins_delay_ref, upl_delay_ref,
+                       ups_delay_ref);
+
+    // For execution time
+    ret_query->RecordExetime(exe_total_ref);
+
     // Increase the counter
     commit_count_ref++;
+
+    // Increase abort counter for others
+    UpdateCommitAbortCouter(ret_query, del_commit_count_ref,
+                            acc_commit_count_ref, new_commit_count_ref,
+                            sub_commit_count_ref, ins_commit_count_ref,
+                            upl_commit_count_ref, ups_commit_count_ref);
 
     // clean up the hash table
     if (state.scheduler == SCHEDULER_TYPE_HASH) {
@@ -616,18 +774,6 @@ void RunWorkload() {
   commit_counts = new oid_t[num_threads];
   memset(commit_counts, 0, sizeof(oid_t) * num_threads);
 
-  payment_abort_counts = new oid_t[num_threads];
-  memset(payment_abort_counts, 0, sizeof(oid_t) * num_threads);
-
-  payment_commit_counts = new oid_t[num_threads];
-  memset(payment_commit_counts, 0, sizeof(oid_t) * num_threads);
-
-  new_order_abort_counts = new oid_t[num_threads];
-  memset(new_order_abort_counts, 0, sizeof(oid_t) * num_threads);
-
-  new_order_commit_counts = new oid_t[num_threads];
-  memset(new_order_commit_counts, 0, sizeof(oid_t) * num_threads);
-
   stock_level_count = 0;
   stock_level_avg_latency = 0.0;
 
@@ -649,6 +795,60 @@ void RunWorkload() {
   memset(delay_maxs, 0, sizeof(uint64_t) * num_threads);
   delay_mins = new uint64_t[num_threads];
   std::fill_n(delay_mins, num_threads, 1000000);
+
+  exe_totals = new uint64_t[num_threads];
+  memset(exe_totals, 0, sizeof(uint64_t) * num_threads);
+
+  // amalgmate
+  del_abort_counts = new oid_t[num_threads];
+  memset(del_abort_counts, 0, sizeof(oid_t) * num_threads);
+  del_commit_counts = new oid_t[num_threads];
+  memset(del_commit_counts, 0, sizeof(oid_t) * num_threads);
+  del_delays = new uint64_t[num_threads];
+  memset(del_delays, 0, sizeof(uint64_t) * num_threads);
+
+  // acc
+  acc_abort_counts = new oid_t[num_threads];
+  memset(acc_abort_counts, 0, sizeof(oid_t) * num_threads);
+  acc_commit_counts = new oid_t[num_threads];
+  memset(acc_commit_counts, 0, sizeof(oid_t) * num_threads);
+  acc_delays = new uint64_t[num_threads];
+  memset(acc_delays, 0, sizeof(uint64_t) * num_threads);
+
+  new_abort_counts = new oid_t[num_threads];
+  memset(new_abort_counts, 0, sizeof(oid_t) * num_threads);
+  new_commit_counts = new oid_t[num_threads];
+  memset(new_commit_counts, 0, sizeof(oid_t) * num_threads);
+  new_delays = new uint64_t[num_threads];
+  memset(new_delays, 0, sizeof(uint64_t) * num_threads);
+
+  sub_abort_counts = new oid_t[num_threads];
+  memset(sub_abort_counts, 0, sizeof(oid_t) * num_threads);
+  sub_commit_counts = new oid_t[num_threads];
+  memset(sub_commit_counts, 0, sizeof(oid_t) * num_threads);
+  sub_delays = new uint64_t[num_threads];
+  memset(sub_delays, 0, sizeof(uint64_t) * num_threads);
+
+  ins_abort_counts = new oid_t[num_threads];
+  memset(ins_abort_counts, 0, sizeof(oid_t) * num_threads);
+  ins_commit_counts = new oid_t[num_threads];
+  memset(ins_commit_counts, 0, sizeof(oid_t) * num_threads);
+  ins_delays = new uint64_t[num_threads];
+  memset(ins_delays, 0, sizeof(uint64_t) * num_threads);
+
+  upl_abort_counts = new oid_t[num_threads];
+  memset(upl_abort_counts, 0, sizeof(oid_t) * num_threads);
+  upl_commit_counts = new oid_t[num_threads];
+  memset(upl_commit_counts, 0, sizeof(oid_t) * num_threads);
+  upl_delays = new uint64_t[num_threads];
+  memset(upl_delays, 0, sizeof(uint64_t) * num_threads);
+
+  ups_abort_counts = new oid_t[num_threads];
+  memset(ups_abort_counts, 0, sizeof(oid_t) * num_threads);
+  ups_commit_counts = new oid_t[num_threads];
+  memset(ups_commit_counts, 0, sizeof(oid_t) * num_threads);
+  ups_delays = new uint64_t[num_threads];
+  memset(ups_delays, 0, sizeof(uint64_t) * num_threads);
 
   // snapshot_duration = 1 by defaul
   size_t snapshot_round = (size_t)(state.duration / state.snapshot_duration);
@@ -819,39 +1019,6 @@ void RunWorkload() {
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
 
-  oid_t total_payment_commit_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_payment_commit_count += payment_commit_counts[i];
-  }
-
-  oid_t total_payment_abort_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_payment_abort_count += payment_abort_counts[i];
-  }
-
-  state.payment_throughput = total_payment_commit_count * 1.0 / state.duration;
-  state.payment_abort_rate =
-      total_payment_abort_count * 1.0 / total_payment_commit_count;
-
-  oid_t total_new_order_commit_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_new_order_commit_count += new_order_commit_counts[i];
-  }
-
-  oid_t total_new_order_abort_count = 0;
-  for (size_t i = 0; i < num_threads; ++i) {
-    total_new_order_abort_count += new_order_abort_counts[i];
-  }
-
-  state.new_order_throughput =
-      total_new_order_commit_count * 1.0 / state.duration;
-  state.new_order_abort_rate =
-      total_new_order_abort_count * 1.0 / total_new_order_commit_count;
-
-  state.stock_level_latency = stock_level_avg_latency;
-  state.order_status_latency = order_status_avg_latency;
-  state.scan_stock_latency = scan_stock_avg_latency;
-
   // calculate the average delay: ms
   uint64_t total_delay = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -877,6 +1044,150 @@ void RunWorkload() {
   }
   state.delay_min = min_delay * 1.0 / 1000;
 
+  // calculate the exe time: ms
+  uint64_t total_exe = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_exe += exe_totals[i];
+  }
+  state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
+
+  // del
+  oid_t total_del_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_del_commit_count += del_commit_counts[i];
+  }
+  oid_t total_del_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_del_abort_count += del_abort_counts[i];
+  }
+  uint64_t total_del_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_del_delay += del_delays[i];
+  }
+
+  state.del_throughput = total_del_commit_count * 1.0 / state.duration;
+  state.del_abort_rate = total_del_abort_count * 1.0 /
+                         (total_del_commit_count + total_del_abort_count);
+  state.del_delay = total_del_delay * 1.0 / (total_del_commit_count * 1000);
+
+  // acc
+  oid_t total_acc_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_acc_commit_count += acc_commit_counts[i];
+  }
+  oid_t total_acc_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_acc_abort_count += acc_abort_counts[i];
+  }
+  uint64_t total_acc_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_acc_delay += acc_delays[i];
+  }
+
+  state.acc_throughput = total_acc_commit_count * 1.0 / state.duration;
+  state.acc_abort_rate = total_acc_abort_count * 1.0 /
+                         (total_acc_commit_count + total_acc_abort_count);
+  state.acc_delay = total_acc_delay * 1.0 / (total_acc_commit_count * 1000);
+
+  // new
+  oid_t total_new_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_new_commit_count += new_commit_counts[i];
+  }
+  oid_t total_new_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_new_abort_count += new_abort_counts[i];
+  }
+  uint64_t total_new_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_new_delay += new_delays[i];
+  }
+
+  state.new_throughput = total_new_commit_count * 1.0 / state.duration;
+  state.new_abort_rate = total_new_abort_count * 1.0 /
+                         (total_new_commit_count + total_new_abort_count);
+  state.new_delay = total_new_delay * 1.0 / (total_new_commit_count * 1000);
+
+  // sub
+  oid_t total_sub_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_sub_commit_count += sub_commit_counts[i];
+  }
+  oid_t total_sub_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_sub_abort_count += sub_abort_counts[i];
+  }
+  uint64_t total_sub_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_sub_delay += sub_delays[i];
+  }
+
+  state.sub_throughput = total_sub_commit_count * 1.0 / state.duration;
+  state.sub_abort_rate = total_sub_abort_count * 1.0 /
+                         (total_sub_commit_count + total_sub_abort_count);
+  state.sub_delay = total_sub_delay * 1.0 / (total_sub_commit_count * 1000);
+
+  std::cout << "sub_delay_total: " << total_sub_delay
+            << ". total_sub_commit_count: " << total_sub_commit_count
+            << std::endl;
+
+  // ins
+  oid_t total_ins_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_ins_commit_count += ins_commit_counts[i];
+  }
+  oid_t total_ins_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_ins_abort_count += ins_abort_counts[i];
+  }
+  uint64_t total_ins_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_ins_delay += ins_delays[i];
+  }
+
+  state.ins_throughput = total_ins_commit_count * 1.0 / state.duration;
+  state.ins_abort_rate = total_ins_abort_count * 1.0 /
+                         (total_ins_commit_count + total_ins_abort_count);
+  state.ins_delay = total_ins_delay * 1.0 / (total_ins_commit_count * 1000);
+
+  // upl
+  oid_t total_upl_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_upl_commit_count += upl_commit_counts[i];
+  }
+  oid_t total_upl_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_upl_abort_count += upl_abort_counts[i];
+  }
+  uint64_t total_upl_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_upl_delay += upl_delays[i];
+  }
+
+  state.upl_throughput = total_upl_commit_count * 1.0 / state.duration;
+  state.upl_abort_rate = total_upl_abort_count * 1.0 /
+                         (total_upl_commit_count + total_upl_abort_count);
+  state.upl_delay = total_upl_delay * 1.0 / (total_upl_commit_count * 1000);
+
+  // ins
+  oid_t total_ups_commit_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_ups_commit_count += ups_commit_counts[i];
+  }
+  oid_t total_ups_abort_count = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_ups_abort_count += ups_abort_counts[i];
+  }
+  uint64_t total_ups_delay = 0;
+  for (size_t i = 0; i < num_threads; ++i) {
+    total_ups_delay += ups_delays[i];
+  }
+
+  state.ups_throughput = total_ups_commit_count * 1.0 / state.duration;
+  state.ups_abort_rate = total_ups_abort_count * 1.0 /
+                         (total_ups_commit_count + total_ups_abort_count);
+  state.ups_delay = total_ups_delay * 1.0 / (total_ups_commit_count * 1000);
+
   LOG_INFO("============Delete Everything==========");
   // cleanup everything.
   for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
@@ -898,16 +1209,6 @@ void RunWorkload() {
   delete[] commit_counts;
   commit_counts = nullptr;
 
-  delete[] payment_abort_counts;
-  payment_abort_counts = nullptr;
-  delete[] payment_commit_counts;
-  payment_commit_counts = nullptr;
-
-  delete[] new_order_abort_counts;
-  new_order_abort_counts = nullptr;
-  delete[] new_order_commit_counts;
-  new_order_commit_counts = nullptr;
-
   delete[] generate_counts;
   generate_counts = nullptr;
 
@@ -917,6 +1218,59 @@ void RunWorkload() {
   delay_maxs = nullptr;
   delete[] delay_mins;
   delay_mins = nullptr;
+
+  delete[] exe_totals;
+  exe_totals = nullptr;
+
+  // For others
+  delete[] del_abort_counts;
+  del_abort_counts = nullptr;
+  delete[] del_commit_counts;
+  del_commit_counts = nullptr;
+  delete[] del_delays;
+  del_delays = nullptr;
+
+  delete[] acc_abort_counts;
+  acc_abort_counts = nullptr;
+  delete[] acc_commit_counts;
+  acc_commit_counts = nullptr;
+  delete[] acc_delays;
+  acc_delays = nullptr;
+
+  delete[] new_abort_counts;
+  new_abort_counts = nullptr;
+  delete[] new_commit_counts;
+  new_commit_counts = nullptr;
+  delete[] new_delays;
+  new_delays = nullptr;
+
+  delete[] sub_abort_counts;
+  sub_abort_counts = nullptr;
+  delete[] sub_commit_counts;
+  sub_commit_counts = nullptr;
+  delete[] sub_delays;
+  sub_delays = nullptr;
+
+  delete[] ins_abort_counts;
+  ins_abort_counts = nullptr;
+  delete[] ins_commit_counts;
+  ins_commit_counts = nullptr;
+  delete[] ins_delays;
+  ins_delays = nullptr;
+
+  delete[] upl_abort_counts;
+  upl_abort_counts = nullptr;
+  delete[] upl_commit_counts;
+  upl_commit_counts = nullptr;
+  delete[] upl_delays;
+  upl_delays = nullptr;
+
+  delete[] ups_abort_counts;
+  ups_abort_counts = nullptr;
+  delete[] ups_commit_counts;
+  ups_commit_counts = nullptr;
+  delete[] ups_delays;
+  ups_delays = nullptr;
 
   LOG_INFO("============TABLE SIZES==========");
   LOG_INFO("subscriber count = %u",
