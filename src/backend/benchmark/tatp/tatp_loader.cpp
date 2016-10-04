@@ -951,6 +951,16 @@ void LoadTatpDatabase() {
            special_facility_table->GetAllCurrentTupleCount());
   LOG_INFO("call_forwarding count  = %u",
            call_forwarding_table->GetAllCurrentTupleCount());
+
+  LOG_INFO("============TABLE SIZES==========");
+  LOG_INFO("subscriber count = %u",
+           subscriber_table->GetAllCurrentTupleCount());
+  LOG_INFO("access_info count = %u",
+           access_info_table->GetAllCurrentTupleCount());
+  LOG_INFO("special_facility count  = %u",
+           special_facility_table->GetAllCurrentTupleCount());
+  LOG_INFO("call_forwarding count = %u",
+           call_forwarding_table->GetAllCurrentTupleCount());
 }
 
 }  // namespace tpcc
