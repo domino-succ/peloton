@@ -207,7 +207,8 @@ class GetSubscriberData : public concurrency::TransactionQuery {
           queue_no = queue.first;
           max_reference = queue.second;
 
-          std::cout << "SUM~ for if > max" << std::endl;
+          // std::cout << "SUM~ for if > max" << std::endl;
+
           // Once find out new max, clear vector
           queues.clear();
 
