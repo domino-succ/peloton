@@ -195,14 +195,20 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
     int conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-    for (int i = 0; i < 2; i++) {
-      key_counter[key] += conflict;
+    //    for (int i = 0; i < 2; i++) {
+    //      key_counter[key] += conflict;
+    //
+    //      if (key_counter[key] > max_conflict) {
+    //        max_conflict = key_counter[key];
+    //        max_conflict_key = key;
+    //      }
+    //    }
 
-      if (key_counter[key] > max_conflict) {
-        max_conflict = key_counter[key];
-        max_conflict_key = key;
-      }
+    if (conflict > max_conflict) {
+      max_conflict = key_counter[key];
+      max_conflict_key = key;
     }
+
     //////////////////////////////////////////////////////////////////////
     // SF_TYPE
     //////////////////////////////////////////////////////////////////////

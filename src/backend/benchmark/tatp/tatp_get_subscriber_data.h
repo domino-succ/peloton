@@ -176,7 +176,12 @@ class GetSubscriberData : public concurrency::TransactionQuery {
       key_counter[key] += conflict;
     }
 
-    if (key_counter[key] > max_conflict) {
+    //    if (key_counter[key] > max_conflict) {
+    //      max_conflict = key_counter[key];
+    //      max_conflict_key = key;
+    //    }
+
+    if (conflict > max_conflict) {
       max_conflict = key_counter[key];
       max_conflict_key = key;
     }

@@ -1407,6 +1407,7 @@ class TransactionScheduler {
   // Note: wid=3 might be executed by several threads at the time, so it is
   // vector for threads in the table. wid-3-->(3,100)(5,99)
   std::unordered_map<std::string, std::unordered_map<int, int>> run_table_;
+  std::unordered_map<int, std::unordered_map<int, int>> run_table_int_;
 
   // Record each queue size in run_table, which is used in counter method
   std::atomic<int>* run_table_queue_size_;
@@ -1423,9 +1424,11 @@ class TransactionScheduler {
   // | did=10  --> 11   6789
   // |----------------
   std::unordered_map<std::string, int> log_table_;
+  std::unordered_map<int, int> log_table_int_;
 
   // log_table_full_ records not only conflict but also success
   std::unordered_map<std::string, std::pair<int, int>> log_table_full_;
+  std::unordered_map<int, std::pair<int, int>> log_table_full_int_;
 };
 
 // UINT64_MAX;
