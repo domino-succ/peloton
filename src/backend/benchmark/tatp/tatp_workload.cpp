@@ -158,9 +158,9 @@ size_t GenerateAmount() { return GetRandomInteger(1, 10); }
 // Only generate New-Order
 void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
-  GetNewDestination *txn = GenerateGetNewDestination(zipf);
+  // GetNewDestination *txn = GenerateGetNewDestination(zipf);
   // GetAccessData *txn = GenerateGetAccessData(zipf);  // 80000
-  // GetSubscriberData *txn = GenerateGetSubscriberData(zipf);
+  GetSubscriberData *txn = GenerateGetSubscriberData(zipf);
   //
   // InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
   // DeteteCallForwarding *txn = GenerateDeteteCallForwarding(zipf);
