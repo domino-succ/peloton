@@ -284,7 +284,9 @@ std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
 bool EnqueueCachedUpdate(
     std::chrono::system_clock::time_point &delay_start_time, oid_t thread_id) {
 
-  oid_t &assign_delay_ref = assign_delays[thread_id - state.backend_count];
+  assert(thread_id != 0);
+
+  uint64_t &assign_delay_ref = assign_delays[thread_id - state.backend_count];
 
   concurrency::TransactionQuery *query = nullptr;
 
@@ -806,8 +808,8 @@ void RunWorkload() {
   generate_counts = new oid_t[num_generate];
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
 
-  assign_delays = new oid_t[num_generate];
-  memset(assign_delays, 0, sizeof(oid_t) * num_generate);
+  assign_delays = new uint64_t[num_generate];
+  memset(assign_delays, 0, sizeof(uint64_t) * num_generate);
 
   // Initiate Delay
   delay_totals = new uint64_t[num_threads];
@@ -1075,7 +1077,7 @@ void RunWorkload() {
   state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
 
   // calculate the generate rate
-  oid_t total_assign_delay = 0;
+  uint64_t total_assign_delay = 0;
   for (size_t i = 0; i < num_generate; ++i) {
     total_assign_delay += assign_delays[i];
   }

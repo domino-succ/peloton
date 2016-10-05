@@ -181,7 +181,7 @@ void LoadQuery(uint64_t count) {
     for (uint64_t i = 0; i < count; i++) {
       std::chrono::system_clock::time_point start =
           std::chrono::system_clock::now();
-      EnqueueCachedUpdate(start);
+      EnqueueCachedUpdate(start, 0);
     }
   }
 

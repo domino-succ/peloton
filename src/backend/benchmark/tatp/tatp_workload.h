@@ -60,7 +60,7 @@ void GenerateAndCacheQuery(ZipfDistribution& zipf);
 void GenerateALLAndCache(ZipfDistribution& zipf);
 // void GenerateALLAndCache(bool new_order);
 bool EnqueueCachedUpdate(
-    std::chrono::system_clock::time_point& delay_start_time);
+    std::chrono::system_clock::time_point& delay_start_time, oid_t thread_id);
 std::unordered_map<int, ClusterRegion> ClusterAnalysis();
 
 /////////////////////////////////////////////////////////
