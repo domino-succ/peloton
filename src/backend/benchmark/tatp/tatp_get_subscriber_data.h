@@ -169,12 +169,11 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     int conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-    //
-    if (key_counter.find(key) == key_counter.end()) {
-      key_counter.emplace(key, conflict);
-    } else {
-      key_counter[key] += conflict;
-    }
+    //    if (key_counter.find(key) == key_counter.end()) {
+    //      key_counter.emplace(key, conflict);
+    //    } else {
+    //      key_counter[key] += conflict;
+    //    }
 
     //    if (key_counter[key] > max_conflict) {
     //      max_conflict = key_counter[key];
@@ -182,7 +181,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     //    }
 
     if (conflict > max_conflict) {
-      max_conflict = key_counter[key];
+      max_conflict = conflict;
       max_conflict_key = key;
     }
 

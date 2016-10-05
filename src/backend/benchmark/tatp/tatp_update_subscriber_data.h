@@ -205,7 +205,7 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
     //    }
 
     if (conflict > max_conflict) {
-      max_conflict = key_counter[key];
+      max_conflict = conflict;
       max_conflict_key = key;
     }
 
