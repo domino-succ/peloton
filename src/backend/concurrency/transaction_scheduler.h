@@ -526,10 +526,10 @@ class TransactionScheduler {
 
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
-      // queue = random_generator_.GetSample();
+      queue = random_generator_.GetSample();
 
       // queue = GetMinQueueUsingRunTable();
-      queue = GetMinQueueUsingAtomic();
+      // queue = GetMinQueueUsingAtomic();
 
       // Debug print
       //      std::cout << "Can't find a queue, so assign queue: " << queue
