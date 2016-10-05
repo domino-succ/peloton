@@ -707,6 +707,7 @@ void QueryBackend(oid_t thread_id) {
     }
 
     if (EnqueueCachedUpdate(delay_start_time) == false) {
+      std::cout << "enqueue error" << std::endl;
       _mm_pause();
       continue;
     }
