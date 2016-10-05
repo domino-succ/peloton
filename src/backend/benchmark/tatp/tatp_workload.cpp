@@ -95,6 +95,7 @@ oid_t *generate_counts;
 uint64_t *delay_totals;
 uint64_t *delay_maxs;
 uint64_t *delay_mins;
+uint64_t *assign_delays;
 oid_t *steal_counts;
 
 // execute time
@@ -281,7 +282,9 @@ std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
 }
 
 bool EnqueueCachedUpdate(
-    std::chrono::system_clock::time_point &delay_start_time) {
+    std::chrono::system_clock::time_point &delay_start_time, oid_t thread_id) {
+
+  oid_t &assign_delay_ref = assign_delays[thread_id - state.backend_count];
 
   concurrency::TransactionQuery *query = nullptr;
 
@@ -302,6 +305,11 @@ bool EnqueueCachedUpdate(
   // Note: when popping the query and after executing it, the update_executor
   // and
   // index_executor should be deleted, then query itself should be deleted
+
+  // Now record start time for execution
+  std::chrono::system_clock::time_point assign_start_time =
+      std::chrono::system_clock::now();
+
   if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
     concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
   } else if (state.scheduler == SCHEDULER_TYPE_HASH) {
@@ -359,6 +367,12 @@ bool EnqueueCachedUpdate(
   } else {  // Control None
     concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
   }
+
+  // Now record end
+  uint64_t assign_delay = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now() - assign_start_time).count();
+
+  assign_delay_ref = assign_delay_ref + assign_delay;
 
   return true;
 }
@@ -706,7 +720,7 @@ void QueryBackend(oid_t thread_id) {
       break;
     }
 
-    if (EnqueueCachedUpdate(delay_start_time) == false) {
+    if (EnqueueCachedUpdate(delay_start_time, thread_id) == false) {
       _mm_pause();
       continue;
     }
@@ -791,6 +805,9 @@ void RunWorkload() {
 
   generate_counts = new oid_t[num_generate];
   memset(generate_counts, 0, sizeof(oid_t) * num_generate);
+
+  assign_delays = new oid_t[num_generate];
+  memset(assign_delays, 0, sizeof(oid_t) * num_generate);
 
   // Initiate Delay
   delay_totals = new uint64_t[num_threads];
@@ -1057,6 +1074,13 @@ void RunWorkload() {
   }
   state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
 
+  // calculate the generate rate
+  oid_t total_assign_delay = 0;
+  for (size_t i = 0; i < num_generate; ++i) {
+    total_assign_delay += assign_delays[i];
+  }
+  state.assign_delay = total_assign_delay * 1.0 / total_commit_count;
+
   // del
   oid_t total_del_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -1220,6 +1244,9 @@ void RunWorkload() {
 
   delete[] generate_counts;
   generate_counts = nullptr;
+
+  delete[] assign_delays;
+  assign_delays = nullptr;
 
   delete[] delay_totals;
   delay_totals = nullptr;

@@ -143,6 +143,8 @@ class configuration {
   double ups_abort_rate;
   double ups_delay;
 
+  double assign_delay;
+
   double exe_time;
 
   double payment_throughput;
