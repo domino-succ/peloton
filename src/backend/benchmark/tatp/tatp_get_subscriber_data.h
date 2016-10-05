@@ -160,8 +160,6 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     // std::map<std::string, int> key_counter;
     std::unordered_map<std::string, int> key_counter;
 
-    return -1;
-
     //////////////////////////////////////////////////////////////////////
     // sid
     //////////////////////////////////////////////////////////////////////
@@ -186,12 +184,10 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
       // std::cout << "Not find any conflict in Log Table" << std::endl;
-      return -1;
-      //      max_conflict_key =
-      //          std::string("S_ID") + "-" + std::to_string(GetPrimaryKey());
+      // return -1;
+      max_conflict_key =
+          std::string("S_ID") + "-" + std::to_string(GetPrimaryKey());
     }
-
-    std::cout << "after Log Table" << std::endl;
 
     // Now we get the key with max conflict, such as S_W_ID
     // Then we should lookup Run Table to get the thread who has this key
@@ -251,7 +247,6 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     int return_queue = -1;
     std::string key;
 
-    return -1;
     //////////////////////////////////////////////////////////////////////
     // id 0
     //////////////////////////////////////////////////////////////////////

@@ -1088,7 +1088,6 @@ class TransactionScheduler {
       min_queue = min_queues[0];
     }
     if (size > 1) {
-      srand(time(NULL));
       int idx = rand() % size;
       min_queue = min_queues[idx];
     }
