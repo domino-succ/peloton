@@ -531,7 +531,7 @@ class TransactionScheduler {
       // queue = GetMinQueueUsingRunTable();
       queue = GetMinQueueUsingAtomic();
 
-      std::cout << "no queue mathced" << std::endl;
+      std::cout << "no queue mathced, online: " << online << std::endl;
 
       // Debug print
       //      std::cout << "Can't find a queue, so assign queue: " << queue
