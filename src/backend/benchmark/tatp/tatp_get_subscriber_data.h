@@ -175,7 +175,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
       max_conflict_key = key;
     }
 
-    std::cout << "SUM~ after map lookup" << std::endl;
+    // std::cout << "SUM~ after map lookup" << std::endl;
 
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
