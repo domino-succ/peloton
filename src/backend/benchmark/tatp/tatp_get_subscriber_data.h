@@ -188,9 +188,9 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
       // std::cout << "Not find any conflict in Log Table" << std::endl;
-      return -1;
-      // max_conflict_key =
-      //    std::string("S_ID") + "-" + std::to_string(GetPrimaryKey());
+      // return -1;
+      max_conflict_key =
+          std::string("S_ID") + "-" + std::to_string(GetPrimaryKey());
     }
 
     // Now we get the key with max conflict, such as S_W_ID
