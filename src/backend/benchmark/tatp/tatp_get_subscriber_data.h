@@ -255,11 +255,15 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     std::unordered_map<int, int>* queue_info =
         concurrency::TransactionScheduler::GetInstance().RunTableGetNoLock(key);
 
+    std::cout << "SUM~~" << std::endl;
+
     if (queue_info != nullptr) {
       for (auto queue : (*queue_info)) {
 
         // reference = 0 means there is txn (of this condition) executing
         if (queue.second > 0) {
+
+          std::cout << "SUM~~in for+if" << std::endl;
           // Get the queue No.
           int queue_no = queue.first;
 
