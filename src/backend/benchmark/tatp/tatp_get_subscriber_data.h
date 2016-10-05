@@ -206,7 +206,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
           max_reference = queue.second;
 
           // Once find out new max, clear vector
-          //          queues.clear();
+          queues.clear();
 
           // Put the new number in the queues
           queues.push_back(queue.first);
@@ -217,10 +217,9 @@ class GetSubscriberData : public concurrency::TransactionQuery {
       }
 
       if (queues.size() > 0) {
-        //        std::srand(unsigned(std::time(0)));
-        //        int random_variable = std::rand() % queues.size();
-        //        queue_no = queues.at(random_variable);
-        queue_no = queues[0];
+        int random_variable = std::rand() % queues.size();
+        queue_no = queues.at(random_variable);
+        // queue_no = queues[0];
       }
     }
 
