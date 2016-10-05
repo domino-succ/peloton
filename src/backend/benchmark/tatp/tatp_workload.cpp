@@ -984,6 +984,13 @@ void RunWorkload() {
   }
   state.generate_rate = total_generate_count * 1.0 / state.duration;
 
+  // calculate the generate rate
+  uint64_t total_assign_delay = 0;
+  for (size_t i = 0; i < num_generate; ++i) {
+    total_assign_delay += assign_delays[i];
+  }
+  state.assign_delay = total_assign_delay * 1.0 / total_generate_count;
+
   // calculate the throughput and abort rate for the first round.
   oid_t total_commit_count = 0;
   for (size_t i = 0; i < num_threads; ++i) {
@@ -1075,13 +1082,6 @@ void RunWorkload() {
     total_exe += exe_totals[i];
   }
   state.exe_time = (total_exe * 1.0) / (total_commit_count * 1000);
-
-  // calculate the generate rate
-  uint64_t total_assign_delay = 0;
-  for (size_t i = 0; i < num_generate; ++i) {
-    total_assign_delay += assign_delays[i];
-  }
-  state.assign_delay = total_assign_delay * 1.0 / total_commit_count;
 
   // del
   oid_t total_del_commit_count = 0;
