@@ -220,12 +220,12 @@ class GetSubscriberData : public concurrency::TransactionQuery {
         }
       }
 
-      //      if (queues.size() > 0) {
-      //        std::cout << "SUM~ generate random" << std::endl;
-      //        std::srand(unsigned(std::time(0)));
-      //        int random_variable = std::rand() % queues.size();
-      //        queue_no = queues.at(random_variable);
-      //      }
+      if (queues.size() > 0) {
+        std::cout << "SUM~ generate random" << std::endl;
+        std::srand(unsigned(std::time(0)));
+        int random_variable = std::rand() % queues.size();
+        queue_no = queues.at(random_variable);
+      }
     }
 
     return queue_no;
