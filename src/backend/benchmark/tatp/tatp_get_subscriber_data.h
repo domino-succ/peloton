@@ -211,11 +211,11 @@ class GetSubscriberData : public concurrency::TransactionQuery {
           queue_no = queue.first;
           max_reference = queue.second;
 
-          // Once find out new max, clear vector
-          // queues.clear();
-
-          // Put the new number in the queues
-          queues.push_back(queue.first);
+          //          // Once find out new max, clear vector
+          //          queues.clear();
+          //
+          //          // Put the new number in the queues
+          //          queues.push_back(queue.first);
         } else if (queue.second != 0 && queue.second == max_reference) {
           std::cout << "SUM~ for == max" << std::endl;
           queues.push_back(queue.first);
