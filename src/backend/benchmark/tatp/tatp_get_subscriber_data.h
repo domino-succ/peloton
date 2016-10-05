@@ -160,6 +160,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     // std::map<std::string, int> key_counter;
     std::unordered_map<std::string, int> key_counter;
 
+    return -1;
     //////////////////////////////////////////////////////////////////////
     // sid
     //////////////////////////////////////////////////////////////////////
