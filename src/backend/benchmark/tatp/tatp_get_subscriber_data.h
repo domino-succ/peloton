@@ -157,7 +157,8 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     int max_conflict = CONFLICT_THRESHHOLD;
     std::string max_conflict_key;
     std::string key;
-    std::map<std::string, int> key_counter;
+    // std::map<std::string, int> key_counter;
+    std::unordered_map<std::string, int> key_counter;
 
     //////////////////////////////////////////////////////////////////////
     // sid
@@ -168,7 +169,12 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     int conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
-    key_counter[key] += conflict;
+    //
+    if (key_counter.find(key) == key_counter.end()) {
+      key_counter.emplace(key, conflict);
+    } else {
+      key_counter[key] += conflict;
+    }
 
     if (key_counter[key] > max_conflict) {
       max_conflict = key_counter[key];
@@ -217,9 +223,9 @@ class GetSubscriberData : public concurrency::TransactionQuery {
       }
 
       if (queues.size() > 0) {
-        int random_variable = std::rand() % queues.size();
-        queue_no = queues.at(random_variable);
-        // queue_no = queues[0];
+        //        int random_variable = std::rand() % queues.size();
+        //        queue_no = queues.at(random_variable);
+        queue_no = queues[0];
       }
     }
 
