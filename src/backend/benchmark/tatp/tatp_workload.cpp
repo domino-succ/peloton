@@ -312,7 +312,7 @@ bool EnqueueCachedUpdate(
           query, state.single_ref);
     }
     // Run table is ready
-    else if (state.online) {  // ONLINE means Run table
+    else if (state.online) {  // ONLINE means MAX
       if (state.lock_free) {
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, true, state.single_ref, state.canonical,
@@ -328,7 +328,7 @@ bool EnqueueCachedUpdate(
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
-    } else {  // otherwise use OOHASH method
+    } else {  // otherwise SUM
       if (state.lock_free) {
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, false, state.single_ref, state.canonical,
@@ -707,7 +707,6 @@ void QueryBackend(oid_t thread_id) {
     }
 
     if (EnqueueCachedUpdate(delay_start_time) == false) {
-      std::cout << "enqueue error" << std::endl;
       _mm_pause();
       continue;
     }
