@@ -212,7 +212,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
           max_reference = queue.second;
 
           // Once find out new max, clear vector
-          queues.clear();
+          // queues.clear();
 
           // Put the new number in the queues
           queues.push_back(queue.first);
