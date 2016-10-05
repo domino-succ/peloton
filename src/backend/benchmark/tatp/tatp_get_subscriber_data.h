@@ -175,8 +175,6 @@ class GetSubscriberData : public concurrency::TransactionQuery {
       max_conflict_key = key;
     }
 
-    // std::cout << "SUM~ after map lookup" << std::endl;
-
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
       // std::cout << "Not find any conflict in Log Table" << std::endl;
@@ -207,8 +205,6 @@ class GetSubscriberData : public concurrency::TransactionQuery {
           queue_no = queue.first;
           max_reference = queue.second;
 
-          // std::cout << "SUM~ for if > max" << std::endl;
-
           // Once find out new max, clear vector
           queues.clear();
 
@@ -221,10 +217,10 @@ class GetSubscriberData : public concurrency::TransactionQuery {
       }
 
       if (queues.size() > 0) {
-        // std::cout << "SUM~ generate random" << std::endl;
-        std::srand(unsigned(std::time(0)));
-        int random_variable = std::rand() % queues.size();
-        queue_no = queues.at(random_variable);
+        //        std::srand(unsigned(std::time(0)));
+        //        int random_variable = std::rand() % queues.size();
+        //        queue_no = queues.at(random_variable);
+        queue_no = queues[0];
       }
     }
 
