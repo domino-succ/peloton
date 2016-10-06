@@ -155,7 +155,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
   virtual int LookupRunTableMaxSingleRef(bool canonical
                                          __attribute__((unused))) {
     int max_conflict = CONFLICT_THRESHHOLD;
-    std::string max_conflict_key;
+    std::string& max_conflict_key;
     std::string key;
     // std::map<std::string, int> key_counter;
     std::unordered_map<std::string, int> key_counter;
@@ -163,7 +163,7 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     //////////////////////////////////////////////////////////////////////
     // sid
     //////////////////////////////////////////////////////////////////////
-    key = std::string("S_ID") + "-" + std::to_string(sid_);
+    max_conflict_key = std::string("S_ID") + "-" + std::to_string(sid_);
 
     // Get conflict from Log Table for the given condition
     int conflict =
@@ -180,18 +180,13 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     //      max_conflict_key = key;
     //    }
 
-    if (conflict > max_conflict) {
-      max_conflict = conflict;
-      max_conflict_key = key;
-    }
-
     // If there is no conflict, return -1;
-    if (max_conflict == CONFLICT_THRESHHOLD) {
-      // std::cout << "Not find any conflict in Log Table" << std::endl;
-      // return -1;
-      max_conflict_key =
-          std::string("S_ID") + "-" + std::to_string(GetPrimaryKey());
-    }
+    //    if (max_conflict == CONFLICT_THRESHHOLD) {
+    //      // std::cout << "Not find any conflict in Log Table" << std::endl;
+    //      // return -1;
+    //      max_conflict_key =
+    //          std::string("S_ID") + "-" + std::to_string(GetPrimaryKey());
+    //    }
 
     // Now we get the key with max conflict, such as S_W_ID
     // Then we should lookup Run Table to get the thread who has this key
