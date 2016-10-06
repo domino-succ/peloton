@@ -201,7 +201,6 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
                           FREQUENCY_GET_NEW_DESTINATION +
                           FREQUENCY_GET_SUBSCRIBER_DATA +
                           FREQUENCY_INSERT_CALL_FORWARDING) {
-    // GetAccessData *txn = GenerateGetAccessData(zipf);
     InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
