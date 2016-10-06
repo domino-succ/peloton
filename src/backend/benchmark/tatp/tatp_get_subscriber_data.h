@@ -154,11 +154,11 @@ class GetSubscriberData : public concurrency::TransactionQuery {
   // the thread who has the most of this condition
   virtual int LookupRunTableMaxSingleRef(bool canonical
                                          __attribute__((unused))) {
-    int max_conflict = CONFLICT_THRESHHOLD;
-    std::string& max_conflict_key;
-    std::string key;
-    // std::map<std::string, int> key_counter;
-    std::unordered_map<std::string, int> key_counter;
+    // int max_conflict = CONFLICT_THRESHHOLD;
+    std::string max_conflict_key;
+    //    std::string key;
+    //    // std::map<std::string, int> key_counter;
+    //    std::unordered_map<std::string, int> key_counter;
 
     //////////////////////////////////////////////////////////////////////
     // sid
@@ -166,8 +166,8 @@ class GetSubscriberData : public concurrency::TransactionQuery {
     max_conflict_key = std::string("S_ID") + "-" + std::to_string(sid_);
 
     // Get conflict from Log Table for the given condition
-    int conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+    concurrency::TransactionScheduler::GetInstance().LogTableGet(
+        max_conflict_key);
 
     //    if (key_counter.find(key) == key_counter.end()) {
     //      key_counter.emplace(key, conflict);
