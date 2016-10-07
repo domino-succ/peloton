@@ -226,8 +226,7 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
   }
   // UPDATE_LOCATION
   else {
-    // UpdateLocation *txn = GenerateUpdateLocation(zipf);
-    TestUpdateLocation *txn = GenerateTestUpdateLocation(zipf);
+    UpdateLocation *txn = GenerateUpdateLocation(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
 }

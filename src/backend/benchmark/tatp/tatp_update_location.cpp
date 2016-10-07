@@ -95,9 +95,8 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
 
   // SELECT
-  std::vector<oid_t> sub_key_column_ids;
+  std::vector<oid_t> sub_key_column_ids = {0};
   std::vector<ExpressionType> sub_expr_types;
-  sub_key_column_ids.push_back(0);  // SID
   sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
   std::vector<Value> sub_key_values;
@@ -109,8 +108,8 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
       sub_pkey_index, sub_key_column_ids, sub_expr_types, sub_key_values,
       runtime_keys);
 
-  // std::vector<oid_t> warehouse_column_ids = {1, 2, 3, 4, 5, 6, 8};
-  std::vector<oid_t> sub_column_ids = {33};  // select v_location from
+  // select
+  std::vector<oid_t> sub_column_ids = {1};  // select sub from
 
   planner::IndexScanPlan sub_index_scan_node(
       subscriber_table, nullptr, sub_column_ids, sub_index_scan_desc);
@@ -121,7 +120,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   sub_index_scan_executor->Init();
 
   // UPDATE vlr_location
-  std::vector<oid_t> sub_update_column_ids = {33};
+  std::vector<oid_t> sub_update_column_ids = {32};
 
   planner::IndexScanPlan sub_update_index_scan_node(
       subscriber_table, nullptr, sub_update_column_ids, sub_index_scan_desc);
@@ -133,7 +132,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   DirectMapList sub_direct_map_list;
 
   // Keep the first 33 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 33; ++col_itr) {
+  for (oid_t col_itr = 0; col_itr < 32; ++col_itr) {
     sub_direct_map_list.emplace_back(col_itr,
                                      std::pair<oid_t, oid_t>(0, col_itr));
   }
@@ -219,30 +218,23 @@ bool UpdateLocation::Run() {
   // SUBSCRIBER SELECTION
   /////////////////////////////////////////////////////////
 
-  // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
-  //  LOG_TRACE("SELECT * FROM SUBSCRIBER WHERE custid = %d", sid);
-
-  sub_index_scan_executor_->ResetState();
-
   std::vector<Value> sub_key_values;
 
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
-  sub_index_scan_executor_->SetValues(sub_key_values);
+  // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
 
-  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  if (ga1_lists_values.size() != 1) {
-    LOG_ERROR("update location return size incorrect : %lu",
-              ga1_lists_values.size());
-    // assert(false);
-  }
+  //  sub_index_scan_executor_->ResetState();
+  //
+  //  sub_index_scan_executor_->SetValues(sub_key_values);
+  //
+  //  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
@@ -257,7 +249,7 @@ bool UpdateLocation::Run() {
 
   // var location's column is 1
   sub_target_list.emplace_back(
-      33, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
+      32, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
 
   sub_update_executor_->SetTargetList(sub_target_list);
 
