@@ -100,7 +100,7 @@ class TestUpdateLocation : public concurrency::TransactionQuery {
 
   // TODO: just passing the compile
   virtual const std::vector<Value>& GetCompareKeys() const {
-    return sub_index_scan_executor_->GetValues();
+    return sub_update_index_scan_executor_->GetValues();
   }
 
   // Common method
