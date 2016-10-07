@@ -110,7 +110,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
       runtime_keys);
 
   // std::vector<oid_t> warehouse_column_ids = {1, 2, 3, 4, 5, 6, 8};
-  std::vector<oid_t> sub_column_ids = {0};  // select s_id from
+  std::vector<oid_t> sub_column_ids = {33};  // select v_location from
 
   planner::IndexScanPlan sub_index_scan_node(
       subscriber_table, nullptr, sub_column_ids, sub_index_scan_desc);
