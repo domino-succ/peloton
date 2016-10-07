@@ -173,8 +173,8 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
   TargetList spe_target_list;
   DirectMapList spe_direct_map_list;
 
-  // Keep the 6 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 6; ++col_itr) {
+  // Keep the 4 columns unchanged
+  for (oid_t col_itr = 0; col_itr < 4; ++col_itr) {
     spe_direct_map_list.emplace_back(col_itr,
                                      std::pair<oid_t, oid_t>(0, col_itr));
   }
