@@ -224,9 +224,9 @@ bool UpdateLocation::Run() {
 
   //  sub_index_scan_executor_->ResetState();
   //
-  //  std::vector<Value> sub_key_values;
-  //
-  //  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  std::vector<Value> sub_key_values;
+
+  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
   //
   //  sub_index_scan_executor_->SetValues(sub_key_values);
 
