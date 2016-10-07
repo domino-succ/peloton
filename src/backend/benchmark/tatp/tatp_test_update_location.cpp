@@ -275,10 +275,10 @@ bool TestUpdateLocation::Run() {
   // SUBSCRIBER SELECTION
   /////////////////////////////////////////////////////////
 
-  //  std::vector<Value> sub_key_values;
-  //
-  //  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-  //
+  std::vector<Value> sub_key_values;
+
+  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+
   //  // Select
   //  LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", sid);
   //
