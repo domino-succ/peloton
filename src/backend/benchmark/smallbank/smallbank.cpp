@@ -166,8 +166,8 @@ void LoadQuery(uint64_t count) {
 
   // Generate
   for (uint64_t i = 0; i < count; i++) {
-    // GenerateALLAndCache(zipf);
-    GenerateAndCacheQuery(zipf);
+    GenerateALLAndCache(zipf);
+    // GenerateAndCacheQuery(zipf);
   }
 
   if (state.generate_count == 0) {
