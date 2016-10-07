@@ -233,13 +233,13 @@ void UpdateSubscriberData::SetValue(ZipfDistribution &zipf) {
 
 bool UpdateSubscriberData::Run() {
   /*
-  "UpdateLocation": {
-  "SELECT s_id FROM " + TATPConstants.TABLENAME_SUBSCRIBER + " WHERE sub_nbr =
+  "UpdateSubscriberData": {
+  "UPDATE " + TATPConstants.TABLENAME_SUBSCRIBER + " SET bit_1 = ? WHERE s_id =
   ?"
 
-  "UPDATE " + TATPConstants.TABLENAME_SUBSCRIBER + " SET vlr_location = ? WHERE
-  s_id = ?"
-        }
+  "UPDATE " + TATPConstants.TABLENAME_SPECIAL_FACILITY + " SET data_a = ? WHERE
+  s_id = ? AND sf_type = ?"
+          }
   */
 
   LOG_TRACE("-------------------------------------");
@@ -267,32 +267,32 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
 
   // Update
-  sub_update_index_scan_executor_->ResetState();
-
-  std::vector<Value> sub_key_values;
-  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-
-  sub_update_index_scan_executor_->SetValues(sub_key_values);
-
-  TargetList sub_target_list;
-
-  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
-
-  Value sub_update_val = ValueFactory::GetIntegerValue(bit);
-
-  // bit_1 column id is 2
-  sub_target_list.emplace_back(
-      2, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
-
-  sub_update_executor_->SetTargetList(sub_target_list);
-
-  ExecuteUpdateTest(sub_update_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
+  //  sub_update_index_scan_executor_->ResetState();
+  //
+  //  std::vector<Value> sub_key_values;
+  //  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  //
+  //  sub_update_index_scan_executor_->SetValues(sub_key_values);
+  //
+  //  TargetList sub_target_list;
+  //
+  //  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
+  //
+  //  Value sub_update_val = ValueFactory::GetIntegerValue(bit);
+  //
+  //  // bit_1 column id is 2
+  //  sub_target_list.emplace_back(
+  //      2, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
+  //
+  //  sub_update_executor_->SetTargetList(sub_target_list);
+  //
+  //  ExecuteUpdateTest(sub_update_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   /////////////////////////////////////////////////////////
   // SPECIAL FACILTY UPDATE
