@@ -96,51 +96,50 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
 
   // UPDATE
-  //  std::vector<oid_t> sub_key_column_ids;
-  //  std::vector<ExpressionType> sub_expr_types;
-  //  sub_key_column_ids.push_back(0);  // SID
-  //  sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
-  //
-  //  std::vector<Value> sub_key_values;
-  //
-  //  auto sub_pkey_index =
-  //      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
-  //
-  //  planner::IndexScanPlan::IndexScanDesc sub_index_scan_desc(
-  //      sub_pkey_index, sub_key_column_ids, sub_expr_types, sub_key_values,
-  //      runtime_keys);
-  //
-  //  // UPDATE bit_1
-  //  std::vector<oid_t> sub_update_column_ids = {2};
-  //
-  //  planner::IndexScanPlan sub_update_index_scan_node(
-  //      subscriber_table, nullptr, sub_update_column_ids,
-  // sub_index_scan_desc);
-  //
-  //  executor::IndexScanExecutor *sub_update_index_scan_executor =
-  //      new executor::IndexScanExecutor(&sub_update_index_scan_node, nullptr);
-  //
-  //  TargetList sub_target_list;
-  //  DirectMapList sub_direct_map_list;
-  //
-  //  // Keep the first 2 columns unchanged
-  //  for (oid_t col_itr = 0; col_itr < 2; ++col_itr) {
-  //    sub_direct_map_list.emplace_back(col_itr,
-  //                                     std::pair<oid_t, oid_t>(0, col_itr));
-  //  }
-  //
-  //  std::unique_ptr<const planner::ProjectInfo> sub_project_info(
-  //      new planner::ProjectInfo(std::move(sub_target_list),
-  //                               std::move(sub_direct_map_list)));
-  //  planner::UpdatePlan sub_update_node(subscriber_table,
-  //                                      std::move(sub_project_info));
-  //
-  //  executor::UpdateExecutor *sub_update_executor =
-  //      new executor::UpdateExecutor(&sub_update_node, nullptr);
-  //
-  //  sub_update_executor->AddChild(sub_update_index_scan_executor);
-  //
-  //  sub_update_executor->Init();
+  std::vector<oid_t> sub_key_column_ids;
+  std::vector<ExpressionType> sub_expr_types;
+  sub_key_column_ids.push_back(0);  // SID
+  sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+
+  std::vector<Value> sub_key_values;
+
+  auto sub_pkey_index =
+      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
+
+  planner::IndexScanPlan::IndexScanDesc sub_index_scan_desc(
+      sub_pkey_index, sub_key_column_ids, sub_expr_types, sub_key_values,
+      runtime_keys);
+
+  // UPDATE bit_1
+  std::vector<oid_t> sub_update_column_ids = {2};
+
+  planner::IndexScanPlan sub_update_index_scan_node(
+      subscriber_table, nullptr, sub_update_column_ids, sub_index_scan_desc);
+
+  executor::IndexScanExecutor *sub_update_index_scan_executor =
+      new executor::IndexScanExecutor(&sub_update_index_scan_node, nullptr);
+
+  TargetList sub_target_list;
+  DirectMapList sub_direct_map_list;
+
+  // Keep the first 2 columns unchanged
+  for (oid_t col_itr = 0; col_itr < 2; ++col_itr) {
+    sub_direct_map_list.emplace_back(col_itr,
+                                     std::pair<oid_t, oid_t>(0, col_itr));
+  }
+
+  std::unique_ptr<const planner::ProjectInfo> sub_project_info(
+      new planner::ProjectInfo(std::move(sub_target_list),
+                               std::move(sub_direct_map_list)));
+  planner::UpdatePlan sub_update_node(subscriber_table,
+                                      std::move(sub_project_info));
+
+  executor::UpdateExecutor *sub_update_executor =
+      new executor::UpdateExecutor(&sub_update_node, nullptr);
+
+  sub_update_executor->AddChild(sub_update_index_scan_executor);
+
+  sub_update_executor->Init();
 
   /////////////////////////////////////////////////////////
   // PLAN FOR SPECIAL FACILITY
@@ -268,32 +267,32 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
 
   // Update
-  sub_update_index_scan_executor_->ResetState();
-
-  std::vector<Value> sub_key_values;
-  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-
-  sub_update_index_scan_executor_->SetValues(sub_key_values);
-
-  TargetList sub_target_list;
-
-  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
-
-  Value sub_update_val = ValueFactory::GetIntegerValue(bit);
-
-  // bit_1 column id is 2
-  sub_target_list.emplace_back(
-      2, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
-
-  sub_update_executor_->SetTargetList(sub_target_list);
-
-  ExecuteUpdateTest(sub_update_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
+  //  sub_update_index_scan_executor_->ResetState();
+  //
+  //  std::vector<Value> sub_key_values;
+  //  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  //
+  //  sub_update_index_scan_executor_->SetValues(sub_key_values);
+  //
+  //  TargetList sub_target_list;
+  //
+  //  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
+  //
+  //  Value sub_update_val = ValueFactory::GetIntegerValue(bit);
+  //
+  //  // bit_1 column id is 2
+  //  sub_target_list.emplace_back(
+  //      2, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
+  //
+  //  sub_update_executor_->SetTargetList(sub_target_list);
+  //
+  //  ExecuteUpdateTest(sub_update_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   /////////////////////////////////////////////////////////
   // SPECIAL FACILTY UPDATE
