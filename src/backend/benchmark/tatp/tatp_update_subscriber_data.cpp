@@ -248,7 +248,7 @@ bool UpdateSubscriberData::Run() {
   // PREPARE ARGUMENTS
   /////////////////////////////////////////////////////////
   int sid = sid_;
-  // int sf_type = sf_type_;
+  int sf_type = sf_type_;
 
   /////////////////////////////////////////////////////////
   // BEGIN TRANSACTION
@@ -299,33 +299,33 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
 
   // Update
-  //  spe_update_index_scan_executor_->ResetState();
-  //
-  //  std::vector<Value> spe_key_values;
-  //  spe_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-  //  spe_key_values.push_back(ValueFactory::GetIntegerValue(sf_type));
-  //
-  //  spe_update_index_scan_executor_->SetValues(spe_key_values);
-  //
-  //  TargetList spe_target_list;
-  //
-  //  int data_a = GetRandomInteger(MIN_BYTE, MAX_BYTE);
-  //
-  //  Value spe_update_val = ValueFactory::GetIntegerValue(data_a);
-  //
-  //  // data_a column id is 4
-  //  spe_target_list.emplace_back(
-  //      4, expression::ExpressionUtil::ConstantValueFactory(spe_update_val));
-  //
-  //  spe_update_executor_->SetTargetList(spe_target_list);
-  //
-  //  ExecuteUpdateTest(spe_update_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
+  spe_update_index_scan_executor_->ResetState();
+
+  std::vector<Value> spe_key_values;
+  spe_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  spe_key_values.push_back(ValueFactory::GetIntegerValue(sf_type));
+
+  spe_update_index_scan_executor_->SetValues(spe_key_values);
+
+  TargetList spe_target_list;
+
+  int data_a = GetRandomInteger(MIN_BYTE, MAX_BYTE);
+
+  Value spe_update_val = ValueFactory::GetIntegerValue(data_a);
+
+  // data_a column id is 4
+  spe_target_list.emplace_back(
+      4, expression::ExpressionUtil::ConstantValueFactory(spe_update_val));
+
+  spe_update_executor_->SetTargetList(spe_target_list);
+
+  ExecuteUpdateTest(spe_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
