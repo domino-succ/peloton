@@ -222,8 +222,8 @@ bool UpdateLocation::Run() {
   // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
   //  LOG_TRACE("SELECT * FROM SUBSCRIBER WHERE custid = %d", sid);
 
-  sub_index_scan_executor_->ResetState();
-
+  //  sub_index_scan_executor_->ResetState();
+  //
   std::vector<Value> sub_key_values;
 
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
