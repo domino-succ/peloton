@@ -221,28 +221,28 @@ bool UpdateLocation::Run() {
 
   // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
   //  LOG_TRACE("SELECT * FROM SUBSCRIBER WHERE custid = %d", sid);
-  //
-  //  sub_index_scan_executor_->ResetState();
-  //
+
+  sub_index_scan_executor_->ResetState();
+
   std::vector<Value> sub_key_values;
 
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-  //
-  //  sub_index_scan_executor_->SetValues(sub_key_values);
-  //
-  //  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
-  //
-  //  if (ga1_lists_values.size() != 1) {
-  //    LOG_ERROR("update location return size incorrect : %lu",
-  //              ga1_lists_values.size());
-  //    // assert(false);
-  //  }
+
+  sub_index_scan_executor_->SetValues(sub_key_values);
+
+  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  if (ga1_lists_values.size() != 1) {
+    LOG_ERROR("update location return size incorrect : %lu",
+              ga1_lists_values.size());
+    // assert(false);
+  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
