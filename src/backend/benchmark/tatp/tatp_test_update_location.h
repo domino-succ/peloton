@@ -33,7 +33,8 @@ extern int RUNNING_REF_THRESHOLD;
 class TestUpdateLocation : public concurrency::TransactionQuery {
  public:
   TestUpdateLocation()
-      : sub_index_scan_executor_(nullptr),
+      : access_index_scan_executor_(nullptr),
+        sub_index_scan_executor_(nullptr),
         sub_update_index_scan_executor_(nullptr),
         sub_update_executor_(nullptr),
         context_(nullptr),
@@ -47,6 +48,7 @@ class TestUpdateLocation : public concurrency::TransactionQuery {
   ~TestUpdateLocation() {}
 
   void SetContext(executor::ExecutorContext* context) {
+    access_index_scan_executor_->SetContext(context);
     sub_index_scan_executor_->SetContext(context);
     sub_update_index_scan_executor_->SetContext(context);
     sub_update_executor_->SetContext(context);
@@ -59,6 +61,9 @@ class TestUpdateLocation : public concurrency::TransactionQuery {
     // Note: context is set in RunNewOrder, and it is unique_prt
     // delete context_;
     // context_ = nullptr;
+
+    delete access_index_scan_executor_;
+    access_index_scan_executor_ = nullptr;
 
     delete sub_index_scan_executor_;
     sub_index_scan_executor_ = nullptr;
@@ -450,6 +455,8 @@ s_id = ?"
 
   // Make them public for convenience
  public:
+  executor::IndexScanExecutor* access_index_scan_executor_;
+
   executor::IndexScanExecutor* sub_index_scan_executor_;
   executor::IndexScanExecutor* sub_update_index_scan_executor_;
   executor::UpdateExecutor* sub_update_executor_;

@@ -242,23 +242,23 @@ bool TransactSaving::Run() {
 
   // "SELECT1 * FROM " + TABLENAME_ACCOUNTS + " WHERE custid = ?"
 
-  //  LOG_TRACE("SELECT * FROM ACCOUNTS WHERE custid = %d", custid0);
-  //
-  //  accounts_index_scan_executor_->ResetState();
-  //
-  //  std::vector<Value> accounts_key_values;
-  //
-  //  accounts_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
-  //
-  //  accounts_index_scan_executor_->SetValues(accounts_key_values);
-  //
-  //  auto ga1_lists_values = ExecuteReadTest(accounts_index_scan_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
+  LOG_TRACE("SELECT * FROM ACCOUNTS WHERE custid = %d", custid0);
+
+  accounts_index_scan_executor_->ResetState();
+
+  std::vector<Value> accounts_key_values;
+
+  accounts_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+  accounts_index_scan_executor_->SetValues(accounts_key_values);
+
+  auto ga1_lists_values = ExecuteReadTest(accounts_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   /////////////////////////////////////////////////////////
   // CHECKING

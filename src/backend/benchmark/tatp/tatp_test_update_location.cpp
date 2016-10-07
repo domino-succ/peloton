@@ -87,11 +87,40 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   "UPDATE " + TATPConstants.TABLENAME_SUBSCRIBER + " SET vlr_location = ? WHERE
   s_id = ?"
         }
+
+
   */
   std::vector<expression::AbstractExpression *> runtime_keys;
 
   /////////////////////////////////////////////////////////
-  // PLAN
+  // PLAN For Access
+  /////////////////////////////////////////////////////////
+  std::vector<oid_t> access_key_column_ids = {0, 1};  // pkey: sid, ai_type
+  std::vector<ExpressionType> access_expr_types;
+  access_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  access_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+
+  std::vector<Value> access_key_values;
+
+  auto access_pkey_index =
+      access_info_table->GetIndexWithOid(access_info_table_pkey_index_oid);
+
+  planner::IndexScanPlan::IndexScanDesc access_index_scan_desc(
+      access_pkey_index, access_key_column_ids, access_expr_types,
+      access_key_values, runtime_keys);
+
+  std::vector<oid_t> access_column_ids = {2, 3, 4, 5};  // select data1,2,3,4
+
+  planner::IndexScanPlan access_index_scan_node(
+      access_info_table, nullptr, access_column_ids, access_index_scan_desc);
+
+  executor::IndexScanExecutor *access_index_scan_executor =
+      new executor::IndexScanExecutor(&access_index_scan_node, nullptr);
+
+  access_index_scan_executor->Init();
+
+  /////////////////////////////////////////////////////////
+  // PLAN For Sub
   /////////////////////////////////////////////////////////
 
   std::vector<oid_t> test_sub_key_column_ids = {0};  // pk: sid
@@ -157,6 +186,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
 
   TestUpdateLocation *us = new TestUpdateLocation();
 
+  us->access_index_scan_executor_ = access_index_scan_executor;
   us->sub_index_scan_executor_ = test_sub_index_scan_executor;
   us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
   us->sub_update_executor_ = test_sub_update_executor;
@@ -217,6 +247,29 @@ bool TestUpdateLocation::Run() {
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
   auto txn = txn_manager.BeginTransaction();
+
+  /////////////////////////////////////////////////////////
+  // ACCOUNTS SELECTION
+  /////////////////////////////////////////////////////////
+
+  // "SELECT1 * FROM " + TABLENAME_ACCOUNTS + " WHERE custid = ?"
+  LOG_TRACE("SELECT * FROM ACCOUNTS WHERE sid = %d", sid);
+
+  access_index_scan_executor_->ResetState();
+
+  std::vector<Value> access_key_values;
+  access_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  access_key_values.push_back(ValueFactory::GetIntegerValue(1));
+
+  access_index_scan_executor_->SetValues(access_key_values);
+
+  auto ga1_lists_values = ExecuteReadTest(access_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   /////////////////////////////////////////////////////////
   // SUBSCRIBER SELECTION
