@@ -238,11 +238,11 @@ bool UpdateLocation::Run() {
     return false;
   }
 
-  if (ga1_lists_values.size() != 1) {
-    LOG_ERROR("update location return size incorrect : %lu",
-              ga1_lists_values.size());
-    // assert(false);
-  }
+  //  if (ga1_lists_values.size() != 1) {
+  //    LOG_ERROR("update location return size incorrect : %lu",
+  //              ga1_lists_values.size());
+  //    // assert(false);
+  //  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
