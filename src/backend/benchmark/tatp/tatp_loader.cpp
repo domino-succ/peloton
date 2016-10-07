@@ -592,53 +592,53 @@ void CreateTestSubTable() {
   */
 
   // Create schema first
-  std::vector<catalog::Column> subscriber_columns;
+  std::vector<catalog::Column> test_sub_columns;
 
   // s_id
   auto s_id_column = catalog::Column(
       VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER), "S_ID", is_inlined);
-  subscriber_columns.push_back(s_id_column);
+  test_sub_columns.push_back(s_id_column);
 
   // sub_nbr
   auto sub_nbr_column = catalog::Column(VALUE_TYPE_VARCHAR, data_length_15,
                                         "SUB_NBR", is_inlined);
-  subscriber_columns.push_back(sub_nbr_column);
+  test_sub_columns.push_back(sub_nbr_column);
 
   // bit_1 - bit_10
   std::string column_name1 = "bit_1";
   auto column1 =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       column_name1, is_inlined);
-  subscriber_columns.push_back(column1);
+  test_sub_columns.push_back(column1);
 
   // hex_1 - hex_10
   std::string column_name2 = "hex_1";
   auto column2 =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       column_name2, is_inlined);
-  subscriber_columns.push_back(column2);
+  test_sub_columns.push_back(column2);
 
   // byte2_1 - byte2_10
   std::string column_name3 = "byte2_1";
   auto column3 =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       column_name3, is_inlined);
-  subscriber_columns.push_back(column3);
+  test_sub_columns.push_back(column3);
 
   // msc_location
   auto msc_location_column =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       "MSC_LOCATION", is_inlined);
-  subscriber_columns.push_back(msc_location_column);
+  test_sub_columns.push_back(msc_location_column);
 
   // vlr_location
   auto vlr_location_column =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       "VLR_LOCATION", is_inlined);
-  subscriber_columns.push_back(vlr_location_column);
+  test_sub_columns.push_back(vlr_location_column);
 
   // schema
-  catalog::Schema *table_schema = new catalog::Schema(subscriber_columns);
+  catalog::Schema *table_schema = new catalog::Schema(test_sub_columns);
   std::string table_name("TESTSUB");
 
   // table
@@ -1074,7 +1074,7 @@ void LoadTestSub() {
 
   for (size_t itr = 0; itr < NUM_SUBSCRIBERS; itr++) {
     auto test_sub_tuple = BuildTestSubTuple(itr, pool);
-    planner::InsertPlan node(subscriber_table, std::move(test_sub_tuple));
+    planner::InsertPlan node(test_sub_table, std::move(test_sub_tuple));
     executor::InsertExecutor executor(&node, context.get());
     executor.Execute();
   }
