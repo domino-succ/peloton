@@ -91,13 +91,12 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   std::vector<expression::AbstractExpression *> runtime_keys;
 
   /////////////////////////////////////////////////////////
-  // PLAN FOR SUBSCRIBER
+  // PLAN FOR SPECIAL FACILITY
   /////////////////////////////////////////////////////////
 
-  // SELECT
-  std::vector<oid_t> test_sub_key_column_ids;
+  // UPDATE
+  std::vector<oid_t> test_sub_key_column_ids = {0};  // pk: sid
   std::vector<ExpressionType> test_sub_expr_types;
-  test_sub_key_column_ids.push_back(0);  // SID
   test_sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
   std::vector<Value> test_sub_key_values;
@@ -109,18 +108,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
       test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
       test_sub_key_values, runtime_keys);
 
-  // std::vector<oid_t> warehouse_column_ids = {1, 2, 3, 4, 5, 6, 7};
-  std::vector<oid_t> test_sub_column_ids = {1};  // select sub from
-
-  planner::IndexScanPlan test_sub_index_scan_node(
-      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
-
-  executor::IndexScanExecutor *test_sub_index_scan_executor =
-      new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
-
-  test_sub_index_scan_executor->Init();
-
-  // UPDATE vlr_location
+  // UPDATE vr location
   std::vector<oid_t> test_sub_update_column_ids = {6};
 
   planner::IndexScanPlan test_sub_update_index_scan_node(
@@ -134,7 +122,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   TargetList test_sub_target_list;
   DirectMapList test_sub_direct_map_list;
 
-  // Keep the first 33 columns unchanged
+  // Keep the 4 columns unchanged
   for (oid_t col_itr = 0; col_itr < 6; ++col_itr) {
     test_sub_direct_map_list.emplace_back(col_itr,
                                           std::pair<oid_t, oid_t>(0, col_itr));
@@ -143,7 +131,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   std::unique_ptr<const planner::ProjectInfo> test_sub_project_info(
       new planner::ProjectInfo(std::move(test_sub_target_list),
                                std::move(test_sub_direct_map_list)));
-  planner::UpdatePlan test_sub_update_node(subscriber_table,
+  planner::UpdatePlan test_sub_update_node(special_facility_table,
                                            std::move(test_sub_project_info));
 
   executor::UpdateExecutor *test_sub_update_executor =
@@ -152,21 +140,21 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   test_sub_update_executor->AddChild(test_sub_update_index_scan_executor);
 
   test_sub_update_executor->Init();
+
   /////////////////////////////////////////////////////////
 
-  TestUpdateLocation *ul = new TestUpdateLocation();
+  TestUpdateLocation *us = new TestUpdateLocation();
 
-  ul->sub_index_scan_executor_ = test_sub_index_scan_executor;
-  ul->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
-  ul->sub_update_executor_ = test_sub_update_executor;
+  us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
+  us->sub_update_executor_ = test_sub_update_executor;
 
   // Set values
-  ul->SetValue(zipf);
+  us->SetValue(zipf);
 
   // Set txn's region cover
-  ul->SetRegionCover();
+  us->SetRegionCover();
 
-  return ul;
+  return us;
 }
 
 /*
@@ -224,27 +212,27 @@ bool TestUpdateLocation::Run() {
   // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
   //  LOG_TRACE("SELECT * FROM SUBSCRIBER WHERE custid = %d", sid);
 
-  sub_index_scan_executor_->ResetState();
-
+  //  sub_index_scan_executor_->ResetState();
+  //
   std::vector<Value> sub_key_values;
 
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
-  sub_index_scan_executor_->SetValues(sub_key_values);
-
-  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  if (ga1_lists_values.size() != 1) {
-    LOG_ERROR("update location return size incorrect : %lu",
-              ga1_lists_values.size());
-    // assert(false);
-  }
+  // sub_index_scan_executor_->SetValues(sub_key_values);
+  //
+  //  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
+  //
+  //  if (ga1_lists_values.size() != 1) {
+  //    LOG_ERROR("update location return size incorrect : %lu",
+  //              ga1_lists_values.size());
+  //    // assert(false);
+  //  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
