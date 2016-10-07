@@ -160,12 +160,12 @@ void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // Generate query
   // GetNewDestination *txn = GenerateGetNewDestination(zipf);
   // GetAccessData *txn = GenerateGetAccessData(zipf);  // 80000
-  GetSubscriberData *txn = GenerateGetSubscriberData(zipf);
+  // GetSubscriberData *txn = GenerateGetSubscriberData(zipf);
   //
   // InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
   // DeteteCallForwarding *txn = GenerateDeteteCallForwarding(zipf);
   // UpdateSubscriberData *txn = GenerateUpdateSubscriberData(zipf);  // 5176
-  // UpdateLocation *txn = GenerateUpdateLocation(zipf);  // 5303
+  UpdateLocation *txn = GenerateUpdateLocation(zipf);  // 5303
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
   /////////////////////////////////////////////////////////
