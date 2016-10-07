@@ -81,43 +81,43 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
 
   /*
   "UpdateLocation": {
-  "SELECT s_id FROM " + TATPConstants.TABLENAME_SUBSCRIBER(SPE) + " WHERE
-  sub_nbr =
+  "SELECT s_id FROM " + TATPConstants.TABLENAME_SUBSCRIBER + " WHERE sub_nbr =
   ?"
 
   "UPDATE " + TATPConstants.TABLENAME_SUBSCRIBER + " SET vlr_location = ? WHERE
   s_id = ?"
         }
-  */
 
+
+  */
   std::vector<expression::AbstractExpression *> runtime_keys;
 
   /////////////////////////////////////////////////////////
-  // PLAN For Spe
+  // PLAN For Access
   /////////////////////////////////////////////////////////
-  std::vector<oid_t> spe_key_column_ids = {0, 1};  // pk: sid, sf_type
-  std::vector<ExpressionType> spe_expr_types;
-  spe_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
-  spe_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  std::vector<oid_t> access_key_column_ids = {0, 1};  // pkey: sid, ai_type
+  std::vector<ExpressionType> access_expr_types;
+  access_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  access_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  std::vector<Value> spe_key_values;
+  std::vector<Value> access_key_values;
 
-  auto spe_pkey_index = special_facility_table->GetIndexWithOid(
-      special_facility_table_pkey_index_oid);
+  auto access_pkey_index =
+      access_info_table->GetIndexWithOid(access_info_table_pkey_index_oid);
 
-  planner::IndexScanPlan::IndexScanDesc spe_index_scan_desc(
-      spe_pkey_index, spe_key_column_ids, spe_expr_types, spe_key_values,
-      runtime_keys);
+  planner::IndexScanPlan::IndexScanDesc access_index_scan_desc(
+      access_pkey_index, access_key_column_ids, access_expr_types,
+      access_key_values, runtime_keys);
 
-  std::vector<oid_t> spe_column_ids = {2};  // select 2
+  std::vector<oid_t> access_column_ids = {2, 3, 4, 5};  // select data1,2,3,4
 
-  planner::IndexScanPlan spe_index_scan_node(
-      special_facility_table, nullptr, spe_column_ids, spe_index_scan_desc);
+  planner::IndexScanPlan access_index_scan_node(
+      access_info_table, nullptr, access_column_ids, access_index_scan_desc);
 
-  executor::IndexScanExecutor *spe_index_scan_executor =
-      new executor::IndexScanExecutor(&spe_index_scan_node, nullptr);
+  executor::IndexScanExecutor *access_index_scan_executor =
+      new executor::IndexScanExecutor(&access_index_scan_node, nullptr);
 
-  spe_index_scan_executor->Init();
+  access_index_scan_executor->Init();
 
   /////////////////////////////////////////////////////////
   // PLAN For Sub
@@ -186,7 +186,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
 
   TestUpdateLocation *us = new TestUpdateLocation();
 
-  us->access_index_scan_executor_ = spe_index_scan_executor;
+  us->access_index_scan_executor_ = access_index_scan_executor;
   us->sub_index_scan_executor_ = test_sub_index_scan_executor;
   us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
   us->sub_update_executor_ = test_sub_update_executor;
@@ -278,7 +278,7 @@ bool TestUpdateLocation::Run() {
   std::vector<Value> sub_key_values;
 
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-
+  //
   //  // Select
   //  LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", sid);
   //
