@@ -47,7 +47,7 @@ class TestUpdateLocation : public concurrency::TransactionQuery {
   ~TestUpdateLocation() {}
 
   void SetContext(executor::ExecutorContext* context) {
-    sub_index_scan_executor_->SetContext(context);
+    // sub_index_scan_executor_->SetContext(context);
     sub_update_index_scan_executor_->SetContext(context);
     sub_update_executor_->SetContext(context);
 
@@ -60,8 +60,8 @@ class TestUpdateLocation : public concurrency::TransactionQuery {
     // delete context_;
     // context_ = nullptr;
 
-    delete sub_index_scan_executor_;
-    sub_index_scan_executor_ = nullptr;
+    //    delete sub_index_scan_executor_;
+    //    sub_index_scan_executor_ = nullptr;
 
     delete sub_update_index_scan_executor_;
     sub_update_index_scan_executor_ = nullptr;
