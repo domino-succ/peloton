@@ -232,11 +232,11 @@ bool UpdateLocation::Run() {
 
   // auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
 
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   //  if (ga1_lists_values.size() != 1) {
   //    LOG_ERROR("update location return size incorrect : %lu",
