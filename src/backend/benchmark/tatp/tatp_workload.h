@@ -19,6 +19,7 @@
 #include "backend/benchmark/tatp/tatp_get_access_data.h"
 #include "backend/benchmark/tatp/tatp_update_subscriber_data.h"
 #include "backend/benchmark/tatp/tatp_update_location.h"
+#include "backend/benchmark/tatp/tatp_test_update_location.h"
 #include "backend/benchmark/tatp/tatp_insert_call_forwarding.h"
 #include "backend/benchmark/tatp/tatp_delete_call_forwarding.h"
 #include "backend/benchmark/tatp/tatp_configuration.h"

@@ -164,7 +164,8 @@ void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   //
   // InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
   // DeteteCallForwarding *txn = GenerateDeteteCallForwarding(zipf);
-  UpdateSubscriberData *txn = GenerateUpdateSubscriberData(zipf);  // 5176
+  // UpdateSubscriberData *txn = GenerateUpdateSubscriberData(zipf);  // 5176
+  TestUpdateLocation *txn = GenerateTestUpdateLocation(zipf);
   // UpdateLocation *txn = GenerateUpdateLocation(zipf);  // 5303
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor

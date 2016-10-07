@@ -77,7 +77,7 @@ namespace tatp {
 /*
  * This function new a Amalgamate, so remember to delete it
  */
-UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
+TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
 
   /*
   "UpdateLocation": {
@@ -95,68 +95,70 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
 
   // SELECT
-  std::vector<oid_t> sub_key_column_ids;
-  std::vector<ExpressionType> sub_expr_types;
-  sub_key_column_ids.push_back(0);  // SID
-  sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  std::vector<oid_t> test_sub_key_column_ids;
+  std::vector<ExpressionType> test_sub_expr_types;
+  test_sub_key_column_ids.push_back(0);  // SID
+  test_sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  std::vector<Value> sub_key_values;
+  std::vector<Value> test_sub_key_values;
 
-  auto sub_pkey_index =
-      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
+  auto test_sub_pkey_index =
+      test_sub_table->GetIndexWithOid(test_sub_table_pkey_index_oid);
 
-  planner::IndexScanPlan::IndexScanDesc sub_index_scan_desc(
-      sub_pkey_index, sub_key_column_ids, sub_expr_types, sub_key_values,
-      runtime_keys);
+  planner::IndexScanPlan::IndexScanDesc test_sub_index_scan_desc(
+      test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
+      test_sub_key_values, runtime_keys);
 
-  // std::vector<oid_t> warehouse_column_ids = {1, 2, 3, 4, 5, 6, 8};
-  std::vector<oid_t> sub_column_ids = {33};  // select v_location from
+  // std::vector<oid_t> warehouse_column_ids = {1, 2, 3, 4, 5, 6, 7};
+  std::vector<oid_t> test_sub_column_ids = {1};  // select sub from
 
-  planner::IndexScanPlan sub_index_scan_node(
-      subscriber_table, nullptr, sub_column_ids, sub_index_scan_desc);
+  planner::IndexScanPlan test_sub_index_scan_node(
+      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
 
-  executor::IndexScanExecutor *sub_index_scan_executor =
-      new executor::IndexScanExecutor(&sub_index_scan_node, nullptr);
+  executor::IndexScanExecutor *test_sub_index_scan_executor =
+      new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
 
-  sub_index_scan_executor->Init();
+  test_sub_index_scan_executor->Init();
 
   // UPDATE vlr_location
-  std::vector<oid_t> sub_update_column_ids = {33};
+  std::vector<oid_t> test_sub_update_column_ids = {6};
 
-  planner::IndexScanPlan sub_update_index_scan_node(
-      subscriber_table, nullptr, sub_update_column_ids, sub_index_scan_desc);
+  planner::IndexScanPlan test_sub_update_index_scan_node(
+      test_sub_table, nullptr, test_sub_update_column_ids,
+      test_sub_index_scan_desc);
 
-  executor::IndexScanExecutor *sub_update_index_scan_executor =
-      new executor::IndexScanExecutor(&sub_update_index_scan_node, nullptr);
+  executor::IndexScanExecutor *test_sub_update_index_scan_executor =
+      new executor::IndexScanExecutor(&test_sub_update_index_scan_node,
+                                      nullptr);
 
-  TargetList sub_target_list;
-  DirectMapList sub_direct_map_list;
+  TargetList test_sub_target_list;
+  DirectMapList test_sub_direct_map_list;
 
   // Keep the first 33 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 33; ++col_itr) {
-    sub_direct_map_list.emplace_back(col_itr,
-                                     std::pair<oid_t, oid_t>(0, col_itr));
+  for (oid_t col_itr = 0; col_itr < 6; ++col_itr) {
+    test_sub_direct_map_list.emplace_back(col_itr,
+                                          std::pair<oid_t, oid_t>(0, col_itr));
   }
 
-  std::unique_ptr<const planner::ProjectInfo> sub_project_info(
-      new planner::ProjectInfo(std::move(sub_target_list),
-                               std::move(sub_direct_map_list)));
-  planner::UpdatePlan sub_update_node(subscriber_table,
-                                      std::move(sub_project_info));
+  std::unique_ptr<const planner::ProjectInfo> test_sub_project_info(
+      new planner::ProjectInfo(std::move(test_sub_target_list),
+                               std::move(test_sub_direct_map_list)));
+  planner::UpdatePlan test_sub_update_node(subscriber_table,
+                                           std::move(test_sub_project_info));
 
-  executor::UpdateExecutor *sub_update_executor =
-      new executor::UpdateExecutor(&sub_update_node, nullptr);
+  executor::UpdateExecutor *test_sub_update_executor =
+      new executor::UpdateExecutor(&test_sub_update_node, nullptr);
 
-  sub_update_executor->AddChild(sub_update_index_scan_executor);
+  test_sub_update_executor->AddChild(test_sub_update_index_scan_executor);
 
-  sub_update_executor->Init();
+  test_sub_update_executor->Init();
   /////////////////////////////////////////////////////////
 
-  UpdateLocation *ul = new UpdateLocation();
+  TestUpdateLocation *ul = new TestUpdateLocation();
 
-  ul->sub_index_scan_executor_ = sub_index_scan_executor;
-  ul->sub_update_index_scan_executor_ = sub_update_index_scan_executor;
-  ul->sub_update_executor_ = sub_update_executor;
+  ul->sub_index_scan_executor_ = test_sub_index_scan_executor;
+  ul->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
+  ul->sub_update_executor_ = test_sub_update_executor;
 
   // Set values
   ul->SetValue(zipf);
@@ -171,7 +173,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
  * Set the parameters needed by execution. Set the W_ID, D_ID, C_ID, I_ID.
  * So when a txn has all of the parameters when enqueue
  */
-void UpdateLocation::SetValue(ZipfDistribution &zipf) {
+void TestUpdateLocation::SetValue(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PREPARE ARGUMENTS
   /////////////////////////////////////////////////////////
@@ -185,7 +187,7 @@ void UpdateLocation::SetValue(ZipfDistribution &zipf) {
   primary_keys_.assign(1, sid_);
 }
 
-bool UpdateLocation::Run() {
+bool TestUpdateLocation::Run() {
   /*
   "UpdateLocation": {
   "SELECT s_id FROM " + TATPConstants.TABLENAME_SUBSCRIBER + " WHERE sub_nbr =
@@ -255,9 +257,9 @@ bool UpdateLocation::Run() {
 
   Value sub_update_val = ValueFactory::GetIntegerValue(location);
 
-  // var location's column is 1
+  // var location's column is 6
   sub_target_list.emplace_back(
-      33, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
+      6, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
 
   sub_update_executor_->SetTargetList(sub_target_list);
 

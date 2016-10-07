@@ -50,6 +50,9 @@ static const oid_t call_forwarding_table_skey_index_oid = 20041;  // id
 static const oid_t call_forwarding_table_skey_index_oid2 =
     20042;  // id,type,start_time,end_time
 
+static const oid_t test_sub_table_oid = 1005;
+static const oid_t test_sub_table_pkey_index_oid = 20050;  // CUSTID
+
 extern const size_t BASIC_SUBSCRIBERS;
 extern size_t NUM_SUBSCRIBERS;
 
