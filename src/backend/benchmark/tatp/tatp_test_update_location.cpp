@@ -91,10 +91,9 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   std::vector<expression::AbstractExpression *> runtime_keys;
 
   /////////////////////////////////////////////////////////
-  // PLAN FOR SPECIAL FACILITY
+  // PLAN
   /////////////////////////////////////////////////////////
 
-  // UPDATE
   std::vector<oid_t> test_sub_key_column_ids = {0};  // pk: sid
   std::vector<ExpressionType> test_sub_expr_types;
   test_sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
@@ -108,7 +107,20 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
       test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
       test_sub_key_values, runtime_keys);
 
-  // UPDATE vr location
+  std::vector<oid_t> test_sub_column_ids = {1};  // select sub from
+
+  // Select
+  planner::IndexScanPlan test_sub_index_scan_node(
+      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
+
+  executor::IndexScanExecutor *test_sub_index_scan_executor =
+      new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
+
+  test_sub_index_scan_executor->Init();
+
+  // UPDATE
+
+  // vr location
   std::vector<oid_t> test_sub_update_column_ids = {6};
 
   planner::IndexScanPlan test_sub_update_index_scan_node(
@@ -145,6 +157,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
 
   TestUpdateLocation *us = new TestUpdateLocation();
 
+  us->sub_index_scan_executor_ = test_sub_index_scan_executor;
   us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
   us->sub_update_executor_ = test_sub_update_executor;
 
@@ -209,30 +222,24 @@ bool TestUpdateLocation::Run() {
   // SUBSCRIBER SELECTION
   /////////////////////////////////////////////////////////
 
-  // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
-  //  LOG_TRACE("SELECT * FROM SUBSCRIBER WHERE custid = %d", sid);
+  // Select
+  LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", sid);
 
-  //  sub_index_scan_executor_->ResetState();
-  //
+  sub_index_scan_executor_->ResetState();
+
   std::vector<Value> sub_key_values;
 
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
-  // sub_index_scan_executor_->SetValues(sub_key_values);
-  //
-  //  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
-  //
-  //  if (ga1_lists_values.size() != 1) {
-  //    LOG_ERROR("update location return size incorrect : %lu",
-  //              ga1_lists_values.size());
-  //    // assert(false);
-  //  }
+  sub_index_scan_executor_->SetValues(sub_key_values);
+
+  auto gc_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
