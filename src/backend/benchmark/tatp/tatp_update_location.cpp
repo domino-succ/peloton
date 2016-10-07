@@ -225,17 +225,17 @@ bool UpdateLocation::Run() {
   // "SELECT1 s_id FROM " + TABLENAME_SUBSCRIBER + " WHERE sub_nbr = ?"
 
   // Select
-  //  sub_index_scan_executor_->ResetState();
-  //
-  //  sub_index_scan_executor_->SetValues(sub_key_values);
-  //
-  //  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
+  sub_index_scan_executor_->ResetState();
+
+  sub_index_scan_executor_->SetValues(sub_key_values);
+
+  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
