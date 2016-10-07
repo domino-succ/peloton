@@ -110,7 +110,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
       runtime_keys);
 
   // std::vector<oid_t> warehouse_column_ids = {1, 2, 3, 4, 5, 6, 8};
-  std::vector<oid_t> sub_column_ids = {1};  // select sub_nbr from
+  std::vector<oid_t> sub_column_ids = {0};  // select s_id from
 
   planner::IndexScanPlan sub_index_scan_node(
       subscriber_table, nullptr, sub_column_ids, sub_index_scan_desc);
@@ -133,7 +133,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   DirectMapList sub_direct_map_list;
 
   // Keep the first 33 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 34; ++col_itr) {
+  for (oid_t col_itr = 0; col_itr < 33; ++col_itr) {
     sub_direct_map_list.emplace_back(col_itr,
                                      std::pair<oid_t, oid_t>(0, col_itr));
   }
