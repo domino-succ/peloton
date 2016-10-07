@@ -131,7 +131,7 @@ TestUpdateLocation *GenerateTestUpdateLocation(ZipfDistribution &zipf) {
   std::unique_ptr<const planner::ProjectInfo> test_sub_project_info(
       new planner::ProjectInfo(std::move(test_sub_target_list),
                                std::move(test_sub_direct_map_list)));
-  planner::UpdatePlan test_sub_update_node(special_facility_table,
+  planner::UpdatePlan test_sub_update_node(test_sub_table,
                                            std::move(test_sub_project_info));
 
   executor::UpdateExecutor *test_sub_update_executor =
