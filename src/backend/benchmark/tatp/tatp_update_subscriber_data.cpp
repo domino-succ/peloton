@@ -267,65 +267,65 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
 
   // Update
-  //  sub_update_index_scan_executor_->ResetState();
-  //
-  //  std::vector<Value> sub_key_values;
-  //  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-  //
-  //  sub_update_index_scan_executor_->SetValues(sub_key_values);
-  //
-  //  TargetList sub_target_list;
-  //
-  //  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
-  //
-  //  Value sub_update_val = ValueFactory::GetIntegerValue(bit);
-  //
-  //  // bit_1 column id is 2
-  //  sub_target_list.emplace_back(
-  //      2, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
-  //
-  //  sub_update_executor_->SetTargetList(sub_target_list);
-  //
-  //  ExecuteUpdateTest(sub_update_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
+  sub_update_index_scan_executor_->ResetState();
 
-  /////////////////////////////////////////////////////////
-  // SPECIAL FACILTY UPDATE
-  /////////////////////////////////////////////////////////
+  std::vector<Value> sub_key_values;
+  sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
-  // Update
-  spe_update_index_scan_executor_->ResetState();
+  sub_update_index_scan_executor_->SetValues(sub_key_values);
 
-  std::vector<Value> spe_key_values;
-  spe_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-  spe_key_values.push_back(ValueFactory::GetIntegerValue(sf_type));
+  TargetList sub_target_list;
 
-  spe_update_index_scan_executor_->SetValues(spe_key_values);
+  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
 
-  TargetList spe_target_list;
+  Value sub_update_val = ValueFactory::GetIntegerValue(bit);
 
-  int data_a = GetRandomInteger(MIN_BYTE, MAX_BYTE);
+  // bit_1 column id is 2
+  sub_target_list.emplace_back(
+      2, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
 
-  Value spe_update_val = ValueFactory::GetIntegerValue(data_a);
+  sub_update_executor_->SetTargetList(sub_target_list);
 
-  // data_a column id is 4
-  spe_target_list.emplace_back(
-      4, expression::ExpressionUtil::ConstantValueFactory(spe_update_val));
-
-  spe_update_executor_->SetTargetList(spe_target_list);
-
-  ExecuteUpdateTest(spe_update_executor_);
+  ExecuteUpdateTest(sub_update_executor_);
 
   if (txn->GetResult() != Result::RESULT_SUCCESS) {
     LOG_TRACE("abort transaction");
     txn_manager.AbortTransaction();
     return false;
   }
+
+  /////////////////////////////////////////////////////////
+  // SPECIAL FACILTY UPDATE
+  /////////////////////////////////////////////////////////
+
+  // Update
+  //  spe_update_index_scan_executor_->ResetState();
+  //
+  //  std::vector<Value> spe_key_values;
+  //  spe_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  //  spe_key_values.push_back(ValueFactory::GetIntegerValue(sf_type));
+  //
+  //  spe_update_index_scan_executor_->SetValues(spe_key_values);
+  //
+  //  TargetList spe_target_list;
+  //
+  //  int data_a = GetRandomInteger(MIN_BYTE, MAX_BYTE);
+  //
+  //  Value spe_update_val = ValueFactory::GetIntegerValue(data_a);
+  //
+  //  // data_a column id is 4
+  //  spe_target_list.emplace_back(
+  //      4, expression::ExpressionUtil::ConstantValueFactory(spe_update_val));
+  //
+  //  spe_update_executor_->SetTargetList(spe_target_list);
+  //
+  //  ExecuteUpdateTest(spe_update_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
