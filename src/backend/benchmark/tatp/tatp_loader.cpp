@@ -57,6 +57,7 @@ const size_t HOTSPOT_FIXED_SIZE = 20;  // 20 fixed number of tuples
 double data_length_3 = 3;
 double data_length_5 = 4;
 double data_length_15 = 15;
+double data_length_16 = 16;
 double sub_nbr_padding_length = 15;
 
 bool HOTSPOT_USE_FIXED_SIZE = false;
@@ -596,30 +597,30 @@ void CreateTestSubTable() {
 
   // s_id
   auto s_id_column = catalog::Column(
-      VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER), "S_ID", is_inlined);
+      VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER), "SID", is_inlined);
   test_sub_columns.push_back(s_id_column);
 
   // sub_nbr
-  auto sub_nbr_column = catalog::Column(VALUE_TYPE_VARCHAR, data_length_15,
-                                        "SUB_NBR", is_inlined);
+  auto sub_nbr_column =
+      catalog::Column(VALUE_TYPE_VARCHAR, data_length_16, "SUBNBR", is_inlined);
   test_sub_columns.push_back(sub_nbr_column);
 
   // bit_1 - bit_10
-  std::string column_name1 = "bit_1";
+  std::string column_name1 = "bit1";
   auto column1 =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       column_name1, is_inlined);
   test_sub_columns.push_back(column1);
 
   // hex_1 - hex_10
-  std::string column_name2 = "hex_1";
+  std::string column_name2 = "hex1";
   auto column2 =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       column_name2, is_inlined);
   test_sub_columns.push_back(column2);
 
   // byte2_1 - byte2_10
-  std::string column_name3 = "byte2_1";
+  std::string column_name3 = "byte21";
   auto column3 =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
                       column_name3, is_inlined);
@@ -628,13 +629,13 @@ void CreateTestSubTable() {
   // msc_location
   auto msc_location_column =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      "MSC_LOCATION", is_inlined);
+                      "MSCLOCATION", is_inlined);
   test_sub_columns.push_back(msc_location_column);
 
   // vlr_location
   auto vlr_location_column =
       catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      "VLR_LOCATION", is_inlined);
+                      "VLRLOCATION", is_inlined);
   test_sub_columns.push_back(vlr_location_column);
 
   // schema
