@@ -248,7 +248,7 @@ bool UpdateSubscriberData::Run() {
   // PREPARE ARGUMENTS
   /////////////////////////////////////////////////////////
   int sid = sid_;
-  // int sf_type = sf_type_;
+  int sf_type = sf_type_;
 
   /////////////////////////////////////////////////////////
   // BEGIN TRANSACTION
