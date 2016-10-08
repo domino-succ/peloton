@@ -198,10 +198,6 @@ bool GetSubscriberData::Run() {
   // Execute again
   sub_index_scan_executor_->ResetState();
 
-  std::vector<Value> test_sub_key_values;
-
-  test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-
   sub_index_scan_executor_->SetValues(test_sub_key_values);
 
   ExecuteReadTest(sub_index_scan_executor_);
