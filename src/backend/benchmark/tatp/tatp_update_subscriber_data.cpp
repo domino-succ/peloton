@@ -94,8 +94,6 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PLAN FOR SUBSCRIBER
   /////////////////////////////////////////////////////////
-
-  // UPDATE
   std::vector<oid_t> test_sub_key_column_ids;
   std::vector<ExpressionType> test_sub_expr_types;
   test_sub_key_column_ids.push_back(0);  // SID
@@ -104,17 +102,28 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
   std::vector<Value> test_sub_key_values;
 
   auto test_sub_pkey_index =
-      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
+      test_sub_table->GetIndexWithOid(test_sub_table_pkey_index_oid);
 
   planner::IndexScanPlan::IndexScanDesc test_sub_index_scan_desc(
       test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
       test_sub_key_values, runtime_keys);
 
+  // EXTRA SELECT
+  std::vector<oid_t> test_sub_column_ids = {0, 1, 2, 3, 4, 5, 6};  // select *
+
+  planner::IndexScanPlan test_sub_index_scan_node(
+      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
+
+  executor::IndexScanExecutor *test_sub_index_scan_executor =
+      new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
+
+  test_sub_index_scan_executor->Init();
+
   // UPDATE bit_1
   std::vector<oid_t> test_sub_update_column_ids = {2};
 
   planner::IndexScanPlan test_sub_update_index_scan_node(
-      subscriber_table, nullptr, test_sub_update_column_ids,
+      test_sub_table, nullptr, test_sub_update_column_ids,
       test_sub_index_scan_desc);
 
   executor::IndexScanExecutor *test_sub_update_index_scan_executor =
@@ -133,7 +142,7 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
   std::unique_ptr<const planner::ProjectInfo> test_sub_project_info(
       new planner::ProjectInfo(std::move(test_sub_target_list),
                                std::move(test_sub_direct_map_list)));
-  planner::UpdatePlan test_sub_update_node(subscriber_table,
+  planner::UpdatePlan test_sub_update_node(test_sub_table,
                                            std::move(test_sub_project_info));
 
   executor::UpdateExecutor *test_sub_update_executor =
@@ -198,6 +207,7 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
 
   UpdateSubscriberData *us = new UpdateSubscriberData();
 
+  us->sub_index_scan_executor_ = test_sub_index_scan_executor;
   us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
   us->sub_update_executor_ = test_sub_update_executor;
 
@@ -267,12 +277,24 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
   // SUBSCRIBER UPDATE
   /////////////////////////////////////////////////////////
+  std::vector<Value> test_sub_key_values;
+  test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+
+  // EXTRA SELECT
+  sub_index_scan_executor_->ResetState();
+
+  sub_index_scan_executor_->SetValues(test_sub_key_values);
+
+  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();
-
-  std::vector<Value> test_sub_key_values;
-  test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
   sub_update_index_scan_executor_->SetValues(test_sub_key_values);
 
