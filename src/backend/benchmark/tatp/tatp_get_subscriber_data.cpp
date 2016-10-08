@@ -195,6 +195,23 @@ bool GetSubscriberData::Run() {
     return false;
   }
 
+  // Execute again
+  sub_index_scan_executor_->ResetState();
+
+  std::vector<Value> test_sub_key_values;
+
+  test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+
+  sub_index_scan_executor_->SetValues(test_sub_key_values);
+
+  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
   /////////////////////////////////////////////////////////
   // TRANSACTION COMMIT
   /////////////////////////////////////////////////////////
