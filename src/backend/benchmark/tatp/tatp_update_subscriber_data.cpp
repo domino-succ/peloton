@@ -108,17 +108,6 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
       test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
       test_sub_key_values, runtime_keys);
 
-  // EXTRA SELECT
-  std::vector<oid_t> test_sub_column_ids = {0, 1, 2, 3, 4, 5, 6};  // select *
-
-  planner::IndexScanPlan test_sub_index_scan_node(
-      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
-
-  executor::IndexScanExecutor *test_sub_index_scan_executor =
-      new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
-
-  test_sub_index_scan_executor->Init();
-
   // UPDATE bit_1
   std::vector<oid_t> test_sub_update_column_ids = {2};
 
@@ -279,19 +268,6 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
   std::vector<Value> test_sub_key_values;
   test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-
-  // EXTRA SELECT
-  sub_index_scan_executor_->ResetState();
-
-  sub_index_scan_executor_->SetValues(test_sub_key_values);
-
-  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
 
   // Update
   sub_update_index_scan_executor_->ResetState();

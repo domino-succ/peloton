@@ -33,8 +33,7 @@ extern int RUNNING_REF_THRESHOLD;
 class UpdateSubscriberData : public concurrency::TransactionQuery {
  public:
   UpdateSubscriberData()
-      : sub_index_scan_executor_(nullptr),
-        sub_update_index_scan_executor_(nullptr),
+      : sub_update_index_scan_executor_(nullptr),
         sub_update_executor_(nullptr),
         spe_update_index_scan_executor_(nullptr),
         spe_update_executor_(nullptr),
@@ -50,7 +49,6 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
   ~UpdateSubscriberData() {}
 
   void SetContext(executor::ExecutorContext* context) {
-    sub_index_scan_executor_->SetContext(context);
     sub_update_index_scan_executor_->SetContext(context);
     sub_update_executor_->SetContext(context);
 
@@ -65,8 +63,6 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
     // Note: context is set in RunNewOrder, and it is unique_prt
     // delete context_;
     // context_ = nullptr;
-    delete sub_index_scan_executor_;
-    sub_index_scan_executor_ = nullptr;
 
     delete sub_update_index_scan_executor_;
     sub_update_index_scan_executor_ = nullptr;
@@ -469,7 +465,6 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
   }
   // Make them public for convenience
  public:
-  executor::IndexScanExecutor* sub_index_scan_executor_;
   executor::IndexScanExecutor* sub_update_index_scan_executor_;
   executor::UpdateExecutor* sub_update_executor_;
 
