@@ -204,7 +204,7 @@ bool GetSubscriberData::Run() {
 
   sub_index_scan_executor_->SetValues(test_sub_key_values);
 
-  auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
+  ExecuteReadTest(sub_index_scan_executor_);
 
   if (txn->GetResult() != Result::RESULT_SUCCESS) {
     LOG_TRACE("abort transaction");
