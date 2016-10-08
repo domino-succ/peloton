@@ -94,52 +94,53 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PLAN FOR SUBSCRIBER
   /////////////////////////////////////////////////////////
-  std::vector<oid_t> test_sub_key_column_ids;
-  std::vector<ExpressionType> test_sub_expr_types;
-  test_sub_key_column_ids.push_back(0);  // SID
-  test_sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  std::vector<oid_t> subscriber_key_column_ids;
+  std::vector<ExpressionType> subscriber_expr_types;
+  subscriber_key_column_ids.push_back(0);  // SID
+  subscriber_expr_types.push_back(
+      ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  std::vector<Value> test_sub_key_values;
+  std::vector<Value> subscriber_key_values;
 
-  auto test_sub_pkey_index =
-      test_sub_table->GetIndexWithOid(test_sub_table_pkey_index_oid);
+  auto subscriber_pkey_index =
+      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
 
-  planner::IndexScanPlan::IndexScanDesc test_sub_index_scan_desc(
-      test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
-      test_sub_key_values, runtime_keys);
+  planner::IndexScanPlan::IndexScanDesc subscriber_index_scan_desc(
+      subscriber_pkey_index, subscriber_key_column_ids, subscriber_expr_types,
+      subscriber_key_values, runtime_keys);
 
   // UPDATE bit_1
-  std::vector<oid_t> test_sub_update_column_ids = {2};
+  std::vector<oid_t> subscriber_update_column_ids = {2};
 
-  planner::IndexScanPlan test_sub_update_index_scan_node(
-      test_sub_table, nullptr, test_sub_update_column_ids,
-      test_sub_index_scan_desc);
+  planner::IndexScanPlan subscriber_update_index_scan_node(
+      subscriber_table, nullptr, subscriber_update_column_ids,
+      subscriber_index_scan_desc);
 
-  executor::IndexScanExecutor *test_sub_update_index_scan_executor =
-      new executor::IndexScanExecutor(&test_sub_update_index_scan_node,
+  executor::IndexScanExecutor *subscriber_update_index_scan_executor =
+      new executor::IndexScanExecutor(&subscriber_update_index_scan_node,
                                       nullptr);
 
-  TargetList test_sub_target_list;
-  DirectMapList test_sub_direct_map_list;
+  TargetList subscriber_target_list;
+  DirectMapList subscriber_direct_map_list;
 
   // Keep the first 2 columns unchanged
   for (oid_t col_itr = 0; col_itr < 2; ++col_itr) {
-    test_sub_direct_map_list.emplace_back(col_itr,
-                                          std::pair<oid_t, oid_t>(0, col_itr));
+    subscriber_direct_map_list.emplace_back(
+        col_itr, std::pair<oid_t, oid_t>(0, col_itr));
   }
 
-  std::unique_ptr<const planner::ProjectInfo> test_sub_project_info(
-      new planner::ProjectInfo(std::move(test_sub_target_list),
-                               std::move(test_sub_direct_map_list)));
-  planner::UpdatePlan test_sub_update_node(test_sub_table,
-                                           std::move(test_sub_project_info));
+  std::unique_ptr<const planner::ProjectInfo> subscriber_project_info(
+      new planner::ProjectInfo(std::move(subscriber_target_list),
+                               std::move(subscriber_direct_map_list)));
+  planner::UpdatePlan subscriber_update_node(
+      subscriber_table, std::move(subscriber_project_info));
 
-  executor::UpdateExecutor *test_sub_update_executor =
-      new executor::UpdateExecutor(&test_sub_update_node, nullptr);
+  executor::UpdateExecutor *subscriber_update_executor =
+      new executor::UpdateExecutor(&subscriber_update_node, nullptr);
 
-  test_sub_update_executor->AddChild(test_sub_update_index_scan_executor);
+  subscriber_update_executor->AddChild(subscriber_update_index_scan_executor);
 
-  test_sub_update_executor->Init();
+  subscriber_update_executor->Init();
 
   /////////////////////////////////////////////////////////
   // PLAN FOR SPECIAL FACILITY
@@ -196,8 +197,8 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
 
   UpdateSubscriberData *us = new UpdateSubscriberData();
 
-  us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
-  us->sub_update_executor_ = test_sub_update_executor;
+  us->sub_update_index_scan_executor_ = subscriber_update_index_scan_executor;
+  us->sub_update_executor_ = subscriber_update_executor;
 
   us->spe_update_index_scan_executor_ = spe_update_index_scan_executor;
   us->spe_update_executor_ = spe_update_executor;
@@ -265,25 +266,26 @@ bool UpdateSubscriberData::Run() {
   /////////////////////////////////////////////////////////
   // SUBSCRIBER UPDATE
   /////////////////////////////////////////////////////////
-  std::vector<Value> test_sub_key_values;
-  test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  std::vector<Value> subscriber_key_values;
+  subscriber_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
   // Update
   sub_update_index_scan_executor_->ResetState();
 
-  sub_update_index_scan_executor_->SetValues(test_sub_key_values);
+  sub_update_index_scan_executor_->SetValues(subscriber_key_values);
 
-  TargetList test_sub_target_list;
+  TargetList subscriber_target_list;
 
   int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
 
-  Value test_sub_update_val = ValueFactory::GetIntegerValue(bit);
+  Value subscriber_update_val = ValueFactory::GetIntegerValue(bit);
 
   // bit_1 column id is 2
-  test_sub_target_list.emplace_back(
-      2, expression::ExpressionUtil::ConstantValueFactory(test_sub_update_val));
+  subscriber_target_list.emplace_back(
+      2,
+      expression::ExpressionUtil::ConstantValueFactory(subscriber_update_val));
 
-  sub_update_executor_->SetTargetList(test_sub_target_list);
+  sub_update_executor_->SetTargetList(subscriber_target_list);
 
   ExecuteUpdateTest(sub_update_executor_);
 

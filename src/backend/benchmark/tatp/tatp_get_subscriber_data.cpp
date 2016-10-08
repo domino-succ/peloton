@@ -84,41 +84,39 @@ GetSubscriberData *GenerateGetSubscriberData(ZipfDistribution &zipf) {
   /////////////////////////////////////////////////////////
   // PLAN FOR ACCESS_INFO
   /////////////////////////////////////////////////////////
-  std::vector<oid_t> test_sub_key_column_ids;
-  std::vector<ExpressionType> test_sub_expr_types;
-  test_sub_key_column_ids.push_back(0);  // sID
-  test_sub_expr_types.push_back(ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
+  std::vector<oid_t> subscriber_key_column_ids;
+  std::vector<ExpressionType> subscriber_expr_types;
+  subscriber_key_column_ids.push_back(0);  // sID
+  subscriber_expr_types.push_back(
+      ExpressionType::EXPRESSION_TYPE_COMPARE_EQUAL);
 
-  std::vector<Value> test_sub_key_values;
+  std::vector<Value> subscriber_key_values;
 
-  auto test_sub_pkey_index =
-      test_sub_table->GetIndexWithOid(test_sub_table_pkey_index_oid);
+  auto subscriber_pkey_index =
+      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
 
-  planner::IndexScanPlan::IndexScanDesc test_sub_index_scan_desc(
-      test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
-      test_sub_key_values, runtime_keys);
+  planner::IndexScanPlan::IndexScanDesc subscriber_index_scan_desc(
+      subscriber_pkey_index, subscriber_key_column_ids, subscriber_expr_types,
+      subscriber_key_values, runtime_keys);
 
-  //  std::vector<oid_t> sub_column_ids = {0,  1,  2,  3,  4,  5,  6,  7,  8,
-  //                                       9,  10, 11, 12, 13, 14, 15, 16, 17,
-  //                                       18, 19, 20, 21, 22, 23, 24, 25, 26,
-  //                                       27, 28, 29, 30, 31, 32, 33};  //
-  // select *
+  std::vector<oid_t> sub_column_ids = {0,  1,  2,  3,  4,  5,  6,  7,  8,
+                                       9,  10, 11, 12, 13, 14, 15, 16, 17,
+                                       18, 19, 20, 21, 22, 23, 24, 25, 26,
+                                       27, 28, 29, 30, 31, 32, 33};  // select *
 
-  std::vector<oid_t> test_sub_column_ids = {0, 1, 2, 3, 4, 5, 6};  // select *
+  planner::IndexScanPlan subscriber_index_scan_node(
+      subscriber_table, nullptr, sub_column_ids, subscriber_index_scan_desc);
 
-  planner::IndexScanPlan test_sub_index_scan_node(
-      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
+  executor::IndexScanExecutor *subscriber_index_scan_executor =
+      new executor::IndexScanExecutor(&subscriber_index_scan_node, nullptr);
 
-  executor::IndexScanExecutor *test_sub_index_scan_executor =
-      new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
-
-  test_sub_index_scan_executor->Init();
+  subscriber_index_scan_executor->Init();
 
   /////////////////////////////////////////////////////////
 
   GetSubscriberData *sub = new GetSubscriberData();
 
-  sub->sub_index_scan_executor_ = test_sub_index_scan_executor;
+  sub->sub_index_scan_executor_ = subscriber_index_scan_executor;
 
   // Set values
   sub->SetValue(zipf);
@@ -181,11 +179,11 @@ bool GetSubscriberData::Run() {
 
   sub_index_scan_executor_->ResetState();
 
-  std::vector<Value> test_sub_key_values;
+  std::vector<Value> subscriber_key_values;
 
-  test_sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  subscriber_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
-  sub_index_scan_executor_->SetValues(test_sub_key_values);
+  sub_index_scan_executor_->SetValues(subscriber_key_values);
 
   auto ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
 
