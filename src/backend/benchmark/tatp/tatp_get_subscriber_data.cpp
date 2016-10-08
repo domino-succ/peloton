@@ -195,31 +195,31 @@ bool GetSubscriberData::Run() {
     return false;
   }
 
-  // Execute again
-  sub_index_scan_executor_->ResetState();
-
-  sub_index_scan_executor_->SetValues(test_sub_key_values);
-
-  ExecuteReadTest(sub_index_scan_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  // Execute again
-  sub_index_scan_executor_->ResetState();
-
-  sub_index_scan_executor_->SetValues(test_sub_key_values);
-
-  ExecuteReadTest(sub_index_scan_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
+  //  // Execute again
+  //  sub_index_scan_executor_->ResetState();
+  //
+  //  sub_index_scan_executor_->SetValues(test_sub_key_values);
+  //
+  //  ExecuteReadTest(sub_index_scan_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
+  //
+  //  // Execute again
+  //  sub_index_scan_executor_->ResetState();
+  //
+  //  sub_index_scan_executor_->SetValues(test_sub_key_values);
+  //
+  //  ExecuteReadTest(sub_index_scan_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   /////////////////////////////////////////////////////////
   // TRANSACTION COMMIT

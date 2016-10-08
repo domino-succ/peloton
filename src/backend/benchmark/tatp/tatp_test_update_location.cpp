@@ -255,21 +255,21 @@ bool TestUpdateLocation::Run() {
   // "SELECT1 * FROM " + TABLENAME_ACCOUNTS + " WHERE custid = ?"
   LOG_TRACE("SELECT * FROM ACCOUNTS WHERE sid = %d", sid);
 
-  access_index_scan_executor_->ResetState();
-
-  std::vector<Value> access_key_values;
-  access_key_values.push_back(ValueFactory::GetIntegerValue(sid));
-  access_key_values.push_back(ValueFactory::GetIntegerValue(1));
-
-  access_index_scan_executor_->SetValues(access_key_values);
-
-  auto ga1_lists_values = ExecuteReadTest(access_index_scan_executor_);
-
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
+  //  access_index_scan_executor_->ResetState();
+  //
+  //  std::vector<Value> access_key_values;
+  //  access_key_values.push_back(ValueFactory::GetIntegerValue(sid));
+  //  access_key_values.push_back(ValueFactory::GetIntegerValue(1));
+  //
+  //  access_index_scan_executor_->SetValues(access_key_values);
+  //
+  //  auto ga1_lists_values = ExecuteReadTest(access_index_scan_executor_);
+  //
+  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+  //    LOG_TRACE("abort transaction");
+  //    txn_manager.AbortTransaction();
+  //    return false;
+  //  }
 
   /////////////////////////////////////////////////////////
   // SUBSCRIBER SELECTION
@@ -281,17 +281,17 @@ bool TestUpdateLocation::Run() {
   // Select
   LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", sid);
 
-  //  sub_index_scan_executor_->ResetState();
-  //
-  //  sub_index_scan_executor_->SetValues(sub_key_values);
-  //
-  //  ExecuteReadTest(sub_index_scan_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
+  sub_index_scan_executor_->ResetState();
+
+  sub_index_scan_executor_->SetValues(sub_key_values);
+
+  ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   /////////////////////////////////////////////////////////
   // SUBSCRIBER Update
