@@ -279,19 +279,31 @@ bool TestUpdateLocation::Run() {
   sub_key_values.push_back(ValueFactory::GetIntegerValue(sid));
 
   // Select
-  //  LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", sid);
-  //
-  //  sub_index_scan_executor_->ResetState();
-  //
-  //  sub_index_scan_executor_->SetValues(sub_key_values);
-  //
-  //  ExecuteReadTest(sub_index_scan_executor_);
-  //
-  //  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-  //    LOG_TRACE("abort transaction");
-  //    txn_manager.AbortTransaction();
-  //    return false;
-  //  }
+  LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", sid);
+
+  sub_index_scan_executor_->ResetState();
+
+  sub_index_scan_executor_->SetValues(sub_key_values);
+
+  ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  sub_index_scan_executor_->ResetState();
+
+  sub_index_scan_executor_->SetValues(sub_key_values);
+
+  ExecuteReadTest(sub_index_scan_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
 
   /////////////////////////////////////////////////////////
   // SUBSCRIBER Update
