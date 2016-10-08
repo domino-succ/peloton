@@ -196,7 +196,6 @@ UpdateSubscriberData *GenerateUpdateSubscriberData(ZipfDistribution &zipf) {
 
   UpdateSubscriberData *us = new UpdateSubscriberData();
 
-  us->sub_index_scan_executor_ = test_sub_index_scan_executor;
   us->sub_update_index_scan_executor_ = test_sub_update_index_scan_executor;
   us->sub_update_executor_ = test_sub_update_executor;
 
