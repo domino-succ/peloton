@@ -119,8 +119,7 @@ tatp_SOURCES =  \
                     backend/benchmark/tatp/tatp_update_subscriber_data.cpp \
                     backend/benchmark/tatp/tatp_update_location.cpp \
                     backend/benchmark/tatp/tatp_insert_call_forwarding.cpp \
-                    backend/benchmark/tatp/tatp_delete_call_forwarding.cpp \
-                    backend/benchmark/tatp/tatp_test_update_location.cpp
+                    backend/benchmark/tatp/tatp_delete_call_forwarding.cpp 
                     
 tatp_LDFLAGS =
 tatp_CPPFLAGS = $(benchmark_common_cppflags)
