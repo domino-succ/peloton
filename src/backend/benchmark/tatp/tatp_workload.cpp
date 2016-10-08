@@ -165,7 +165,6 @@ void GenerateAndCacheQuery(ZipfDistribution &zipf) {
   // InsertCallForwarding *txn = GenerateInsertCallForwarding(zipf);
   // DeteteCallForwarding *txn = GenerateDeteteCallForwarding(zipf);
   UpdateSubscriberData *txn = GenerateUpdateSubscriberData(zipf);  // 5176
-  // TestUpdateLocation *txn = GenerateTestUpdateLocation(zipf);
   // UpdateLocation *txn = GenerateUpdateLocation(zipf);  // 5303
   /////////////////////////////////////////////////////////
   // Call txn scheduler to queue this executor
@@ -227,7 +226,6 @@ void GenerateALLAndCache(ZipfDistribution &zipf) {
   // UPDATE_LOCATION
   else {
     UpdateLocation *txn = GenerateUpdateLocation(zipf);
-    // TestUpdateLocation *txn = GenerateTestUpdateLocation(zipf);
     concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
   }
 }

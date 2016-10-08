@@ -49,7 +49,6 @@ extern storage::DataTable* subscriber_table;
 extern storage::DataTable* access_info_table;
 extern storage::DataTable* special_facility_table;
 extern storage::DataTable* call_forwarding_table;
-extern storage::DataTable* test_sub_table;
 
 /////////////////////////////////////////////////////////
 // Constants

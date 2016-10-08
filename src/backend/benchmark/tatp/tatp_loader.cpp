@@ -89,7 +89,6 @@ storage::DataTable *subscriber_table;
 storage::DataTable *access_info_table;
 storage::DataTable *special_facility_table;
 storage::DataTable *call_forwarding_table;
-storage::DataTable *test_sub_table;
 
 const bool own_schema = true;
 const bool adapt_table = false;
@@ -579,100 +578,6 @@ void CreateCallForwardingTable() {
   call_forwarding_table->AddIndex(skey_index2);
 }
 
-void CreateTestSubTable() {
-  /*
-  CREATE TABLE SUBSCRIBER (
-     s_id INTEGER NOT NULL PRIMARY KEY,
-     sub_nbr VARCHAR(15) NOT NULL UNIQUE,
-     bit_1 TINYINT,
-     hex_1 TINYINT,
-     byte2_1 SMALLINT,
-     msc_location INTEGER,
-     vlr_location INTEGER
-  );
-  */
-
-  // Create schema first
-  std::vector<catalog::Column> test_sub_columns;
-
-  // s_id
-  auto s_id_column = catalog::Column(
-      VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER), "SID", is_inlined);
-  test_sub_columns.push_back(s_id_column);
-
-  // sub_nbr
-  auto sub_nbr_column =
-      catalog::Column(VALUE_TYPE_VARCHAR, data_length_16, "SUBNBR", is_inlined);
-  test_sub_columns.push_back(sub_nbr_column);
-
-  // bit_1 - bit_10
-  std::string column_name1 = "bit1";
-  auto column1 =
-      catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      column_name1, is_inlined);
-  test_sub_columns.push_back(column1);
-
-  // hex_1 - hex_10
-  std::string column_name2 = "hex1";
-  auto column2 =
-      catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      column_name2, is_inlined);
-  test_sub_columns.push_back(column2);
-
-  // byte2_1 - byte2_10
-  std::string column_name3 = "byte21";
-  auto column3 =
-      catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      column_name3, is_inlined);
-  test_sub_columns.push_back(column3);
-
-  // msc_location
-  auto msc_location_column =
-      catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      "MSCLOCATION", is_inlined);
-  test_sub_columns.push_back(msc_location_column);
-
-  // vlr_location
-  auto vlr_location_column =
-      catalog::Column(VALUE_TYPE_INTEGER, GetTypeSize(VALUE_TYPE_INTEGER),
-                      "VLRLOCATION", is_inlined);
-  test_sub_columns.push_back(vlr_location_column);
-
-  // schema
-  catalog::Schema *table_schema = new catalog::Schema(test_sub_columns);
-  std::string table_name("TESTSUB");
-
-  // table
-  test_sub_table = storage::TableFactory::GetDataTable(
-      tatp_database_oid, test_sub_table_oid, table_schema, table_name,
-      DEFAULT_TUPLES_PER_TILEGROUP, own_schema, adapt_table);
-
-  tatp_database->AddTable(test_sub_table);
-
-  // Primary index on s_id
-  std::vector<oid_t> key_attrs = {0};
-
-  auto tuple_schema = test_sub_table->GetSchema();
-  catalog::Schema *key_schema =
-      catalog::Schema::CopySchema(tuple_schema, key_attrs);
-  key_schema->SetIndexedColumns(key_attrs);
-  bool unique = true;
-
-  index::IndexMetadata *index_metadata = new index::IndexMetadata(
-      "test_sub_pkey", test_sub_table_pkey_index_oid, state.index,
-      INDEX_CONSTRAINT_TYPE_PRIMARY_KEY, tuple_schema, key_schema, unique);
-
-  index::Index *pkey_index = nullptr;
-  if (state.index == INDEX_TYPE_HASH) {
-    pkey_index =
-        index::IndexFactory::GetInstance(index_metadata, NUM_SUBSCRIBERS);
-  } else {
-    pkey_index = index::IndexFactory::GetInstance(index_metadata);
-  }
-
-  test_sub_table->AddIndex(pkey_index);
-}
-
 void CreateTatpDatabase() {
 
   // Clean up
@@ -682,7 +587,6 @@ void CreateTatpDatabase() {
   access_info_table = nullptr;
   special_facility_table = nullptr;
   call_forwarding_table = nullptr;
-  test_sub_table = nullptr;
 
   auto &manager = catalog::Manager::GetInstance();
   tatp_database = new storage::Database(tatp_database_oid);
@@ -692,7 +596,6 @@ void CreateTatpDatabase() {
   CreateAccessInfoTable();
   CreateSpecialFacilityTable();
   CreateCallForwardingTable();
-  CreateTestSubTable();
 }
 
 /////////////////////////////////////////////////////////
@@ -949,43 +852,6 @@ std::unique_ptr<storage::Tuple> BuildCallForwardingTuple(
   return call_tuple;
 }
 
-std::unique_ptr<storage::Tuple> BuildTestSubTuple(
-    const int sid, const std::unique_ptr<VarlenPool> &pool) {
-  auto test_sub_table_schema = test_sub_table->GetSchema();
-  std::unique_ptr<storage::Tuple> test_sub_tuple(
-      new storage::Tuple(test_sub_table_schema, allocate));
-
-  // S_ID
-  test_sub_tuple->SetValue(0, ValueFactory::GetIntegerValue(sid), nullptr);
-
-  // SUB_NBR. We didn't use this when looking up since inefficient string lookup
-  auto sub_nbr = std::to_string(sid);
-  test_sub_tuple->SetValue(1, ValueFactory::GetStringValue(sub_nbr),
-                           pool.get());
-
-  // bit_##
-  int bit = GetRandomInteger(MIN_BIT, MAX_BIT);
-  test_sub_tuple->SetValue(2, ValueFactory::GetIntegerValue(bit), nullptr);
-
-  // hex_##
-  int hex = GetRandomInteger(MIN_HEX, MAX_HEX);
-  test_sub_tuple->SetValue(3, ValueFactory::GetIntegerValue(hex), nullptr);
-
-  // byte2_#
-  int byte2 = GetRandomInteger(MIN_BYTE, MAX_BYTE);
-  test_sub_tuple->SetValue(4, ValueFactory::GetIntegerValue(byte2), nullptr);
-
-  int msc_location = GetRandomInteger(MIN_INT, MAX_INT);
-  test_sub_tuple->SetValue(5, ValueFactory::GetIntegerValue(msc_location),
-                           nullptr);
-
-  int vlr_location = GetRandomInteger(MIN_INT, MAX_INT);
-  test_sub_tuple->SetValue(6, ValueFactory::GetIntegerValue(vlr_location),
-                           nullptr);
-
-  return test_sub_tuple;
-}
-
 void LoadSubscriber() {
   auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
   auto txn = txn_manager.BeginTransaction();
@@ -1064,25 +930,6 @@ void LoadSpeAndCal() {
   txn_manager.CommitTransaction();
 }
 
-void LoadTestSub() {
-  auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
-  auto txn = txn_manager.BeginTransaction();
-  std::unique_ptr<VarlenPool> pool(new VarlenPool(BACKEND_TYPE_MM));
-  std::unique_ptr<executor::ExecutorContext> context(
-      new executor::ExecutorContext(txn));
-  LOG_INFO("TestSUB: %f", state.scale_factor);
-  LOG_INFO("TestSUB: %lu", NUM_SUBSCRIBERS);
-
-  for (size_t itr = 0; itr < NUM_SUBSCRIBERS; itr++) {
-    auto test_sub_tuple = BuildTestSubTuple(itr, pool);
-    planner::InsertPlan node(test_sub_table, std::move(test_sub_tuple));
-    executor::InsertExecutor executor(&node, context.get());
-    executor.Execute();
-  }
-
-  txn_manager.CommitTransaction();
-}
-
 void LoadTatpDatabase() {
   std::chrono::steady_clock::time_point start_time;
   start_time = std::chrono::steady_clock::now();
@@ -1090,7 +937,6 @@ void LoadTatpDatabase() {
   LoadSubscriber();
   LoadAccessInfo();
   LoadSpeAndCal();
-  LoadTestSub();
 
   std::chrono::steady_clock::time_point end_time =
       std::chrono::steady_clock::now();
@@ -1101,7 +947,6 @@ void LoadTatpDatabase() {
   LOG_INFO("============TABLE SIZES==========");
   LOG_INFO("subscriber count = %u",
            subscriber_table->GetAllCurrentTupleCount());
-  LOG_INFO("test sub count = %u", test_sub_table->GetAllCurrentTupleCount());
   LOG_INFO("access_info count = %u",
            access_info_table->GetAllCurrentTupleCount());
   LOG_INFO("special_facility count  = %u",
