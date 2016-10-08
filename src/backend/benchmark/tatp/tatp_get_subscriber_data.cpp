@@ -92,7 +92,7 @@ GetSubscriberData *GenerateGetSubscriberData(ZipfDistribution &zipf) {
   std::vector<Value> test_sub_key_values;
 
   auto test_sub_pkey_index =
-      subscriber_table->GetIndexWithOid(subscriber_table_pkey_index_oid);
+      test_sub_table->GetIndexWithOid(test_sub_table_pkey_index_oid);
 
   planner::IndexScanPlan::IndexScanDesc test_sub_index_scan_desc(
       test_sub_pkey_index, test_sub_key_column_ids, test_sub_expr_types,
@@ -107,7 +107,7 @@ GetSubscriberData *GenerateGetSubscriberData(ZipfDistribution &zipf) {
   std::vector<oid_t> test_sub_column_ids = {0, 1, 2, 3, 4, 5, 6};  // select *
 
   planner::IndexScanPlan test_sub_index_scan_node(
-      subscriber_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
+      test_sub_table, nullptr, test_sub_column_ids, test_sub_index_scan_desc);
 
   executor::IndexScanExecutor *test_sub_index_scan_executor =
       new executor::IndexScanExecutor(&test_sub_index_scan_node, nullptr);
