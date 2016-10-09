@@ -149,8 +149,8 @@ size_t GenerateSubscriberId() {
   }
 }
 
-size_t GenerateAiTypeId() { return GetRandomInteger(1, AI_TYPE.size() - 1); }
-size_t GenerateSfTypeId() { return GetRandomInteger(1, SF_TYPE.size() - 1); }
+size_t GenerateAiTypeId() { return GetRandomInteger(1, AI_TYPE.size()); }
+size_t GenerateSfTypeId() { return GetRandomInteger(1, SF_TYPE.size()); }
 size_t GenerateStartTime() { return GetRandomIntegerFromArr(START_TIME); }
 size_t GenerateEndTime() { return GetRandomInteger(1, 24); }
 size_t GenerateAmount() { return GetRandomInteger(1, 10); }
