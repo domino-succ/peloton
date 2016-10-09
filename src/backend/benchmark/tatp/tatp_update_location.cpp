@@ -120,7 +120,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   sub_index_scan_executor->Init();
 
   // UPDATE vlr_location
-  std::vector<oid_t> sub_update_column_ids = {32};
+  std::vector<oid_t> sub_update_column_ids = {33};
 
   planner::IndexScanPlan sub_update_index_scan_node(
       subscriber_table, nullptr, sub_update_column_ids, sub_index_scan_desc);
@@ -132,7 +132,7 @@ UpdateLocation *GenerateUpdateLocation(ZipfDistribution &zipf) {
   DirectMapList sub_direct_map_list;
 
   // Keep the first 33 columns unchanged
-  for (oid_t col_itr = 0; col_itr < 32; ++col_itr) {
+  for (oid_t col_itr = 0; col_itr < 33; ++col_itr) {
     sub_direct_map_list.emplace_back(col_itr,
                                      std::pair<oid_t, oid_t>(0, col_itr));
   }
@@ -248,9 +248,9 @@ bool UpdateLocation::Run() {
 
   Value sub_update_val = ValueFactory::GetIntegerValue(location);
 
-  // var location's column is 1
+  // var location's column is 33
   sub_target_list.emplace_back(
-      32, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
+      33, expression::ExpressionUtil::ConstantValueFactory(sub_update_val));
 
   sub_update_executor_->SetTargetList(sub_target_list);
 
