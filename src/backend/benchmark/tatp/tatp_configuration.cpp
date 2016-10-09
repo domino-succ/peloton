@@ -205,6 +205,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.log_table = false;
   state.lock_free = false;
   state.fraction = false;
+  state.balancer = BALANCE_TYPE_COUNTER;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -271,9 +272,6 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.run_continue = true;
         state.log_table = true;
         break;
-      case 'e':
-        state.run_backoff = true;
-        break;
       case 'o':
         state.online = true;
         break;
@@ -289,6 +287,20 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
       case 'j':
         state.log_table = true;
         break;
+      case 'e': {
+        char *balancer = optarg;
+        if (strcmp(balancer, "random") == 0) {
+          state.balancer = BALANCE_TYPE_RANDOM;
+        } else if (strcmp(balancer, "counter") == 0) {
+          state.balancer = BALANCE_TYPE_COUNTER;
+        } else if (strcmp(balancer, "queue") == 0) {
+          state.balancer = BALANCE_TYPE_CONFLICT;
+        } else {
+          fprintf(stderr, "\nUnknown balancer: %s\n", balancer);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
       case 'z': {
         char *scheduler = optarg;
         if (strcmp(scheduler, "none") == 0) {

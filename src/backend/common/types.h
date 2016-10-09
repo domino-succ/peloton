@@ -408,6 +408,12 @@ enum SchedulerType {
   SCHEDULER_TYPE_CLUSTER = 7
 };
 
+enum BalanceType {
+  BALANCE_TYPE_RANDOM = 0,   // on abort just abandon the txn
+  BALANCE_TYPE_COUNTER = 1,  // on abort txn re-executes immediately
+  BALANCE_TYPE_CONFLICT = 2  // on abort txn go back the queue
+};
+
 //===--------------------------------------------------------------------===//
 // Visibility Types
 //===--------------------------------------------------------------------===//

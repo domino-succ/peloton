@@ -197,6 +197,9 @@ class configuration {
   //
   SchedulerType scheduler;
 
+  //
+  BalanceType balancer;
+
   // protocol type
   ConcurrencyType protocol;
 

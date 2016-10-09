@@ -214,7 +214,8 @@ class GetNewDestination : public concurrency::TransactionQuery {
     key = std::string("S_ID") + "-" + std::to_string(sid_);
 
     // Get conflict from Log Table for the given condition
-    concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+    conflict =
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
     for (int i = 0; i < 2; i++) {
       key_counter[key] += conflict;

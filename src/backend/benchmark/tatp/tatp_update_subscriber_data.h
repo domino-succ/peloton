@@ -210,7 +210,8 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
     key = std::string("SF_TYPE") + "-" + std::to_string(sf_type_);
 
     // Get conflict from Log Table for the given condition
-    concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+    conflict =
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
     key_counter[key] += conflict;
 
@@ -378,9 +379,21 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
     //////////////////////////////////////////////////////////////////////
     std::string key = std::string("S_ID") + "-" + std::to_string(sid_);
 
-    for (int i = 0; i < 2; i++) {
-      concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
-          key, queue_no);
+    if (state.balancer == BALANCE_TYPE_CONFLICT) {
+      // Get the conflict and pass
+      int conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+      for (int i = 0; i < 2; i++) {
+        concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
+            key, conflict, queue_no);
+      }
+
+    } else {
+      for (int i = 0; i < 2; i++) {
+        concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
+            key, queue_no);
+      }
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -388,9 +401,20 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
     //////////////////////////////////////////////////////////////////////
     key = std::string("SF_TYPE") + "-" + std::to_string(sf_type_);
 
-    // update run table
-    concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
-        key, queue_no);
+    if (state.balancer == BALANCE_TYPE_CONFLICT) {
+      // Get the conflict and pass
+      int conflict =
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+
+      // update run table
+      concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
+          key, conflict, queue_no);
+
+    } else {
+      // update run table
+      concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
+          key, queue_no);
+    }
   }
 
   virtual void UpdateRunTable(int queue_no,
