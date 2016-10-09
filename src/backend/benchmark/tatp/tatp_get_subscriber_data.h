@@ -216,7 +216,6 @@ class GetSubscriberData : public concurrency::TransactionQuery {
           // Put the new number in the queues
           queues.push_back(queue.first);
         } else if (queue.second != 0 && queue.second == max_reference) {
-          std::cout << "SUM~ for == max" << std::endl;
           queues.push_back(queue.first);
         }
       }
