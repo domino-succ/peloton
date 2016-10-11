@@ -205,6 +205,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.log_table = false;
   state.lock_free = false;
   state.fraction = false;
+  state.pure_balance = true;
   state.balancer = BALANCE_TYPE_COUNTER;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;

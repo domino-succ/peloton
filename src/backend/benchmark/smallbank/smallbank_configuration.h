@@ -169,6 +169,7 @@ class configuration {
   // use fraction to express conflict
   bool fraction;
 
+  bool pure_balance;
   //
   SchedulerType scheduler;
 

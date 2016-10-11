@@ -301,7 +301,7 @@ bool EnqueueCachedUpdate(
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, true, state.single_ref, state.canonical,
-            state.fraction);
+            state.fraction, state.pure_balance);
       }
       // lock run table
       else {
@@ -310,7 +310,7 @@ bool EnqueueCachedUpdate(
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, true, state.single_ref, state.canonical,
-            state.fraction);
+            state.fraction, state.pure_balance);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
@@ -319,7 +319,7 @@ bool EnqueueCachedUpdate(
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, false, state.single_ref, state.canonical,
-            state.fraction);
+            state.fraction, state.pure_balance);
       }
       // lock run table
       else {
@@ -328,7 +328,7 @@ bool EnqueueCachedUpdate(
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, false, state.single_ref, state.canonical,
-            state.fraction);
+            state.fraction, state.pure_balance);
 
         concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }

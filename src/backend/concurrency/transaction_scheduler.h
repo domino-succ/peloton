@@ -502,23 +502,26 @@ class TransactionScheduler {
   std::atomic<int> g_queue_no;
 
   void OOHashEnqueue(TransactionQuery* query, bool enqueue_thread, bool online,
-                     bool single_ref, bool canonical, bool fraction) {
+                     bool single_ref, bool canonical, bool fraction,
+                     bool pure_balance) {
     int queue = -1;
 
     // Find out the corresponding queue
-    if (online) {
-      if (fraction) {
-        queue = query->LookupRunTableMaxFull(single_ref, canonical);
-      } else {
-        queue = query->LookupRunTableMax(single_ref, canonical);
+    if (!pure_balance) {  // pure balance is use to test only balanced run
+      if (online) {
+        if (fraction) {
+          queue = query->LookupRunTableMaxFull(single_ref, canonical);
+        } else {
+          queue = query->LookupRunTableMax(single_ref, canonical);
+        }
       }
-    }
-    // SUM
-    else {
-      if (fraction) {
-        queue = query->LookupRunTableFull(single_ref, canonical);
-      } else {
-        queue = query->LookupRunTable(single_ref, canonical);
+      // SUM
+      else {
+        if (fraction) {
+          queue = query->LookupRunTableFull(single_ref, canonical);
+        } else {
+          queue = query->LookupRunTable(single_ref, canonical);
+        }
       }
     }
 
