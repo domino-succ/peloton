@@ -204,7 +204,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.log_table = false;
   state.lock_free = false;
   state.fraction = false;
-  state.pure_balance = true;
+  state.pure_balance = false;
   state.scheduler = SCHEDULER_TYPE_NONE;
   state.protocol = CONCURRENCY_TYPE_OPTIMISTIC;
   state.gc_protocol = GC_TYPE_OFF;
@@ -245,7 +245,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.generate_speed = atoi(optarg);
         break;
       case 'u':
-        state.running_ref = atoi(optarg);
+        state.pure_balance = true;
         break;
       case 'r':
         state.order_range = atoi(optarg);
