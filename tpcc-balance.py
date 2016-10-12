@@ -48,6 +48,32 @@ for i in range(1, 12):
         pid = subprocess.Popen(cmd, shell=True)
         pid.wait()
 
+####################
+for i in range(1, 12):
+    for k in range(1, 11):
+        cmd = "./src/tpcc -k 0.1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -z hash -l -f -u"
+        pid = subprocess.Popen(cmd, shell=True)
+        pid.wait()
+
+for i in range(1, 12):
+    for k in range(1, 11):
+        cmd = "./src/tpcc -k 0.1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -z hash -l -c -f -u"
+        pid = subprocess.Popen(cmd, shell=True)
+        pid.wait()
+#####################
+for i in range(1, 12):
+    for k in range(1, 11):
+        cmd = "./src/tpcc -k 0.1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -z hash -l -f -u"
+        pid = subprocess.Popen(cmd, shell=True)
+        pid.wait()
+
+for i in range(1, 12):
+    for k in range(1, 11):
+        cmd = "./src/tpcc -k 0.1 -b" + " " + str(i) + " " + "-p pcc -g co -d 5 -w 11 -n 1 -z hash -l -c -f -u"
+        pid = subprocess.Popen(cmd, shell=True)
+        pid.wait()
+
+
 result = open(output_file, "a")
 files = os.listdir(search_dir)
 ########################################################################################################
