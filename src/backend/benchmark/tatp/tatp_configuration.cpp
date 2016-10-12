@@ -220,9 +220,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   // Parse args
   while (1) {
     int idx = 0;
-    int c =
-        getopt_long(argc, argv, "aeoflcjr:m:x:k:w:n:h:v:u:d:s:b:p:z:g:i:t:q:y:",
-                    opts, &idx);
+    int c = getopt_long(
+        argc, argv, "aeoflcjur:m:x:k:w:n:h:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
 
     if (c == -1) break;
 

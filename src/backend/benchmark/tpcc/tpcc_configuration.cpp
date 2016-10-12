@@ -218,7 +218,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   while (1) {
     int idx = 0;
     int c = getopt_long(
-        argc, argv, "aeoflcjhr:m:x:k:w:n:v:u:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
+        argc, argv, "aeoflcjuhr:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
 
     if (c == -1) break;
 
@@ -243,9 +243,6 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'v':
         state.generate_speed = atoi(optarg);
-        break;
-      case 'u':
-        state.pure_balance = true;
         break;
       case 'r':
         state.order_range = atoi(optarg);
@@ -282,6 +279,9 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         break;
       case 'j':
         state.log_table = true;
+        break;
+      case 'u':
+        state.pure_balance = true;
         break;
       case 'h':
         state.fraction = true;
