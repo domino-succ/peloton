@@ -507,21 +507,20 @@ class TransactionScheduler {
     int queue = -1;
 
     // Find out the corresponding queue
-    if (!pure_balance) {  // pure balance is use to test only balanced run
-      if (online) {
-        if (fraction) {
-          queue = query->LookupRunTableMaxFull(single_ref, canonical);
-        } else {
-          queue = query->LookupRunTableMax(single_ref, canonical);
-        }
+
+    if (online) {
+      if (fraction) {
+        queue = query->LookupRunTableMaxFull(single_ref, canonical);
+      } else {
+        queue = query->LookupRunTableMax(single_ref, canonical);
       }
-      // SUM
-      else {
-        if (fraction) {
-          queue = query->LookupRunTableFull(single_ref, canonical);
-        } else {
-          queue = query->LookupRunTable(single_ref, canonical);
-        }
+    }
+    // SUM
+    else {
+      if (fraction) {
+        queue = query->LookupRunTableFull(single_ref, canonical);
+      } else {
+        queue = query->LookupRunTable(single_ref, canonical);
       }
     }
 
@@ -529,10 +528,11 @@ class TransactionScheduler {
 
     // These is no queue matched. Randomly select a queue
     if (queue == -1) {
-      // queue = random_generator_.GetSample();
-
-      // queue = GetMinQueueUsingRunTable();
-      queue = GetMinQueueUsingAtomic();
+      if (pure_balance) {  // pure means random
+        queue = random_generator_.GetSample();
+      } else {
+        queue = GetMinQueueUsingAtomic();
+      }
 
       // Debug print
       //      std::cout << "Can't find a queue, so assign queue: " << queue
