@@ -8,8 +8,8 @@ import subprocess
 import os
 import shutil
 
-search_dir = "./tpcc-output"
-output_file = "./tpcc.summary"
+search_dir = "./tatp-output"
+output_file = "./tatp.summary"
 ############################################
 # Delete old output file and directory
 ############################################
