@@ -222,7 +222,7 @@ void LoadLogTable() {
 void RunBenchmark() {
   gc::GCManagerFactory::Configure(state.gc_protocol, state.gc_thread_count);
   concurrency::TransactionManagerFactory::Configure(state.protocol);
-  LOG_INFO("Before configure index");
+  srand(time(NULL));
   index::IndexFactory::Configure(state.sindex);
 
   // Create the database
