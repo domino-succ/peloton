@@ -88,6 +88,8 @@ static void WriteOutput() {
   out << state.backend_count << " ";
   out << state.warehouse_count << " ";
   out << state.generate_rate << " ";
+  out << state.steal << " ";
+  out << state.steal_rate << " ";
   out << state.canonical << " ";
   out << state.online << " ";
   out << state.single_ref << " ";
