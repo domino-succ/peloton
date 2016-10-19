@@ -110,89 +110,89 @@ for i in range(1, 11):
 ########################################################################################################
 #   Request speed  10,000 per second
 #######################################################################################################
-
-############### literal max single 
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### literal max pair
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### literal sum single 
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### literal sum pair 
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-####################################################################################
-
-############### canonical max single
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### canonical max pair
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### canonical sum single
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### canonical sum pair
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -j"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-    
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -f"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
+#
+################ literal max single 
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ literal max pair
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ literal sum single 
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ literal sum pair 
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+#####################################################################################
+#
+################ canonical max single
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ canonical max pair
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ canonical sum single
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ canonical sum pair
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -j"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#    
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -f"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
 ############################## Next for Fraction ########################
 
 ########################################################################################################
@@ -285,89 +285,89 @@ for i in range(1, 11):
 ########################################################################################################
 #   Request speed  10,000 per second
 #######################################################################################################
-
-############### literal max single 
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### literal max pair
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### literal sum single 
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### literal sum pair 
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-####################################################################################
-
-############### canonical max single
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### canonical max pair
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### canonical sum single
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
-############### canonical sum pair
-cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -j -h"
-pid = subprocess.Popen(cmd, shell=True)
-pid.wait()
-
-for i in range(1, 11):
-    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -f -h"
-    pid = subprocess.Popen(cmd, shell=True)
-    pid.wait()
-
+#
+################ literal max single 
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ literal max pair
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ literal sum single 
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ literal sum pair 
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+#####################################################################################
+#
+################ canonical max single
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ canonical max pair
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ canonical sum single
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
+################ canonical sum pair
+#cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -j -h"
+#pid = subprocess.Popen(cmd, shell=True)
+#pid.wait()
+#
+#for i in range(1, 11):
+#    cmd = "./src/tpcc -b 11 -k 0.1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -f -h"
+#    pid = subprocess.Popen(cmd, shell=True)
+#    pid.wait()
+#
 #######
 result = open(output_file, "a")
 files = os.listdir(search_dir)
