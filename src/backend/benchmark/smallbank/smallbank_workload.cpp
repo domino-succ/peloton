@@ -608,12 +608,10 @@ void RunBackend(oid_t thread_id) {
 
     // clean up the hash table
     if (state.scheduler == SCHEDULER_TYPE_HASH) {
-
       // Update Log Table when success
-      //        if (state.log_table) {
-      //          ret_query->UpdateLogTableFullSuccess(state.single_ref,
-      //                                               state.canonical);
-      //        } else {
+      if (state.log_table && state.fraction) {
+        ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
+      }
       // Remove txn from Run Table
       if (!state.lock_free) {
         ret_query->DecreaseRunTable(state.single_ref, state.canonical);
@@ -884,7 +882,13 @@ void RunWorkload() {
   // map: int-->int (reference-key, conflict-counts)
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
     if (state.log_table) {
-      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
+      if (state.fraction) {
+        concurrency::TransactionScheduler::GetInstance().OutputLogTableFull(
+            LOGTABLE);
+      } else {
+        concurrency::TransactionScheduler::GetInstance().OutputLogTable(
+            LOGTABLE);
+      }
     }
   }
 

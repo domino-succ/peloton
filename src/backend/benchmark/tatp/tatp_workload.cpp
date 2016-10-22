@@ -964,7 +964,13 @@ void RunWorkload() {
   // map: int-->int (reference-key, conflict-counts)
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
     if (state.log_table) {
-      concurrency::TransactionScheduler::GetInstance().OutputLogTable(LOGTABLE);
+      if (state.fraction) {
+        concurrency::TransactionScheduler::GetInstance().OutputLogTableFull(
+            LOGTABLE);
+      } else {
+        concurrency::TransactionScheduler::GetInstance().OutputLogTable(
+            LOGTABLE);
+      }
     }
   }
 
