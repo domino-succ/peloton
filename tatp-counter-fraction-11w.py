@@ -24,85 +24,85 @@ if os.path.isfile(output_file):
 #######################################################################################################
 
 ########### literal max single 
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##########  literal max pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 
 ########### literal sum single
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -l -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -l -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##########  literal sum pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##############################################################
 
 ###########  canonical max single
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -l -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -l -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -l -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -l -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ###########  canonical max pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ############ canonical sum single 
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -l -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -l -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -l -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -l -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ############ canonical sum pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -j"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -j"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -f"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -f"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
@@ -112,84 +112,84 @@ for i in range(1, 4):
 #######################################################################################################
 #
 ################ literal max single 
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -l -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -l -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ literal max pair
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ literal sum single 
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -l -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -l -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ literal sum pair 
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 #####################################################################################
 #
 ################ canonical max single
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -l -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -l -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ canonical max pair
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ canonical sum single
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -l -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -l -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ canonical sum pair
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -j"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -j"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #    
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -f"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -f"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
@@ -200,85 +200,85 @@ for i in range(1, 4):
 #######################################################################################################
 
 ########### literal max single 
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -l -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -l -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##########  literal max pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -o -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -o -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 
 ########### literal sum single
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -l -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -l -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -l -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##########  literal sum pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ##############################################################
 
 ###########  canonical max single
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -l -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -l -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -l -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -l -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ###########  canonical max pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -o -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -o -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ############ canonical sum single 
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -l -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -l -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -l -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -l -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
 ############ canonical sum pair
-cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -j -y"
+cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -j -y"
 pid = subprocess.Popen(cmd, shell=True)
 pid.wait()
 
 for i in range(1, 4):
-   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -z hash -c -f -y"
+   cmd = "./src/tatp -k 1 -b 11 -p occ -g co -d 5 -w 11 -n 1 -h 90 -z hash -c -f -y"
    pid = subprocess.Popen(cmd, shell=True)
    pid.wait()
 
@@ -287,84 +287,84 @@ for i in range(1, 4):
 #######################################################################################################
 #
 ################ literal max single 
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -l -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -l -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -l -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ literal max pair
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -o -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -o -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ literal sum single 
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -l -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -l -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -l -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ literal sum pair 
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 #####################################################################################
 #
 ################ canonical max single
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -l -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -l -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -l -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ canonical max pair
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -o -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -o -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ canonical sum single
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -l -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -l -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -l -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
 ################ canonical sum pair
-#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -j -y"
+#cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -j -y"
 #pid = subprocess.Popen(cmd, shell=True)
 #pid.wait()
 #
 #for i in range(1, 4):
-#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -v 10000 -z hash -c -f -y"
+#    cmd = "./src/tatp -b 11 -k 1 -p occ -g co -d 5 -w 11 -n 1 -h 90 -v 10000 -z hash -c -f -y"
 #    pid = subprocess.Popen(cmd, shell=True)
 #    pid.wait()
 #
