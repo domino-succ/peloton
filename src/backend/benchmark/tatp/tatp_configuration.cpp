@@ -204,7 +204,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.canonical = false;
   state.log_table = false;
   state.lock_free = false;
-  state.fraction = true;
+  state.fraction = false;
   state.pure_balance = false;
   state.balancer = BALANCE_TYPE_COUNTER;
   state.scheduler = SCHEDULER_TYPE_NONE;
@@ -221,7 +221,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   while (1) {
     int idx = 0;
     int c = getopt_long(
-        argc, argv, "aeoflcjur:m:x:k:w:n:h:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
+        argc, argv, "aeoflcjyur:m:x:k:w:n:h:v:d:s:b:p:z:g:i:t:q:", opts, &idx);
 
     if (c == -1) break;
 
@@ -266,7 +266,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.backend_count = atoi(optarg);
         break;
       case 'y':
-        state.zipf_theta = atof(optarg);
+        state.fraction = true;
         break;
       case 'a':
         state.run_continue = true;
