@@ -846,7 +846,7 @@ void RunWorkload() {
   // If this is offline analysis, write Log Table into a file. It is a
   // map: int-->int (reference-key, conflict-counts)
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    if (state.log_table) {
+    if (state.log_table || state.run_continue) {
       if (state.fraction) {
         concurrency::TransactionScheduler::GetInstance().OutputLogTableFull(
             LOGTABLE);
