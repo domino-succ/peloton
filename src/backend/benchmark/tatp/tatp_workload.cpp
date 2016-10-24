@@ -731,6 +731,8 @@ void QueryBackend(oid_t thread_id) {
     // For OOAHSH continue
     if (state.run_continue && state.log_table) {
       if (generate_count_ref >= state.random_assign) {
+        std::cout << "Already generate txns: " << generate_count_ref
+                  << std::endl;
         // If log_table is false, that means the first phase is done
         while (state.log_table == true) {
           _mm_pause();
