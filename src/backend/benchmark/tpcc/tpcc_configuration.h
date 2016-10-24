@@ -91,6 +91,9 @@ class configuration {
   // snapshot duration
   double snapshot_duration;
 
+  // For continous test
+  oid_t random_assign;
+
   // number of backends
   int backend_count;
 

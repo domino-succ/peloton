@@ -628,7 +628,7 @@ void QueryBackend(oid_t thread_id) {
     // For OOAHSH continue
     if (state.run_continue && state.log_table) {
       // First generate n txns for random execute and switch to hash policy
-      if (generate_count_ref >= 100000) {
+      if (generate_count_ref >= state.random_assign) {
         // If log_table is false, that means the first phase is done
         while (state.log_table == true) {
           _mm_pause();
@@ -782,8 +782,6 @@ void RunWorkload() {
       }
       last_tile_group_id = current_tile_group_id;
     }
-    state.snapshot_memory.push_back(
-        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
 
     LOG_INFO("Change mode to OOHASH");
     state.log_table = false;
@@ -800,6 +798,9 @@ void RunWorkload() {
 
       state.snapshot_memory.push_back(manager.GetLastTileGroupId());
     }
+
+    state.snapshot_memory.push_back(
+        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
   }
   // For other policy run_continue is false, execute from here
   else {
