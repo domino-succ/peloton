@@ -628,7 +628,7 @@ void QueryBackend(oid_t thread_id) {
     // For OOAHSH continue
     if (state.run_continue && state.log_table) {
       // First generate n txns for random execute and switch to hash policy
-      if (generate_count_ref >= 50000) {
+      if (generate_count_ref >= 100000) {
         // If log_table is false, that means the first phase is done
         while (state.log_table == true) {
           _mm_pause();
