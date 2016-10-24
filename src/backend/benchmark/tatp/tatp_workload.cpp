@@ -77,7 +77,7 @@ namespace tatp {
 /////////////////////////////////////////////////////////
 // WORKLOAD
 /////////////////////////////////////////////////////////
-#define RANDOM_ASSIGN 50000
+#define RANDOM_ASSIGN 200000
 
 #define FREQUENCY_GET_ACCESS_DATA 0.03         // 0.03
 #define FREQUENCY_GET_NEW_DESTINATION 0.03     // 0.03
@@ -730,7 +730,7 @@ void QueryBackend(oid_t thread_id) {
 
     // For OOAHSH continue
     if (state.run_continue && state.log_table) {
-      if (generate_count_ref >= RANDOM_ASSIGN) {
+      if (generate_count_ref >= state.random_assign) {
         // If log_table is false, that means the first phase is done
         while (state.log_table == true) {
           _mm_pause();

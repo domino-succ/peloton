@@ -195,6 +195,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.warehouse_count = 1;
   state.running_ref = 0;
   state.order_range = 20;
+  state.random_assign = 0;
   state.run_affinity = false;
   state.run_continue = false;
   state.run_backoff = false;
@@ -260,7 +261,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.duration = atof(optarg);
         break;
       case 's':
-        state.snapshot_duration = atof(optarg);
+        state.random_assign = atof(optarg);
         break;
       case 'b':
         state.backend_count = atoi(optarg);
