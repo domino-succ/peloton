@@ -197,6 +197,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   state.order_range = 20;
   state.run_affinity = false;
   state.run_backoff = false;
+  state.run_continue = false;
   state.offline = false;
   state.online = false;
   state.single_ref = false;
@@ -218,7 +219,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
   while (1) {
     int idx = 0;
     int c = getopt_long(
-        argc, argv, "aeoflcjuhr:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
+        argc, argv, "aeoflcjruh:m:x:k:w:n:v:d:s:b:p:z:g:i:t:q:y:", opts, &idx);
 
     if (c == -1) break;
 
@@ -245,7 +246,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.generate_speed = atoi(optarg);
         break;
       case 'r':
-        state.order_range = atoi(optarg);
+        state.no_steal = true;
         break;
       case 'd':
         state.duration = atof(optarg);
@@ -260,7 +261,8 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.scan_backend_count = atoi(optarg);
         break;
       case 'a':
-        state.run_affinity = true;
+        state.run_continue = true;
+        state.log_table = true;
         break;
       case 'e':
         state.run_backoff = true;

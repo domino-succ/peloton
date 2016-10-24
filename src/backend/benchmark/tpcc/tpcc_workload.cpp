@@ -439,13 +439,16 @@ void RunBackend(oid_t thread_id) {
               concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
                   ret_query, thread_id, ret_steal);
         }
-        ret_pop =
-            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id, ret_steal);
 
-        //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
-        //                ret_query, thread_id);
+        if (state.no_steal) {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                  ret_query, thread_id);
+        } else {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                  ret_query, thread_id, ret_steal);
+        }
 
         // Debug
         //        if (ret_pop != false) {
@@ -455,13 +458,16 @@ void RunBackend(oid_t thread_id) {
         break;
       }
       case SCHEDULER_TYPE_CONFLICT_LEANING: {
-        ret_pop =
-            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
-                ret_query, thread_id, ret_steal);
+        if (state.no_steal) {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                  ret_query, thread_id);
+        } else {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                  ret_query, thread_id, ret_steal);
+        }
 
-        //        ret_pop =
-        //            concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
-        //                ret_query, thread_id);
         break;
       }
       case SCHEDULER_TYPE_CLUSTER: {
@@ -619,6 +625,17 @@ void QueryBackend(oid_t thread_id) {
     }
     generate_count_ref++;
 
+    // For OOAHSH continue
+    if (state.run_continue && state.log_table) {
+      // First generate n txns for random execute and switch to hash policy
+      if (generate_count_ref >= 120000) {
+        // If log_table is false, that means the first phase is done
+        while (state.log_table == true) {
+          _mm_pause();
+        }
+      }
+    }
+
     // If there is no speed limit, ignore the speed control
     if (speed == 0) {
       continue;
@@ -746,26 +763,65 @@ void RunWorkload() {
 
   //////////////////////////////////////
   oid_t last_tile_group_id = 0;
-  for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
-    std::this_thread::sleep_for(
-        std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
-    memcpy(abort_counts_snapshots[round_id], abort_counts,
-           sizeof(oid_t) * num_threads);
-    memcpy(commit_counts_snapshots[round_id], commit_counts,
-           sizeof(oid_t) * num_threads);
-    auto &manager = catalog::Manager::GetInstance();
 
-    oid_t current_tile_group_id = manager.GetLastTileGroupId();
-    if (round_id != 0) {
-      state.snapshot_memory.push_back(current_tile_group_id -
-                                      last_tile_group_id);
+  ////////////////This is only for OOHASH//////////////
+  if (state.run_continue) {
+    for (size_t round_id = 0; round_id < snapshot_round / 2; ++round_id) {
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+      memcpy(abort_counts_snapshots[round_id], abort_counts,
+             sizeof(oid_t) * num_threads);
+      memcpy(commit_counts_snapshots[round_id], commit_counts,
+             sizeof(oid_t) * num_threads);
+      auto &manager = catalog::Manager::GetInstance();
+
+      oid_t current_tile_group_id = manager.GetLastTileGroupId();
+      if (round_id != 0) {
+        state.snapshot_memory.push_back(current_tile_group_id -
+                                        last_tile_group_id);
+      }
+      last_tile_group_id = current_tile_group_id;
     }
-    last_tile_group_id = current_tile_group_id;
-  }
-  state.snapshot_memory.push_back(
-      state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+    state.snapshot_memory.push_back(
+        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
 
-  LOG_INFO("Change mode to OOHASH");
+    LOG_INFO("Change mode to OOHASH");
+    state.log_table = false;
+
+    for (size_t round_id = snapshot_round / 2; round_id < snapshot_round;
+         ++round_id) {
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+      memcpy(abort_counts_snapshots[round_id], abort_counts,
+             sizeof(oid_t) * num_threads);
+      memcpy(commit_counts_snapshots[round_id], commit_counts,
+             sizeof(oid_t) * num_threads);
+      auto &manager = catalog::Manager::GetInstance();
+
+      state.snapshot_memory.push_back(manager.GetLastTileGroupId());
+    }
+  }
+  // For other policy run_continue is false, execute from here
+  else {
+    for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+      memcpy(abort_counts_snapshots[round_id], abort_counts,
+             sizeof(oid_t) * num_threads);
+      memcpy(commit_counts_snapshots[round_id], commit_counts,
+             sizeof(oid_t) * num_threads);
+      auto &manager = catalog::Manager::GetInstance();
+
+      oid_t current_tile_group_id = manager.GetLastTileGroupId();
+      if (round_id != 0) {
+        state.snapshot_memory.push_back(current_tile_group_id -
+                                        last_tile_group_id);
+      }
+      last_tile_group_id = current_tile_group_id;
+    }
+    state.snapshot_memory.push_back(
+        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+  }
 
   //  is_run_table = true;
   //

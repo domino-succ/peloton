@@ -150,6 +150,10 @@ class configuration {
   // enable client affinity
   bool run_affinity;
 
+  bool run_continue;
+
+  bool no_steal;
+
   bool online;
   bool offline;
 
