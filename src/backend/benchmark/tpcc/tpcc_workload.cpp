@@ -626,7 +626,7 @@ void QueryBackend(oid_t thread_id) {
     generate_count_ref++;
 
     // For OOAHSH continue
-    if (state.run_continue && state.log_table) {
+    if (state.log_table && state.run_continue) {
       // First generate n txns for random execute and switch to hash policy
       if (generate_count_ref >= state.random_assign) {
         // If log_table is false, that means the first phase is done
@@ -765,71 +765,71 @@ void RunWorkload() {
   oid_t last_tile_group_id = 0;
 
   ////////////////This is only for OOHASH//////////////
-  if (state.run_continue) {
-    for (size_t round_id = 0; round_id < snapshot_round / 2; ++round_id) {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
-      memcpy(abort_counts_snapshots[round_id], abort_counts,
-             sizeof(oid_t) * num_threads);
-      memcpy(commit_counts_snapshots[round_id], commit_counts,
-             sizeof(oid_t) * num_threads);
-      auto &manager = catalog::Manager::GetInstance();
+  //  if (state.run_continue) {
+  for (size_t round_id = 0; round_id < snapshot_round / 2; ++round_id) {
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+    memcpy(abort_counts_snapshots[round_id], abort_counts,
+           sizeof(oid_t) * num_threads);
+    memcpy(commit_counts_snapshots[round_id], commit_counts,
+           sizeof(oid_t) * num_threads);
+    auto &manager = catalog::Manager::GetInstance();
 
-      oid_t current_tile_group_id = manager.GetLastTileGroupId();
-      if (round_id != 0) {
-        state.snapshot_memory.push_back(current_tile_group_id -
-                                        last_tile_group_id);
-      }
-      last_tile_group_id = current_tile_group_id;
+    oid_t current_tile_group_id = manager.GetLastTileGroupId();
+    if (round_id != 0) {
+      state.snapshot_memory.push_back(current_tile_group_id -
+                                      last_tile_group_id);
     }
-
-    LOG_INFO("Change mode to OOHASH");
-    state.log_table = false;
-
-    for (size_t round_id = snapshot_round / 2; round_id < snapshot_round;
-         ++round_id) {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
-      memcpy(abort_counts_snapshots[round_id], abort_counts,
-             sizeof(oid_t) * num_threads);
-      memcpy(commit_counts_snapshots[round_id], commit_counts,
-             sizeof(oid_t) * num_threads);
-      auto &manager = catalog::Manager::GetInstance();
-
-      // state.snapshot_memory.push_back(manager.GetLastTileGroupId());
-
-      oid_t current_tile_group_id = manager.GetLastTileGroupId();
-      if (round_id != 0) {
-        state.snapshot_memory.push_back(current_tile_group_id -
-                                        last_tile_group_id);
-      }
-      last_tile_group_id = current_tile_group_id;
-    }
-
-    state.snapshot_memory.push_back(
-        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+    last_tile_group_id = current_tile_group_id;
   }
-  // For other policy run_continue is false, execute from here
-  else {
-    for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
-      std::this_thread::sleep_for(
-          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
-      memcpy(abort_counts_snapshots[round_id], abort_counts,
-             sizeof(oid_t) * num_threads);
-      memcpy(commit_counts_snapshots[round_id], commit_counts,
-             sizeof(oid_t) * num_threads);
-      auto &manager = catalog::Manager::GetInstance();
 
-      oid_t current_tile_group_id = manager.GetLastTileGroupId();
-      if (round_id != 0) {
-        state.snapshot_memory.push_back(current_tile_group_id -
-                                        last_tile_group_id);
-      }
-      last_tile_group_id = current_tile_group_id;
+  LOG_INFO("Change mode to OOHASH");
+  state.log_table = false;
+
+  for (size_t round_id = snapshot_round / 2; round_id < snapshot_round;
+       ++round_id) {
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+    memcpy(abort_counts_snapshots[round_id], abort_counts,
+           sizeof(oid_t) * num_threads);
+    memcpy(commit_counts_snapshots[round_id], commit_counts,
+           sizeof(oid_t) * num_threads);
+    auto &manager = catalog::Manager::GetInstance();
+
+    // state.snapshot_memory.push_back(manager.GetLastTileGroupId());
+
+    oid_t current_tile_group_id = manager.GetLastTileGroupId();
+    if (round_id != 0) {
+      state.snapshot_memory.push_back(current_tile_group_id -
+                                      last_tile_group_id);
     }
-    state.snapshot_memory.push_back(
-        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+    last_tile_group_id = current_tile_group_id;
   }
+
+  state.snapshot_memory.push_back(
+      state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+  //  }
+  //  // For other policy run_continue is false, execute from here
+  //  else {
+  //    for (size_t round_id = 0; round_id < snapshot_round; ++round_id) {
+  //      std::this_thread::sleep_for(
+  //          std::chrono::milliseconds(int(state.snapshot_duration * 1000)));
+  //      memcpy(abort_counts_snapshots[round_id], abort_counts,
+  //             sizeof(oid_t) * num_threads);
+  //      memcpy(commit_counts_snapshots[round_id], commit_counts,
+  //             sizeof(oid_t) * num_threads);
+  //      auto &manager = catalog::Manager::GetInstance();
+  //
+  //      oid_t current_tile_group_id = manager.GetLastTileGroupId();
+  //      if (round_id != 0) {
+  //        state.snapshot_memory.push_back(current_tile_group_id -
+  //                                        last_tile_group_id);
+  //      }
+  //      last_tile_group_id = current_tile_group_id;
+  //    }
+  //    state.snapshot_memory.push_back(
+  //        state.snapshot_memory.at(state.snapshot_memory.size() - 1));
+  //  }
 
   //  is_run_table = true;
   //
