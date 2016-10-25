@@ -796,14 +796,14 @@ void RunWorkload() {
            sizeof(oid_t) * num_threads);
     auto &manager = catalog::Manager::GetInstance();
 
-    // state.snapshot_memory.push_back(manager.GetLastTileGroupId());
+    state.snapshot_memory.push_back(manager.GetLastTileGroupId());
 
-    oid_t current_tile_group_id = manager.GetLastTileGroupId();
-    if (round_id != 0) {
-      state.snapshot_memory.push_back(current_tile_group_id -
-                                      last_tile_group_id);
-    }
-    last_tile_group_id = current_tile_group_id;
+    //    oid_t current_tile_group_id = manager.GetLastTileGroupId();
+    //    if (round_id != 0) {
+    //      state.snapshot_memory.push_back(current_tile_group_id -
+    //                                      last_tile_group_id);
+    //    }
+    //    last_tile_group_id = current_tile_group_id;
   }
 
   state.snapshot_memory.push_back(
