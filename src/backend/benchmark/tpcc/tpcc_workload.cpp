@@ -160,10 +160,10 @@ void GenerateALLAndCache(bool new_order) {
 
 void GenerateSimpleTxn() {
 
-  // NewOrder *txn = GenerateNewOrder();
+  NewOrder *txn = GenerateNewOrder();
   // Payment *txn = GeneratePayment();
   // TestPayment *txn = GenerateTestPayment();
-  Test *txn = GenerateTest();
+  // Test *txn = GenerateTest();
 
   concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
 }
