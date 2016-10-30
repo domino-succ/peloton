@@ -253,7 +253,7 @@ void ParseArguments(int argc, char *argv[], configuration &state) {
         state.duration = atof(optarg);
         break;
       case 's':
-        state.random_assign = atof(optarg);
+        state.random_assign = atof(optarg);  // used for continuous
         break;
       case 'b':
         state.backend_count = atoi(optarg);

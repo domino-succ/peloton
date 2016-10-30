@@ -309,7 +309,9 @@ class NewOrder : public concurrency::TransactionQuery {
 
     // Get conflict from Log Table for the given condition
     int conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+        // concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+        concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
+            key);
 
     key_counter[key] += conflict;
 
@@ -325,7 +327,8 @@ class NewOrder : public concurrency::TransactionQuery {
 
     key = std::string("D_ID") + "-" + std::to_string(district_id_);
     conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+        concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
+            key);
 
     key_counter[key] += conflict;
 
@@ -347,7 +350,8 @@ class NewOrder : public concurrency::TransactionQuery {
       }
 
       conflict =
-          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
+              key);
 
       key_counter[key] += conflict;
 
@@ -369,7 +373,8 @@ class NewOrder : public concurrency::TransactionQuery {
       }
 
       conflict =
-          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
+              key);
 
       key_counter[key] += conflict;
 
@@ -383,7 +388,8 @@ class NewOrder : public concurrency::TransactionQuery {
     for (int i = 0; i < 4; i++) {
       key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       conflict =
-          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
+          concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
+              key);
 
       key_counter[key] += conflict;
 
@@ -429,7 +435,6 @@ class NewOrder : public concurrency::TransactionQuery {
       }
 
       if (queues.size() > 0) {
-        std::srand(unsigned(std::time(0)));
         int random_variable = std::rand() % queues.size();
         queue_no = queues.at(random_variable);
       }
