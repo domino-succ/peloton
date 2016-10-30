@@ -190,7 +190,7 @@ void LoadLogTable() {
       int success;
 
       // Put condition and conflict into log_table
-      if (state.fraction) {
+      if (state.fraction || state.log_both) {
         while (infile >> condition >> conflict >> success) {
           concurrency::TransactionScheduler::GetInstance().LoadLogFull(
               condition, conflict, success);

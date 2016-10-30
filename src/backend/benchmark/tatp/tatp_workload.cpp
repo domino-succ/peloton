@@ -1026,9 +1026,6 @@ void RunWorkload() {
     total_steal_count += steal_counts[i];
   }
 
-  state.steal = total_steal_count * 1.0 / state.duration;
-  state.steal_rate = total_steal_count * 1.0 / total_commit_count;
-
   // calculate the throughput and abort rate for the remaining rounds.
   for (size_t round_id = 0; round_id < snapshot_round - 1; ++round_id) {
     total_commit_count = 0;
@@ -1064,6 +1061,9 @@ void RunWorkload() {
   state.abort_rate =
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
+
+  state.steal = total_steal_count * 1.0 / state.duration;
+  state.steal_rate = total_steal_count * 1.0 / total_commit_count;
 
   // calculate the average delay: ms
   uint64_t total_delay = 0;

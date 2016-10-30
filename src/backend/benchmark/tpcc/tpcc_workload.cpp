@@ -540,7 +540,7 @@ void RunBackend(oid_t thread_id) {
         }
         case SCHEDULER_TYPE_HASH: {
           if (state.log_table) {
-            if (state.fraction) {
+            if (state.fraction || state.log_both) {
               ret_query->UpdateLogTableFullConflict(state.single_ref,
                                                     state.canonical);
             } else {
@@ -580,7 +580,7 @@ void RunBackend(oid_t thread_id) {
     // clean up the hash table
     if (state.scheduler == SCHEDULER_TYPE_HASH) {
       // Update Log Table when success
-      if (state.log_table && state.fraction) {
+      if (state.log_both || (state.log_table && state.fraction)) {
         ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
       }
       // Remove txn from Run Table
@@ -837,7 +837,7 @@ void RunWorkload() {
   // If this is offline analysis, write Log Table into a file. It is a
   // map: int-->int (reference-key, conflict-counts)
   if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    if (state.log_table || state.run_continue) {
+    if (state.log_table || state.run_continue || state.log_both) {
       if (state.fraction) {
         concurrency::TransactionScheduler::GetInstance().OutputLogTableFull(
             LOGTABLE);
@@ -885,9 +885,6 @@ void RunWorkload() {
     total_steal_count += steal_counts[i];
   }
 
-  state.steal = total_steal_count * 1.0 / state.duration;
-  state.steal_rate = total_steal_count * 1.0 / total_commit_count;
-
   state.snapshot_throughput.push_back(total_commit_count * 1.0 /
                                       state.snapshot_duration);
   state.snapshot_abort_rate.push_back(total_abort_count * 1.0 /
@@ -928,6 +925,9 @@ void RunWorkload() {
   state.abort_rate =
       total_abort_count * 1.0 / (total_commit_count + total_abort_count);
   // state.abort_rate = total_abort_count * 1.0 / total_commit_count;
+
+  state.steal = total_steal_count * 1.0 / state.duration;
+  state.steal_rate = total_steal_count * 1.0 / total_commit_count;
 
   // calculate the exe time: ms
   uint64_t total_exe = 0;

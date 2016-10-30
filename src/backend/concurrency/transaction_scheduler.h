@@ -787,6 +787,17 @@ class TransactionScheduler {
     return 0;
   }
 
+  // Return the condition conflict rate
+  int LogTableFullGetAbort(std::string& key) {
+
+    auto entry = log_table_full_.find(key);
+    if (entry != log_table_full_.end()) {
+      return entry->second.first;
+    }
+
+    return 0;
+  }
+
   // Return the condition thread/queue pointer. Since we might return null, so
   // returning reference wouldn't work here
   std::unordered_map<int, int>* RunTableGet(std::string& key) {

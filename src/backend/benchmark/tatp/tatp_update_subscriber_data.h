@@ -396,7 +396,7 @@ class UpdateSubscriberData : public concurrency::TransactionQuery {
 
       for (auto queue : (*queue_info)) {
 
-        // reference = 0 means there is txn (of this condition) executing
+        // reference = 0 means there is no txn (of this condition) executing
         if (queue.second > max_reference) {
           // Get the queue No.
           queue_no = queue.first;
