@@ -309,9 +309,7 @@ class NewOrder : public concurrency::TransactionQuery {
 
     // Get conflict from Log Table for the given condition
     int conflict =
-        // concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
-        concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
-            key);
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
     key_counter[key] += conflict;
 
@@ -327,8 +325,7 @@ class NewOrder : public concurrency::TransactionQuery {
 
     key = std::string("D_ID") + "-" + std::to_string(district_id_);
     conflict =
-        concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
-            key);
+        concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
     key_counter[key] += conflict;
 
@@ -350,8 +347,7 @@ class NewOrder : public concurrency::TransactionQuery {
       }
 
       conflict =
-          concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
-              key);
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
       key_counter[key] += conflict;
 
@@ -373,8 +369,7 @@ class NewOrder : public concurrency::TransactionQuery {
       }
 
       conflict =
-          concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
-              key);
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
       key_counter[key] += conflict;
 
@@ -388,8 +383,7 @@ class NewOrder : public concurrency::TransactionQuery {
     for (int i = 0; i < 4; i++) {
       key = std::string("W_ID") + "-" + std::to_string(warehouse_id_);
       conflict =
-          concurrency::TransactionScheduler::GetInstance().LogTableFullGetAbort(
-              key);
+          concurrency::TransactionScheduler::GetInstance().LogTableGet(key);
 
       key_counter[key] += conflict;
 
