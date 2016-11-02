@@ -262,6 +262,49 @@ bool UpdateLocation::Run() {
     return false;
   }
 
+  //////////////// Extra 5 times ///////////////
+  ExecuteUpdateTest(sub_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  ExecuteUpdateTest(sub_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  ExecuteUpdateTest(sub_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  ExecuteUpdateTest(sub_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  ExecuteUpdateTest(sub_update_executor_);
+
+  if (txn->GetResult() != Result::RESULT_SUCCESS) {
+    LOG_TRACE("abort transaction");
+    txn_manager.AbortTransaction();
+    return false;
+  }
+
+  ///////////////////// End Extra ////////////////////////////
+
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
 
