@@ -170,6 +170,8 @@ class configuration {
   bool fraction;
 
   bool pure_balance;
+
+  bool high_cost;
   //
   SchedulerType scheduler;
 

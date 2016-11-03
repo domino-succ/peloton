@@ -319,6 +319,96 @@ bool TransactSaving::Run() {
     return false;
   }
 
+  /////// increase 5 times cost //////
+  if (state.high_cost) {
+    for (int i = 0; i < 5; i++) {
+      /////////////////////////////////////////////////////////
+      // ACCOUNTS SELECTION
+      /////////////////////////////////////////////////////////
+
+      // "SELECT1 * FROM " + TABLENAME_ACCOUNTS + " WHERE custid = ?"
+
+      LOG_TRACE("SELECT * FROM ACCOUNTS WHERE custid = %d", custid0);
+
+      accounts_index_scan_executor_->ResetState();
+
+      std::vector<Value> accounts_key_values;
+
+      accounts_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      accounts_index_scan_executor_->SetValues(accounts_key_values);
+
+      auto ga1_lists_values = ExecuteReadTest(accounts_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      /////////////////////////////////////////////////////////
+      // CHECKING
+      /////////////////////////////////////////////////////////
+
+      // Select
+      LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", custid0);
+
+      saving_index_scan_executor_->ResetState();
+
+      std::vector<Value> saving_key_values;
+
+      saving_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      saving_index_scan_executor_->SetValues(saving_key_values);
+
+      auto gc_lists_values = ExecuteReadTest(saving_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      // FIXME: should we comment out this?
+      //  if (gc_lists_values.size() != 1) {
+      //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+      //              gc_lists_values.size());
+      //    assert(false);
+      //  }
+
+      auto bal_saving = gc_lists_values[0][0];
+
+      // Update
+      saving_update_index_scan_executor_->ResetState();
+
+      saving_update_index_scan_executor_->SetValues(saving_key_values);
+
+      // Update the 2th column (bal)
+
+      TargetList saving_target_list;
+
+      int increase = GenerateAmount();
+      double total = GetDoubleFromValue(bal_saving) + increase;
+
+      Value saving_update_val = ValueFactory::GetDoubleValue(total);
+
+      saving_target_list.emplace_back(
+          1,
+          expression::ExpressionUtil::ConstantValueFactory(saving_update_val));
+
+      saving_update_executor_->SetTargetList(saving_target_list);
+
+      ExecuteUpdateTest(saving_update_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+    }
+  }
+  /////// end increase 5 times cost //////
+
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
 

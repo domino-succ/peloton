@@ -327,6 +327,100 @@ bool DepositChecking::Run() {
     return false;
   }
 
+  /////// increase 5 times cost //////
+  if (state.high_cost) {
+    for (int i = 0; i < 5; i++) {
+      /////////////////////////////////////////////////////////
+      // ACCOUNTS SELECTION
+      /////////////////////////////////////////////////////////
+
+      // "SELECT1 * FROM " + TABLENAME_ACCOUNTS + " WHERE custid = ?"
+      LOG_TRACE("SELECT * FROM ACCOUNTS WHERE custid = %d", custid0);
+
+      accounts_index_scan_executor_->ResetState();
+
+      std::vector<Value> accounts_key_values;
+
+      accounts_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      accounts_index_scan_executor_->SetValues(accounts_key_values);
+
+      auto ga1_lists_values = ExecuteReadTest(accounts_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      // FIXME: should we comment out this?
+      //  if (ga1_lists_values.size() != 1) {
+      //    LOG_ERROR("ACCOUNTS return size incorrect : %lu",
+      // ga1_lists_values.size());
+      //    assert(false);
+      //  }
+
+      /////////////////////////////////////////////////////////
+      // CHECKING
+      /////////////////////////////////////////////////////////
+
+      // Select
+      LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", custid0);
+
+      checking_index_scan_executor_->ResetState();
+
+      std::vector<Value> checking_key_values;
+
+      checking_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      checking_index_scan_executor_->SetValues(checking_key_values);
+
+      auto gc_lists_values = ExecuteReadTest(checking_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      // FIXME: should we comment out this?
+      //  if (gc_lists_values.size() != 1) {
+      //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+      //              gc_lists_values.size());
+      //    assert(false);
+      //  }
+
+      auto bal_checking = gc_lists_values[0][0];
+
+      // Update
+      checking_update_index_scan_executor_->ResetState();
+
+      checking_update_index_scan_executor_->SetValues(checking_key_values);
+
+      TargetList checking_target_list;
+
+      int increase = GenerateAmount();
+      double total = GetDoubleFromValue(bal_checking) + increase;
+
+      Value checking_update_val = ValueFactory::GetDoubleValue(total);
+
+      checking_target_list.emplace_back(
+          1, expression::ExpressionUtil::ConstantValueFactory(
+                 checking_update_val));
+
+      checking_update_executor_->SetTargetList(checking_target_list);
+
+      ExecuteUpdateTest(checking_update_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+    }
+  }
+  /////// end increase 5 times cost //////
+
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
 

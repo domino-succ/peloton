@@ -283,13 +283,6 @@ bool WriteCheck::Run() {
     return false;
   }
 
-  // FIXME: should we comment out this?
-  //  if (ga1_lists_values.size() != 1) {
-  //    LOG_ERROR("ACCOUNTS return size incorrect : %lu",
-  // ga1_lists_values.size());
-  //    assert(false);
-  //  }
-
   /////////////////////////////////////////////////////////
   // SAVINGS
   /////////////////////////////////////////////////////////
@@ -310,13 +303,6 @@ bool WriteCheck::Run() {
     txn_manager.AbortTransaction();
     return false;
   }
-
-  // FIXME: Comment out
-  //  if (gs_lists_values.size() != 1) {
-  //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
-  //              gs_lists_values.size());
-  //    assert(false);
-  //  }
 
   auto bal_saving = gs_lists_values[0][0];
 
@@ -342,13 +328,6 @@ bool WriteCheck::Run() {
     txn_manager.AbortTransaction();
     return false;
   }
-
-  // FIXME: should we comment out this?
-  //  if (gc_lists_values.size() != 1) {
-  //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
-  //              gc_lists_values.size());
-  //    assert(false);
-  //  }
 
   auto bal_checking = gc_lists_values[0][0];
 
@@ -386,6 +365,84 @@ bool WriteCheck::Run() {
     txn_manager.AbortTransaction();
     return false;
   }
+
+  /////// increase 5 times cost //////
+  if (state.high_cost) {
+    for (int i = 0; i < 5; i++) {
+      /////////////////////////////////////////////////////////
+      // SAVINGS
+      /////////////////////////////////////////////////////////
+      LOG_TRACE("SELECT bal FROM savings WHERE custid = %d", custid0);
+
+      saving_index_scan_executor_->ResetState();
+
+      saving_index_scan_executor_->SetValues(savings_key_values);
+
+      ExecuteReadTest(saving_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+      /////////////////////////////////////////////////////////
+      // CHECKING
+      /////////////////////////////////////////////////////////
+      // Select
+      LOG_TRACE("SELECT bal FROM checking WHERE custid = %d", custid0);
+
+      checking_index_scan_executor_->ResetState();
+
+      checking_index_scan_executor_->SetValues(checking_key_values);
+
+      auto gc_lists_values = ExecuteReadTest(checking_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      auto bal_checking = gc_lists_values[0][0];
+
+      // Total
+      double total =
+          GetDoubleFromValue(bal_saving) + GetDoubleFromValue(bal_checking);
+
+      int withdraw = GenerateAmount();
+
+      double final_bal = total - withdraw;
+
+      if (final_bal < 0) {
+        final_bal--;
+      }
+
+      // Update
+      checking_update_index_scan_executor_->ResetState();
+
+      checking_update_index_scan_executor_->SetValues(checking_key_values);
+
+      TargetList checking_target_list;
+
+      Value checking_update_val = ValueFactory::GetDoubleValue(final_bal);
+
+      // bal's column is 1
+      checking_target_list.emplace_back(
+          1, expression::ExpressionUtil::ConstantValueFactory(
+                 checking_update_val));
+
+      checking_update_executor_->SetTargetList(checking_target_list);
+
+      ExecuteUpdateTest(checking_update_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+    }
+  }
+  /////// end increase 5 times cost //////
 
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);

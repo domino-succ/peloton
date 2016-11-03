@@ -322,6 +322,93 @@ bool Balance::Run() {
   //    assert(false);
   //  }
 
+  /////// increase 5 times cost //////
+  if (state.high_cost) {
+    for (int i = 0; i < 5; i++) {
+      /////////////////////////////////////////////////////////
+      // ACCOUNTS SELECTION
+      /////////////////////////////////////////////////////////
+
+      // "SELECT1 * FROM " + TABLENAME_ACCOUNTS + " WHERE custid = ?"
+      LOG_TRACE("SELECT * FROM ACCOUNTS WHERE custid = %d", custid0);
+
+      accounts_index_scan_executor_->ResetState();
+
+      std::vector<Value> accounts_key_values;
+
+      accounts_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      accounts_index_scan_executor_->SetValues(accounts_key_values);
+
+      auto ga1_lists_values = ExecuteReadTest(accounts_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      // FIXME: should we comment out this?
+      //  if (ga1_lists_values.size() != 1) {
+      //    LOG_ERROR("ACCOUNTS return size incorrect : %lu",
+      // ga1_lists_values.size());
+      //    assert(false);
+      //  }
+
+      /////////////////////////////////////////////////////////
+      // SAVINGS SELECTION (id 0)
+      /////////////////////////////////////////////////////////
+      LOG_TRACE("SELECT bal FROM savings WHERE custid = %d", custid0);
+
+      savings_index_scan_executor_->ResetState();
+
+      std::vector<Value> savings_key_values;
+
+      savings_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      savings_index_scan_executor_->SetValues(savings_key_values);
+
+      auto gs_lists_values = ExecuteReadTest(savings_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+
+      // FIXME: should we comment out this?
+      //  if (gs_lists_values.size() != 1) {
+      //    LOG_ERROR("getACCOUNTS return size incorrect : %lu",
+      //              gs_lists_values.size());
+      //    assert(false);
+      //  }
+
+      // auto bal_saving = gs_lists_values[0][0];
+
+      /////////////////////////////////////////////////////////
+      // CHECKING SELECTION (id 0)
+      /////////////////////////////////////////////////////////
+      LOG_TRACE("SELECT * FROM checking WHERE custid = %d", custid1);
+
+      checking_index_scan_executor_->ResetState();
+
+      std::vector<Value> checking_key_values;
+
+      checking_key_values.push_back(ValueFactory::GetIntegerValue(custid0));
+
+      checking_index_scan_executor_->SetValues(checking_key_values);
+
+      auto gc_lists_values = ExecuteReadTest(checking_index_scan_executor_);
+
+      if (txn->GetResult() != Result::RESULT_SUCCESS) {
+        LOG_TRACE("abort transaction");
+        txn_manager.AbortTransaction();
+        return false;
+      }
+    }
+  }
+  /////// end increase 5 times cost //////
+
   // transaction passed execution.
   assert(txn->GetResult() == Result::RESULT_SUCCESS);
 
