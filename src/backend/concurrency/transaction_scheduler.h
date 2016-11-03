@@ -948,7 +948,7 @@ class TransactionScheduler {
 
   // support multi-thread
   void RunTableDecrease(std::string& key, int queue_no) {
-    run_table_lock_.Lock();
+    // run_table_lock_.Lock();
 
     // Get the reference of the corresponding queue
     std::unordered_map<int, int>* queue_info = RunTableGetNoLock(key);
@@ -981,7 +981,7 @@ class TransactionScheduler {
       }
     }
 
-    run_table_lock_.Unlock();
+    // run_table_lock_.Unlock();
   }
 
   // support multi-thread

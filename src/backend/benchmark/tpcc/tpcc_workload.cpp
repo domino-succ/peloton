@@ -268,14 +268,14 @@ bool EnqueueCachedUpdate(
       }
       // lock
       else {
-        concurrency::TransactionScheduler::GetInstance().RunTableLock();
+        // concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
         // Increase run table
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, true, state.single_ref, state.canonical,
             state.fraction, state.pure_balance);
 
-        concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+        // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
 
     } else {  // otherwise use OOHASH method
@@ -286,14 +286,14 @@ bool EnqueueCachedUpdate(
       }
       // lock run table
       else {
-        concurrency::TransactionScheduler::GetInstance().RunTableLock();
+        // concurrency::TransactionScheduler::GetInstance().RunTableLock();
 
         // enqueue
         concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
             query, true, false, state.single_ref, state.canonical,
             state.fraction, state.pure_balance);
 
-        concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+        // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
       }
     }
   } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
@@ -584,9 +584,9 @@ void RunBackend(oid_t thread_id) {
         ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
       }
       // Remove txn from Run Table
-      // if (!state.lock_free) {
-      ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-      //}
+      if (!state.lock_free) {
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+      }
     }
 
   program_end:
