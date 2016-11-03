@@ -193,58 +193,6 @@ bool GetSubscriberData::Run() {
     return false;
   }
 
-  //////////// Extra 5 times ///////////////
-  // 1
-  sub_index_scan_executor_->ResetState();
-  sub_index_scan_executor_->SetValues(subscriber_key_values);
-  ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  // 2
-  sub_index_scan_executor_->ResetState();
-  sub_index_scan_executor_->SetValues(subscriber_key_values);
-  ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  // 3
-  sub_index_scan_executor_->ResetState();
-  sub_index_scan_executor_->SetValues(subscriber_key_values);
-  ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  // 4
-  sub_index_scan_executor_->ResetState();
-  sub_index_scan_executor_->SetValues(subscriber_key_values);
-  ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-
-  // 5
-  sub_index_scan_executor_->ResetState();
-  sub_index_scan_executor_->SetValues(subscriber_key_values);
-  ga1_lists_values = ExecuteReadTest(sub_index_scan_executor_);
-  if (txn->GetResult() != Result::RESULT_SUCCESS) {
-    LOG_TRACE("abort transaction");
-    txn_manager.AbortTransaction();
-    return false;
-  }
-  ///////////  End Extra //////////////////////
-
   /////////////////////////////////////////////////////////
   // TRANSACTION COMMIT
   /////////////////////////////////////////////////////////
