@@ -584,9 +584,9 @@ void RunBackend(oid_t thread_id) {
         ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
       }
       // Remove txn from Run Table
-      if (!state.lock_free) {
-        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
-      }
+      // if (!state.lock_free) {
+      ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+      //}
     }
 
   program_end:
