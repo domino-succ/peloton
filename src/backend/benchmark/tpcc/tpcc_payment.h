@@ -1762,6 +1762,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is wid"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1794,6 +1797,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is did"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1822,10 +1828,14 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is cid"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
     }
+
     return return_queue;
   }
 
