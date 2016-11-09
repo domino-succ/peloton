@@ -1527,7 +1527,6 @@ class Payment : public concurrency::TransactionQuery {
   ////////////////////////////////////////////////////////////////////////////
   // Return a queue to schedule
   virtual int LookupRunTableFullSingleRef(bool canonical) {
-    std::cout << "Here start Payment's LookupRunTableFull" << std::endl;
 
     int queue_count =
         concurrency::TransactionScheduler::GetInstance().GetQueueCount();
@@ -1857,6 +1856,8 @@ class Payment : public concurrency::TransactionQuery {
         }
       }
     }
+
+    std::cout << "return_queue" << return_queue << std::endl;
 
     return return_queue;
   }
