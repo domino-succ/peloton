@@ -518,6 +518,7 @@ class TransactionScheduler {
     // SUM
     else {
       if (fraction) {
+        std::cout << "entering LookupRunTableFull" << std::endl;
         queue = query->LookupRunTableFull(single_ref, canonical);
       } else {
         queue = query->LookupRunTable(single_ref, canonical);
