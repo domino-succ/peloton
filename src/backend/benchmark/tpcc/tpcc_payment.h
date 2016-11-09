@@ -1568,6 +1568,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is wid1"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1606,6 +1609,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is wid2"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1634,6 +1640,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is did1"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1668,6 +1677,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is wid3"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1700,6 +1712,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is did2"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1728,6 +1743,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
+
+            std::cout << "this is cid1"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1740,10 +1758,12 @@ class Payment : public concurrency::TransactionQuery {
       key =
           std::string("C_W_ID") + "-" + std::to_string(customer_warehouse_id_);
     }
+
     conflict =
         concurrency::TransactionScheduler::GetInstance().LogTableFullGet(key);
     queue_info =
         concurrency::TransactionScheduler::GetInstance().RunTableGetNoLock(key);
+
     if (queue_info != nullptr) {
       for (auto queue : (*queue_info)) {
 
@@ -1763,7 +1783,7 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            std::cout << "this is wid"
+            std::cout << "this is wid4"
                       << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
@@ -1798,7 +1818,7 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            std::cout << "this is did"
+            std::cout << "this is did3"
                       << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
@@ -1829,7 +1849,7 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            std::cout << "this is cid"
+            std::cout << "this is cid2"
                       << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
