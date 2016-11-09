@@ -1861,6 +1861,7 @@ class Payment : public concurrency::TransactionQuery {
 
   // Return a queue to schedule
   virtual int LookupRunTableFull(bool single_ref, bool canonical) {
+    std::cout << "Here start Payment's LookupRunTableFull" << std::endl;
     if (single_ref) {
       return LookupRunTableFullSingleRef(canonical);
     }
