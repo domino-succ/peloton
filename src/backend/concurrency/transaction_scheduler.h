@@ -823,8 +823,6 @@ class TransactionScheduler {
     auto entry = run_table_.find(key);
     if (entry != run_table_.end()) {
       ret = &(entry->second);
-
-      std::cout << "key: " << key << " find result in Run Table" << std::endl;
     }
 
     return ret;

@@ -1552,6 +1552,7 @@ class Payment : public concurrency::TransactionQuery {
     std::unordered_map<int, int>* queue_info =
         concurrency::TransactionScheduler::GetInstance().RunTableGetNoLock(key);
     if (queue_info != nullptr) {
+      std::cout << "key: " << key << " find result in Run Table" << std::endl;
       for (auto queue : (*queue_info)) {
 
         // reference = 0 means there is no txn executing
