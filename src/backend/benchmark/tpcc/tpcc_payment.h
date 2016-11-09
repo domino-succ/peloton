@@ -1569,9 +1569,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is wid1"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is wid1"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1611,9 +1610,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is wid2"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is wid2"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1642,10 +1640,9 @@ class Payment : public concurrency::TransactionQuery {
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
-            //
-            //            std::cout << "this is did1"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+
+            std::cout << "this is did1"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1681,9 +1678,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is wid3"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is wid3"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1717,9 +1713,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is did2"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is did2"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1749,9 +1744,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is cid1"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is cid1"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1789,9 +1783,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is wid4"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is wid4"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1825,9 +1818,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is did3"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is did3"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
@@ -1857,9 +1849,8 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
 
-            //            std::cout << "this is cid2"
-            //                      << "-it's max_conflict:" << max_conflict <<
-            // std::endl;
+            std::cout << "this is cid2"
+                      << "-it's max_conflict:" << max_conflict << std::endl;
           }
         }
       }
