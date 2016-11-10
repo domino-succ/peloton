@@ -1870,9 +1870,6 @@ class Payment : public concurrency::TransactionQuery {
         }
       }
     }
-
-    std::cout << "return_queue" << return_queue << std::endl;
-
     return return_queue;
   }
 
