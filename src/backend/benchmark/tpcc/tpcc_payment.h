@@ -1531,7 +1531,7 @@ class Payment : public concurrency::TransactionQuery {
     int queue_count =
         concurrency::TransactionScheduler::GetInstance().GetQueueCount();
 
-    std::vector<int> queue_map(queue_count, 0);
+    std::vector<double> queue_map(queue_count, 0);
     int max_conflict = CONFLICT_THRESHHOLD;
     int return_queue = -1;
     std::string key;
@@ -1563,7 +1563,7 @@ class Payment : public concurrency::TransactionQuery {
           queue_map[queue_no] += conflict;
 
           // Get the latest conflict
-          int queue_conflict = queue_map[queue_no];
+          double queue_conflict = queue_map[queue_no];
 
           std::cout << "key: " << key << " in RunTable's queue: " << queue_no
                     << " total conflict: " << queue_conflict << std::endl;
