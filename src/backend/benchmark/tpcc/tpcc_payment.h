@@ -1565,14 +1565,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is wid1: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
-
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is wid1: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1606,14 +1606,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is wid2: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
-
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is wid2: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1637,14 +1637,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is did1: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
-
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is did1: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1674,13 +1674,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is wid3: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is wid3: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1708,14 +1709,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is did2: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
-
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is did2: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1739,13 +1740,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is cid1: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is cid1: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1777,14 +1779,13 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is wid4: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
-
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+          std::cout << "this is wid4: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1812,13 +1813,14 @@ class Payment : public concurrency::TransactionQuery {
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
 
-          std::cout << "this is did3: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is did3: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
@@ -1841,14 +1843,15 @@ class Payment : public concurrency::TransactionQuery {
 
           // Get the latest conflict
           double queue_conflict = queue_map[queue_no];
-          std::cout << "this is cid2: " << key << ", queue: " << queue_no
-                    << ", it's max_conflict:" << max_conflict << std::endl;
 
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
+
+          std::cout << "this is cid2: " << key << ", queue: " << queue_no
+                    << ", it's max_conflict:" << max_conflict << std::endl;
         }
       }
     }
