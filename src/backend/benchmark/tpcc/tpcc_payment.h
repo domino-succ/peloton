@@ -1556,8 +1556,6 @@ class Payment : public concurrency::TransactionQuery {
 
         // reference = 0 means there is no txn executing
         if (queue.second > 0) {
-          std::cout << "key: " << key << " find result in Run Table"
-                    << std::endl;
           // Get the queue No.
           int queue_no = queue.first;
 
@@ -1566,6 +1564,9 @@ class Payment : public concurrency::TransactionQuery {
 
           // Get the latest conflict
           int queue_conflict = queue_map[queue_no];
+
+          std::cout << "key: " << key << " in RunTable's queue: " << queue_no
+                    << " total conflict: " << queue_conflict << std::endl;
 
           // Compare with the max, if current queue has larger conflict
           if (queue_conflict > max_conflict) {
