@@ -1571,9 +1571,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is wid1: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is wid1: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1613,9 +1615,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is wid2: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is wid2: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1645,9 +1649,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is did1: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is did1: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1683,9 +1689,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is wid3: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is wid3: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1719,9 +1727,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is did2: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is did2: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1751,9 +1761,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is cid1: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is cid1: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1790,9 +1802,11 @@ class Payment : public concurrency::TransactionQuery {
             return_queue = queue_no;
             max_conflict = queue_conflict;
           }
-          std::cout << "this is wid4: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is wid4: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1826,9 +1840,11 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is did3: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is did3: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
@@ -1858,14 +1874,16 @@ class Payment : public concurrency::TransactionQuery {
             max_conflict = queue_conflict;
           }
 
-          std::cout << "this is cid2: " << key << ", queue: " << queue_no
-                    << ", conflicts: " << queue_conflict
-                    << ", it's max_conflict:" << max_conflict << std::endl;
+          //          std::cout << "this is cid2: " << key << ", queue: " <<
+          // queue_no
+          //                    << ", conflicts: " << queue_conflict
+          //                    << ", it's max_conflict:" << max_conflict <<
+          // std::endl;
         }
       }
     }
 
-    std::cout << "return queue: " << return_queue << std::endl;
+    //    std::cout << "return queue: " << return_queue << std::endl;
 
     return return_queue;
   }
