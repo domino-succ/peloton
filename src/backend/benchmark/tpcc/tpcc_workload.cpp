@@ -250,12 +250,12 @@ bool EnqueueCachedUpdate(
     // Run table is ready
     else if (state.online) {  // ONLINE means Run table
                               // Debug
-      //      std::cout << "Before enqueue, run table : " << std::endl;
-      //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
-      //
-      //      std::cout << "------------end run "
-      //                   "table------------------------------------------"
-      //                << std::endl;
+      std::cout << "Before enqueue, run table : " << std::endl;
+      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+
+      std::cout << "------------end run "
+                   "table------------------------------------------"
+                << std::endl;
       // end debug
 
       if (state.lock_free) {
