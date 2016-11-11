@@ -872,8 +872,7 @@ class NewOrder : public concurrency::TransactionQuery {
       //////////////////////////////////////////////////////////////////////
       // D_ID
       //////////////////////////////////////////////////////////////////////
-      key = std::string("D_ID") + "-" + std::to_string(warehouse_id_) + "-" +
-            std::to_string(district_id_);
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
 
       // update run table
       concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
@@ -919,8 +918,7 @@ class NewOrder : public concurrency::TransactionQuery {
       //////////////////////////////////////////////////////////////////////
       // D_ID
       //////////////////////////////////////////////////////////////////////
-      key = std::string("D_ID") + "-" + std::to_string(warehouse_id_) + "-" +
-            std::to_string(district_id_);
+      key = std::string("D_ID") + "-" + std::to_string(district_id_);
 
       // update run table
       concurrency::TransactionScheduler::GetInstance().RunTableIncreaseNoLock(
