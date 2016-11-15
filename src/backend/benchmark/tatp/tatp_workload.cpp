@@ -84,8 +84,8 @@ namespace tatp {
 #define FREQUENCY_GET_SUBSCRIBER_DATA 0.4      // 0.40
 #define FREQUENCY_INSERT_CALL_FORWARDING 0.02  // 0.02
 #define FREQUENCY_DELETE_CALL_FORWARDING 0.02  // 0.02
-#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.1   // 0.1
-#define FREQUENCY_UPDATE_LOCATION 0.4          // 0.40
+#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.30  // 0.1
+#define FREQUENCY_UPDATE_LOCATION 0.20         // 0.40
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
