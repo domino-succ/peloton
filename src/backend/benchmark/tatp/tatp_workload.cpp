@@ -79,13 +79,13 @@ namespace tatp {
 /////////////////////////////////////////////////////////
 #define RANDOM_ASSIGN 200000
 
-#define FREQUENCY_GET_ACCESS_DATA 0.03         // 0.03
-#define FREQUENCY_GET_NEW_DESTINATION 0.03     // 0.03
-#define FREQUENCY_GET_SUBSCRIBER_DATA 0.4      // 0.40
+#define FREQUENCY_GET_ACCESS_DATA 0.35         // 0.03
+#define FREQUENCY_GET_NEW_DESTINATION 0.1      // 0.03
+#define FREQUENCY_GET_SUBSCRIBER_DATA 0.35     // 0.40
 #define FREQUENCY_INSERT_CALL_FORWARDING 0.02  // 0.02
 #define FREQUENCY_DELETE_CALL_FORWARDING 0.02  // 0.02
-#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.10  // 0.1
-#define FREQUENCY_UPDATE_LOCATION 0.4          // 0.40
+#define FREQUENCY_UPDATE_SUBSCRIBER_DATA 0.02  // 0.1
+#define FREQUENCY_UPDATE_LOCATION 0.14         // 0.40
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
