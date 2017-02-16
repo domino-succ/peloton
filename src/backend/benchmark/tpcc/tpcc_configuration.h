@@ -66,6 +66,13 @@ static const oid_t order_line_table_pkey_index_oid =
 static const oid_t order_line_table_skey_index_oid =
     20091;  // OL_W_ID, OL_D_ID, OL_O_ID
 
+enum ColumnName {
+  Column_W_ID = 0,  //
+  Column_D_ID = 1,  //
+  Column_C_ID = 2,  //
+  Column_I_ID = 3
+};
+
 class configuration {
  public:
   // scale factor
@@ -157,7 +164,7 @@ class configuration {
 
   bool no_steal;
 
-  bool online;
+  bool online;  // true: MAX policy. false: SUM policy
   bool offline;
 
   bool single_ref;

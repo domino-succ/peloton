@@ -20,6 +20,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "backend/benchmark/benchmark_common.h"
 #include "backend/benchmark/tpcc/tpcc_loader.h"
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/catalog/manager.h"
@@ -1250,6 +1251,9 @@ void CreateTPCCDatabase() {
   CreateOrdersTable();
   CreateNewOrderTable();
   CreateOrderLineTable();
+
+  // Create css table
+  CreateCcsTable(tpcc_database, tpcc_database_oid);
 }
 
 /////////////////////////////////////////////////////////

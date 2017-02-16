@@ -95,18 +95,6 @@ static void WriteOutput() {
   out << state.single_ref << " ";
   out << state.lock_free << "\n";
 
-  //  out << state.payment_throughput << " ";
-  //  out << state.payment_abort_rate << " ";
-  //
-  //  out << state.new_order_throughput << " ";
-  //  out << state.new_order_abort_rate << " ";
-  //
-  //  out << state.stock_level_latency << " ";
-  //  out << state.order_status_latency << " ";
-  //  out << state.scan_stock_latency << " ";
-
-  // out << total_snapshot_memory << "\n";
-
   out.flush();
   out.close();
 }
@@ -130,24 +118,27 @@ void LoadQuery(uint64_t count) {
 
     // Get clustering result. Each cluster is a big region (vector) including
     // cluster NO.
-    std::unordered_map<int, ClusterRegion> clusters = ClusterAnalysis();
+    // std::unordered_map<int, ClusterRegion> clusters = ClusterAnalysis();
+    std::unique_ptr<std::unordered_map<int, std::unique_ptr<XRegion>>>
+        clusters = std::move(ClusterAnalysis());
 
     std::cout << "===========Print debug info =================" << std::endl;
-    for (auto &cluster : clusters) {
+    for (auto &cluster : *clusters) {
 
       std::cout << "Cluster: " << cluster.first
-                << ". Its members are: " << cluster.second.GetMemberCount();
+                << ". Center's cluster is: " << cluster.second->GetClusterNo();
       std::cout << std::endl;
     }
     // end test
 
     // Resize the number of queues according the number of clusters
     concurrency::TransactionScheduler::GetInstance().Resize(state.backend_count,
-                                                            clusters.size());
+                                                            clusters->size());
 
     // Set the cluster result to scheduler. When enqueue, the new coming txn
     // compares the big region with each cluster
-    concurrency::TransactionScheduler::GetInstance().SetClusters(clusters);
+    concurrency::TransactionScheduler::GetInstance().SetClusters(
+        std::move(clusters));
   }
   /////////////////////////end clustering//////////////////////////
 
@@ -234,9 +225,7 @@ void RunBenchmark() {
   RunWorkload();
 
   // For OOHASH
-  if (!state.log_table) {
-    WriteOutput();
-  }
+  WriteOutput();
 }
 
 }  // namespace tpcc

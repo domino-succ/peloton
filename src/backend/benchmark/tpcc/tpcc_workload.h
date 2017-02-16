@@ -16,8 +16,6 @@
 #include "backend/benchmark/tpcc/tpcc_loader.h"
 #include "backend/benchmark/tpcc/tpcc_new_order.h"
 #include "backend/benchmark/tpcc/tpcc_payment.h"
-#include "backend/benchmark/tpcc/tpcc_test_payment.h"
-#include "backend/benchmark/tpcc/tpcc_test.h"
 #include "backend/benchmark/tpcc/tpcc_configuration.h"
 #include "backend/executor/abstract_executor.h"
 #include "backend/storage/data_table.h"
@@ -331,12 +329,6 @@ bool RunPayment(PaymentPlans& payment_plans, const size_t& thread_id);
 bool RunPayment(Payment* new_order);
 void SetPayment(Payment* new_order);
 
-Test* GenerateTest();
-void SetTest(Test* test);
-
-TestPayment* GenerateTestPayment();
-void SetTestPayment(TestPayment* payment);
-
 bool RunDelivery(DeliveryPlans& delivery_plans, const size_t& thread_id);
 
 bool RunOrderStatus(const size_t& thread_id);
@@ -351,9 +343,13 @@ void GenerateAndCacheQuery();
 void GenerateALLAndCache(bool new_order);
 bool EnqueueCachedUpdate(
     std::chrono::system_clock::time_point& delay_start_time);
-std::unordered_map<int, ClusterRegion> ClusterAnalysis();
+std::unique_ptr<std::unordered_map<int, std::unique_ptr<XRegion>>>
+    ClusterAnalysis();
 
+//////////  helper /////////////////
 void PrintDelay(concurrency::TransactionQuery* query, uint64_t delay_total);
+void UpdateCommitAbortCouter(concurrency::TransactionQuery* query,
+                             oid_t& new_order, oid_t& payment);
 
 /////////////////////////////////////////////////////////
 std::vector<std::vector<Value>> ExecuteReadTest(

@@ -158,28 +158,38 @@ class NewOrder : public concurrency::TransactionQuery {
     return peloton::PLAN_NODE_TYPE_UPDATE;
   };
 
+  virtual std::unique_ptr<XRegion> RegionTransform() {
+    return std::unique_ptr<XRegion>(new XRegion(ol_w_ids_));
+  }
+
+  virtual XRegion& GetRegion() { return region_; }
+  void RegionInit() { region_.Init(ol_w_ids_); }
+
   // According the New-Order predicate, transform them into a region
   // New-Order predicate have two UPDATE types. In this experiment
   // we only consider one UPDATE (STOCK table update). It contains
   // two columns W_ID and I_ID. W_ID's range is from [1, state.warehouse_count]
   // and I_ID's range is from [1, state.item_count].
   // Note: this is new a Region which is different from the GetRegion();
-  virtual SingleRegion* RegionTransform() {
-    // Generate region and return
-    // std::shared_ptr<Region> region(new Region(cover));
-    return new SingleRegion(state.warehouse_count, ol_w_ids_, state.item_count,
-                            i_ids_, o_all_local_, warehouse_id_);
-  }
+  //  virtual SingleRegion* RegionTransform() {
+  //    // Generate region and return
+  //    // std::shared_ptr<Region> region(new Region(cover));
+  //    return new SingleRegion(state.warehouse_count, ol_w_ids_,
+  // state.item_count,
+  //                            i_ids_, o_all_local_, warehouse_id_);
+  //  }
+
+  // virtual SingleRegion& GetRegion() { return region_; }
+
+  // virtual XRegion* RegionTransform() {}
 
   // According predicate (WID AND IID), set the region cover(vector) for this
   // txn
-  void SetRegionCover() {
-    // Set region
-    region_.SetCover(state.warehouse_count, ol_w_ids_, state.item_count,
-                     i_ids_);
-  }
-
-  virtual SingleRegion& GetRegion() { return region_; }
+  //  void SetRegionCover() {
+  //    // Set region
+  //    region_.SetCover(state.warehouse_count, ol_w_ids_, state.item_count,
+  //                     i_ids_);
+  //  }
 
   // Increase the counter when conflict
   virtual void UpdateLogTableSingleRef(bool canonical) {
@@ -395,7 +405,7 @@ class NewOrder : public concurrency::TransactionQuery {
 
     // If there is no conflict, return -1;
     if (max_conflict == CONFLICT_THRESHHOLD) {
-      std::cout << "Not find any conflict in Log Table" << std::endl;
+      // std::cout << "Not find any conflict in Log Table" << std::endl;
       return -1;
     }
 
@@ -2253,10 +2263,15 @@ class NewOrder : public concurrency::TransactionQuery {
   bool o_all_local_;
   std::vector<int> i_ids_, ol_w_ids_, ol_qtys_;
 
-  SingleRegion region_;
+  // SingleRegion region_;
+  XRegion region_;
 
   // For queue No.
   int queue_;
+
+  // Each vector represents queries with same references:
+  // <table_id, column_id, type, value : counter>
+  // std::unordered_map<std::tuple<int, int, int, int>, int> reference_counter;
 };
 }
 }

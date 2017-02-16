@@ -84,6 +84,7 @@ namespace tpcc {
 
 volatile bool is_running = true;
 volatile bool is_run_table = false;
+volatile bool begin_cluster_analysis = false;
 
 oid_t *abort_counts;
 oid_t *commit_counts;
@@ -162,14 +163,17 @@ void GenerateSimpleTxn() {
 
   NewOrder *txn = GenerateNewOrder();
   // Payment *txn = GeneratePayment();
-  // TestPayment *txn = GenerateTestPayment();
   // Test *txn = GenerateTest();
 
   concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
 }
 
-std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
-  std::vector<SingleRegion> txn_regions;
+// std::unordered_map<int, ClusterRegion>
+std::unique_ptr<std::unordered_map<int, std::unique_ptr<XRegion>>>
+ClusterAnalysis() {
+  // std::vector<SingleRegion> txn_regions;
+  std::unique_ptr<std::vector<std::unique_ptr<XRegion>>> txn_regions(
+      new std::vector<std::unique_ptr<XRegion>>);
 
   int size = concurrency::TransactionScheduler::GetInstance().GetCacheSize();
 
@@ -187,35 +191,36 @@ std::unordered_map<int, ClusterRegion> ClusterAnalysis() {
     // LOG_INFO("Dequeue a query %d and begin to transform", i);
 
     // Transform the query into a region
-    SingleRegion *region = query->RegionTransform();
-    txn_regions.push_back(*region);
+    std::unique_ptr<XRegion> region = query->RegionTransform();
+    txn_regions->push_back(std::move(region));
   }
 
   LOG_INFO("Finish transform, begin to clustering");
 
   // Cluster all txn_regions
-  DBScan dbs(txn_regions, state.min_pts);
+  // DBScan dbs(txn_regions, state.min_pts);
+  XDBScan dbs(std::move(txn_regions), state.min_pts);
 
   LOG_INFO("Finish generate dbscan, begin to PreProcess");
 
-  // Transform the regions into a graph. That is to mark each region's
-  // neighbors
-  dbs.PreProcess(1);
+  // Transform the regions into a graph: mark each region's neighbors
+  dbs.PreProcess();
+  // dbs.PreProcess();
   // dbs.DebugPrintRegion();
 
   int re = dbs.Clustering();
 
   std::cout << "The number of cluster: " << re << std::endl;
 
-  dbs.SetClusterRegion();
+  // dbs.SetClusterRegion();
   // dbs.DebugPrintRegion();
-  dbs.DebugPrintCluster();
+  // dbs.DebugPrintCluster();
 
   std::cout << "Meta:" << std::endl;
 
   dbs.DebugPrintClusterMeta();
 
-  return dbs.GetClusters();
+  return std::move(dbs.GetClusterCenters());
 }
 
 bool EnqueueCachedUpdate(
@@ -234,80 +239,101 @@ bool EnqueueCachedUpdate(
   // Start counting the response time when entering the queue
   query->SetStartTime(delay_start_time);
 
-  // Push the query into the queue
-  // Note: when popping the query and after executing it, the update_executor
-  // and
-  // index_executor should be deleted, then query itself should be deleted
-  if (state.scheduler == SCHEDULER_TYPE_CONFLICT_DETECT) {
-    concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
-  } else if (state.scheduler == SCHEDULER_TYPE_HASH) {
-    // If run table is not ready
-    if (state.log_table) {
-      // concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
-      concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
-          query, state.single_ref);
+  //////////////////////////////////////////
+  // Push query into the queue
+  //////////////////////////////////////////
+  switch (state.scheduler) {
+    case SCHEDULER_TYPE_CONFLICT_DETECT: {
+      concurrency::TransactionScheduler::GetInstance().CounterEnqueue(query);
+      break;
     }
-    // Run table is ready
-    else if (state.online) {  // ONLINE means Run table
-                              // Debug
-      std::cout << "Before enqueue, run table : " << std::endl;
-      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
-
-      std::cout << "------------end run "
-                   "table------------------------------------------"
-                << std::endl;
-      // end debug
-
-      if (state.lock_free) {
-        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, true, state.single_ref, state.canonical,
-            state.fraction, state.pure_balance);
-      }
-      // lock
-      else {
-        // concurrency::TransactionScheduler::GetInstance().RunTableLock();
-
-        // Increase run table
-        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, true, state.single_ref, state.canonical,
-            state.fraction, state.pure_balance);
-
-        // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
-      }
-
-    } else {  // otherwise use OOHASH method
-      if (state.lock_free) {
-        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, false, state.single_ref, state.canonical,
-            state.fraction, state.pure_balance);
-      }
-      // lock run table
-      else {
-        // concurrency::TransactionScheduler::GetInstance().RunTableLock();
-
-        // enqueue
-        concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
-            query, true, false, state.single_ref, state.canonical,
-            state.fraction, state.pure_balance);
-
-        // concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
-      }
+    case SCHEDULER_TYPE_CONFLICT_LEANING: {
+      // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+      break;
     }
-  } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_LEANING) {
-    // concurrency::TransactionScheduler::GetInstance().RouterRangeEnqueue(query);
-    concurrency::TransactionScheduler::GetInstance().Enqueue(query);
-  } else if (state.scheduler == SCHEDULER_TYPE_CLUSTER) {
-    concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(query);
-  } else if (state.scheduler == SCHEDULER_TYPE_CONFLICT_RANGE) {
-    // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
-    concurrency::TransactionScheduler::GetInstance().Enqueue(query);
-  } else {  // Control
-    concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+    case SCHEDULER_TYPE_CLUSTER: {
+      concurrency::TransactionScheduler::GetInstance().ClusterEnqueue(query);
+      break;
+    }
+    case SCHEDULER_TYPE_CONFLICT_RANGE: {
+      // concurrency::TransactionScheduler::GetInstance().RangeEnqueue(query);
+      concurrency::TransactionScheduler::GetInstance().Enqueue(query);
+      break;
+    }
+    case SCHEDULER_TYPE_CCS: {
+      concurrency::TransactionScheduler::GetInstance().CCSEnqueue(query);
+      break;
+    }
+    case SCHEDULER_TYPE_CONTROL: {
+      concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+      break;
+    }
+    case SCHEDULER_TYPE_HASH: {
+      // If run table is not ready
+      if (state.log_table) {
+        // concurrency::TransactionScheduler::GetInstance().SingleEnqueue(query);
+        concurrency::TransactionScheduler::GetInstance().RandomEnqueue(
+            query, state.single_ref);
+      }
+      // Run table is ready. ONLINE means MAX policy
+      else if (state.online) {
+        // Debug
+        //      std::cout << "Before enqueue, run table : " << std::endl;
+        //      concurrency::TransactionScheduler::GetInstance().DumpRunTable();
+        //
+        //      std::cout << "------------end run "
+        //                   "table------------------------------------------"
+        //                << std::endl;
+        // end debug
+
+        if (state.lock_free) {
+          concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+              query, true, state.online, state.single_ref, state.canonical,
+              state.fraction, state.pure_balance);
+        }
+        // lock
+        else {
+          concurrency::TransactionScheduler::GetInstance().RunTableLock();
+
+          // Increase run table
+          concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+              query, true, state.online, state.single_ref, state.canonical,
+              state.fraction, state.pure_balance);
+
+          concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+        }
+        // SUM policy
+      } else {
+        if (state.lock_free) {
+          concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+              query, true, false, state.single_ref, state.canonical,
+              state.fraction, state.pure_balance);
+        }
+        // lock run table
+        else {
+          concurrency::TransactionScheduler::GetInstance().RunTableLock();
+
+          // enqueue
+          concurrency::TransactionScheduler::GetInstance().OOHashEnqueue(
+              query, true, false, state.single_ref, state.canonical,
+              state.fraction, state.pure_balance);
+
+          concurrency::TransactionScheduler::GetInstance().RunTableUnlock();
+        }
+      }
+      break;
+    }
+    default: {
+      LOG_ERROR("Enqueue :: Unsupported scheduler: %u ", state.scheduler);
+      break;
+    }
   }
 
   return true;
 }
 
+// A seqscan query for stock table
 void RunScanBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -341,34 +367,6 @@ void RunScanBackend(oid_t thread_id) {
   }
 }
 
-void PrintDelay(concurrency::TransactionQuery *query, uint64_t delay_total) {
-  std::chrono::system_clock::time_point end_time =
-      std::chrono::system_clock::now();
-
-  auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(
-      end_time - query->GetStartTime()).count();
-
-  std::cout << "Delay: " << delay << "--Total:" << delay_total << std::endl;
-}
-
-void UpdateCommitAbortCouter(concurrency::TransactionQuery *query,
-                             oid_t &new_order, oid_t &payment) {
-  switch (query->GetTxnType()) {
-    case TXN_TYPE_NEW_ORDER: {
-      new_order++;
-      break;
-    }
-    case TXN_TYPE_PAYMENT: {
-      payment++;
-      break;
-    }
-    default: {
-      LOG_INFO("GetTxnType:: Unsupported scheduler: %d", query->GetTxnType());
-      break;
-    }
-  }
-}
-
 void RunBackend(oid_t thread_id) {
   PinToCore(thread_id);
 
@@ -388,19 +386,6 @@ void RunBackend(oid_t thread_id) {
 
   oid_t &payment_abort_count_ref = payment_abort_counts[thread_id];
   oid_t &payment_commit_count_ref = payment_commit_counts[thread_id];
-
-  // // backoff
-  // uint32_t backoff_shifts = 0;
-
-  //  bool slept = false;
-  //  auto SLEEP_TIME = std::chrono::milliseconds(100);
-  //
-  //  oid_t &payment_abort_count_ref = payment_abort_counts[thread_id];
-  //  oid_t &payment_commit_count_ref = payment_commit_counts[thread_id];
-  //
-  //  oid_t &new_order_abort_count_ref = new_order_abort_counts[thread_id];
-  //  oid_t &new_order_commit_count_ref =
-  // new_order_commit_counts[thread_id];
 
   while (true) {
     if (is_running == false) {
@@ -675,6 +660,226 @@ void QueryBackend(oid_t thread_id) {
   }
 }
 
+void ExecutePlusClusterBackend(oid_t thread_id) {
+  PinToCore(thread_id);
+
+  oid_t &steal_count_ref = steal_counts[thread_id];
+  oid_t &abort_count_ref = abort_counts[thread_id];
+  oid_t &commit_count_ref = commit_counts[thread_id];
+  oid_t &total_count_ref = total_counts[thread_id];
+
+  uint64_t &exe_total_ref = exe_totals[thread_id];
+
+  uint64_t &delay_total_ref = delay_totals[thread_id];
+  uint64_t &delay_max_ref = delay_maxs[thread_id];
+  uint64_t &delay_min_ref = delay_mins[thread_id];
+
+  oid_t &new_order_abort_count_ref = new_order_abort_counts[thread_id];
+  oid_t &new_order_commit_count_ref = new_order_commit_counts[thread_id];
+
+  oid_t &payment_abort_count_ref = payment_abort_counts[thread_id];
+  oid_t &payment_commit_count_ref = payment_commit_counts[thread_id];
+
+  // There is a bool sign that
+  while (true) {
+    if (is_running == false) {
+      break;
+    }
+
+    if (begin_cluster_analysis) {
+      // Analyze the finished txns and find out the cluster center
+
+      // cluster analysis is done. Set begin_cluster_analysis with false
+      begin_cluster_analysis = false;
+    }
+
+    // Pop a query from a queue and execute
+    concurrency::TransactionQuery *ret_query = nullptr;
+    bool ret_pop = false;
+    bool ret_steal = false;
+
+    ///////////////////////////////////////////////////////////////////
+    // Pop a query
+    ///////////////////////////////////////////////////////////////////
+    switch (state.scheduler) {
+      case SCHEDULER_TYPE_NONE:
+      case SCHEDULER_TYPE_CONTROL:
+      case SCHEDULER_TYPE_ABORT_QUEUE: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().SingleDequeue(
+                ret_query);
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_DETECT: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().CounterDequeue(
+                ret_query, thread_id);
+        break;
+      }
+      case SCHEDULER_TYPE_HASH: {
+        if (state.log_table) {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                  ret_query, thread_id, ret_steal);
+        }
+
+        if (state.no_steal) {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                  ret_query, thread_id);
+        } else {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                  ret_query, thread_id, ret_steal);
+        }
+
+        // Debug
+        //        if (ret_pop != false) {
+        //          PrintDelay(ret_query, delay_total_ref);
+        //        }
+
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_LEANING: {
+        if (state.no_steal) {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().SimpleDequeue(
+                  ret_query, thread_id);
+        } else {
+          ret_pop =
+              concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                  ret_query, thread_id, ret_steal);
+        }
+
+        break;
+      }
+      case SCHEDULER_TYPE_CLUSTER: {
+        ret_pop =
+            concurrency::TransactionScheduler::GetInstance().PartitionDequeue(
+                ret_query, thread_id, ret_steal);
+        break;
+      }
+      case SCHEDULER_TYPE_CONFLICT_RANGE: {
+        ret_pop = concurrency::TransactionScheduler::GetInstance().Dequeue(
+            ret_query, thread_id);
+        break;
+      }
+      default: {
+        LOG_ERROR("plan_type :: Unsupported scheduler: %u ", state.scheduler);
+        break;
+      }
+    }  // end switch
+
+    // process the pop result. If queue is empty, continue loop
+    if (ret_pop == false) {
+      // LOG_INFO("Queue is empty");
+      continue;
+    }
+
+    PL_ASSERT(ret_query != nullptr);
+    total_count_ref++;
+
+    // Record stealing
+    if (ret_steal) {
+      steal_count_ref++;
+    }
+
+    // Now record start time for execution
+    std::chrono::system_clock::time_point exe_start_time =
+        std::chrono::system_clock::now();
+    ret_query->SetExeStartTime(exe_start_time);
+
+    ////////////////////////////////////////////////////////////////////////
+    // Execute query
+    ////////////////////////////////////////////////////////////////////////
+
+    // Re-exeucte a txn until success
+    while (ret_query->Run() == false) {
+      if (is_running == false) {
+        break;
+      }
+
+      // Increase the counter
+      abort_count_ref++;
+
+      // Increase abort counter for others
+      UpdateCommitAbortCouter(ret_query, new_order_abort_count_ref,
+                              payment_abort_count_ref);
+
+      switch (state.scheduler) {
+        case SCHEDULER_TYPE_NONE: {
+          // We do nothing in this case.Just delete the query
+          // Since we discard the txn, do not record the throughput and delay
+          goto program_end;
+        }
+        case SCHEDULER_TYPE_CONTROL:
+        case SCHEDULER_TYPE_CONFLICT_LEANING:
+        case SCHEDULER_TYPE_CLUSTER:
+        case SCHEDULER_TYPE_CONFLICT_RANGE:
+        case SCHEDULER_TYPE_ABORT_QUEUE:
+        case SCHEDULER_TYPE_CONFLICT_DETECT: {
+          // Control: The txn re-executed immediately
+          break;
+        }
+        case SCHEDULER_TYPE_HASH: {
+          if (state.log_table) {
+            if (state.fraction || state.log_both) {
+              ret_query->UpdateLogTableFullConflict(state.single_ref,
+                                                    state.canonical);
+            } else {
+              ret_query->UpdateLogTable(state.single_ref, state.canonical);
+            }
+          }
+          // The txn re-executed immediately
+          break;
+        }
+        default: {
+          LOG_INFO("Scheduler_type :: Unsupported scheduler: %u ",
+                   state.scheduler);
+          break;
+        }
+      }  // end switch
+
+      _mm_pause();
+    }  // end if execute fail
+
+    /////////////////////////////////////////////////
+    // Execute success: the memory should be deleted
+    /////////////////////////////////////////////////
+
+    // First compute the delay
+    ret_query->RecordDelay(delay_total_ref, delay_max_ref, delay_min_ref);
+
+    // For execution time
+    ret_query->RecordExetime(exe_total_ref);
+
+    // Increase the counter
+    commit_count_ref++;
+
+    // Increase commit counter for others
+    UpdateCommitAbortCouter(ret_query, new_order_commit_count_ref,
+                            payment_commit_count_ref);
+
+    // clean up the hash table
+    if (state.scheduler == SCHEDULER_TYPE_HASH) {
+      // Update Log Table when success
+      if (state.log_both || (state.log_table && state.fraction)) {
+        ret_query->UpdateLogTableFullSuccess(state.single_ref, state.canonical);
+      }
+      // Remove txn from Run Table
+      if (!state.lock_free) {
+        ret_query->DecreaseRunTable(state.single_ref, state.canonical);
+      }
+    }
+
+  program_end:
+    // Finally, clean up
+    if (ret_query != nullptr) {
+      ret_query->Cleanup();
+      delete ret_query;
+    }
+  }  // end big while
+}
 void RunWorkload() {
 
   // Execute the workload to build the log
@@ -1051,6 +1256,37 @@ void RunWorkload() {
   LOG_INFO("new order count = %u", new_order_table->GetAllCurrentTupleCount());
   LOG_INFO("order line count = %u",
            order_line_table->GetAllCurrentTupleCount());
+}
+
+/////////////////////////////////////////////////////////
+// Helper
+////////////////////////////////////////////////////////
+void PrintDelay(concurrency::TransactionQuery *query, uint64_t delay_total) {
+  std::chrono::system_clock::time_point end_time =
+      std::chrono::system_clock::now();
+
+  auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(
+      end_time - query->GetStartTime()).count();
+
+  std::cout << "Delay: " << delay << "--Total:" << delay_total << std::endl;
+}
+
+void UpdateCommitAbortCouter(concurrency::TransactionQuery *query,
+                             oid_t &new_order, oid_t &payment) {
+  switch (query->GetTxnType()) {
+    case TXN_TYPE_NEW_ORDER: {
+      new_order++;
+      break;
+    }
+    case TXN_TYPE_PAYMENT: {
+      payment++;
+      break;
+    }
+    default: {
+      LOG_INFO("GetTxnType:: Unsupported scheduler: %d", query->GetTxnType());
+      break;
+    }
+  }
 }
 
 /////////////////////////////////////////////////////////

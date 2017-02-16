@@ -354,8 +354,8 @@ Payment *GeneratePayment() {
   // Set values
   SetPayment(payment);
 
-  //
-  payment->SetRegionCover();
+  // payment->SetRegionCover();
+  payment->RegionInit();
 
   return payment;
 }
@@ -412,6 +412,16 @@ void SetPayment(Payment *payment) {
 
   // Take warehouse_id_ as the primary key
   payment->primary_keys_.assign(1, payment->warehouse_id_);
+
+  // W_ID = ?", # h_amount, w_id
+  // D_W_ID = ? AND D_ID = ?", # h_amount, d_w_id, d_id
+  // C_W_ID = ? AND C_D_ID = ? AND C_ID = ?", # w_id, d_id,
+  // C_W_ID = ? AND C_D_ID = ? AND C_LAST = ? # w_id
+  // C_W_ID = ? AND C_D_ID = ? AND C_ID = ?", # c_w_id
+  payment->w_ids_.push_back(payment->customer_warehouse_id_);
+  for (int i = 0; i < 4; i++) {
+    payment->w_ids_.push_back(payment->warehouse_id_);
+  }
 }
 
 // Payment method

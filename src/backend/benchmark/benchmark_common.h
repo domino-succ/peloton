@@ -12,6 +12,14 @@
 
 #pragma once
 
+#include "backend/storage/data_table.h"
+#include "backend/storage/database.h"
+#include "backend/storage/table_factory.h"
+#include "backend/index/index_factory.h"
+#include "backend/common/types.h"
+#include "backend/catalog/column.h"
+#include "backend/catalog/schema.h"
+
 #include <cstdint>
 #include <cmath>
 #include <thread>
@@ -142,6 +150,8 @@ class DistributionAnalysis {
 void SleepMilliseconds(int n);
 
 void PinToCore(size_t core);
+
+void CreateCcsTable(storage::Database *database, oid_t database_oid);
 
 }  // namespace benchmark
 }  // namespace peloton

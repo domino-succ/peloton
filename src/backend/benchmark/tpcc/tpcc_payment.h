@@ -157,16 +157,24 @@ class Payment : public concurrency::TransactionQuery {
     return peloton::PLAN_NODE_TYPE_UPDATE;
   };
 
-  virtual SingleRegion* RegionTransform() { return new SingleRegion(); }
+  //  virtual SingleRegion* RegionTransform() { return new SingleRegion(); }
+  //
+  //  // According predicate (WID AND IID), set the region cover(vector) for
+  // this
+  //  // txn
+  //  void SetRegionCover() {
+  //    region_.SetCover(state.warehouse_count, state.item_count);
+  //    region_.SetCoverWithDefault(warehouse_id_, state.item_count);
+  //  }
+  //
+  //  virtual SingleRegion& GetRegion() { return region_; }
 
-  // According predicate (WID AND IID), set the region cover(vector) for this
-  // txn
-  void SetRegionCover() {
-    region_.SetCover(state.warehouse_count, state.item_count);
-    region_.SetCoverWithDefault(warehouse_id_, state.item_count);
+  virtual std::unique_ptr<XRegion> RegionTransform() {
+    return std::unique_ptr<XRegion>(new XRegion(w_ids_));
   }
 
-  virtual SingleRegion& GetRegion() { return region_; }
+  virtual XRegion& GetRegion() { return region_; }
+  void RegionInit() { region_.Init(w_ids_); }
 
   /*
    *    UPDATE WAREHOUSE SET * WHERE W_ID = ?", # h_amount, w_id
@@ -2836,10 +2844,13 @@ class Payment : public concurrency::TransactionQuery {
   int customer_district_id_;
   std::string customer_lastname_;
 
-  SingleRegion region_;
+  XRegion region_;
 
   // For queue No.
   int queue_;
+
+  // For cluster
+  std::vector<int> w_ids_;
 };
 }
 }

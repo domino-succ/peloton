@@ -19,6 +19,8 @@
 #include "backend/planner/abstract_plan.h"
 #include "backend/executor/abstract_executor.h"
 
+#include "libcuckoo/cuckoohash_map.hh"
+
 namespace peloton {
 namespace concurrency {
 
@@ -69,8 +71,11 @@ class TransactionQuery {
   virtual int GetPrimaryKey() = 0;
 
   // For clustering
-  virtual SingleRegion* RegionTransform() = 0;
-  virtual SingleRegion& GetRegion() = 0;
+  //  virtual SingleRegion* RegionTransform() = 0;
+  //  virtual SingleRegion& GetRegion() = 0;
+
+  virtual std::unique_ptr<XRegion> RegionTransform() = 0;
+  virtual XRegion& GetRegion() = 0;
 
   // For Log Table
   virtual void UpdateLogTable(bool single_ref, bool canonical) = 0;
@@ -250,10 +255,23 @@ class TransactionScheduler {
     // queues_.at(queue_number).Enqueue(query);
   }
 
+  // CCS Enqueue means checking ccs table, computer the conflict for each thread
+  // and select the largest one. The detail is :
+  // 1. For each single reference, SELECT thread, factor FROM ccs_table
+  //    WHERE TABLE_NAME=? AND COL_NAME=? AND TYPE=? AND VALUE=?
+  // 2. Mean while, update the counter for each thread; (int counter[10])
+  // 3. Choose the thread with the largest counter
+  void CCSEnqueue(TransactionQuery* query) {
+    std::vector<uint64_t> key = query->GetPrimaryKeysByint();
+    uint64_t queue_number = Hash(key.front());
+
+    queues_[queue_number].Enqueue(query);
+    // queues_.at(queue_number).Enqueue(query);
+  }
+
   /*
    * Randomly enqueue
    */
-
   void RandomEnqueue(TransactionQuery* query,
                      bool single_ref __attribute__((unused))) {
     // Get a random number from 0 to queue_counts
@@ -333,19 +351,19 @@ class TransactionScheduler {
   // to the scheduler. When dequeue, we use the method of ParitionDeuque
   void ClusterEnqueue(TransactionQuery* query) {
     // Get the region for current query
-    Region& current = query->GetRegion();
+    XRegion& current = query->GetRegion();
 
     int max = 0;
     int cluster_idx = 0;
 
     // Compare the overlap query's region with each cluster's region
     for (auto& cluster : clusters_) {
-      int overlap = current.OverlapValue(cluster);
+      int overlap = current.OverlapValue(*cluster);
 
       // If the current overlap is larger than the max, keep it
       if (overlap > max) {
         max = overlap;
-        cluster_idx = cluster.GetClusterNo();
+        cluster_idx = cluster->GetClusterNo();
       }
     }
 
@@ -483,8 +501,7 @@ class TransactionScheduler {
    *   D_W_ID-2   : 452
    *
    * 2.Then lookup these four conditions in RunTable to see they belong to which
-   * queue and accumulate the count for the corresponding
-   *quTransactionSchedulereue.
+   * queue and accumulate the count for the corresponding queue.
    *   S_I_ID-190-->(3,100)(5,99)
    *   S_W_ID-2  -->(3,200)
    *   D_ID-3    -->(5,99)
@@ -499,15 +516,13 @@ class TransactionScheduler {
    * 4.Increase the number for each conditions
    */
 
-  std::atomic<int> g_queue_no;
-
   void OOHashEnqueue(TransactionQuery* query, bool enqueue_thread, bool online,
                      bool single_ref, bool canonical, bool fraction,
                      bool pure_balance) {
     int queue = -1;
 
     // Find out the corresponding queue
-
+    // online means RunTable is ready
     if (online) {
       if (fraction) {
         queue = query->LookupRunTableMaxFull(single_ref, canonical);
@@ -703,9 +718,11 @@ class TransactionScheduler {
 
   int GetCacheSize() { return query_cache_queue_.Size(); }
 
-  void SetClusters(std::unordered_map<int, ClusterRegion>& clusters) {
-    for (auto& entry : clusters) {
-      clusters_.push_back(entry.second);
+  // void SetClusters(std::unordered_map<int, ClusterRegion>& clusters) {
+  void SetClusters(std::unique_ptr<
+      std::unordered_map<int, std::unique_ptr<XRegion>>> clusters) {
+    for (auto& entry : *clusters) {
+      clusters_.push_back(std::move(entry.second));
     }
   }
 
@@ -1394,7 +1411,8 @@ class TransactionScheduler {
   UniformIntGenerator random_cluster_;
 
   // Only used when use clustering
-  std::vector<ClusterRegion> clusters_;
+  // std::vector<ClusterRegion> clusters_;
+  std::vector<std::unique_ptr<XRegion>> clusters_;
 
   //////////////////////////////////////////////
   // The condition format (string): 'columnname' + '-' + 'value', such as wid-4
@@ -1420,6 +1438,7 @@ class TransactionScheduler {
   // If wid=3 --> 3 already exists, do nothing.
   // Note: wid=3 might be executed by several threads at the time, so it is
   // vector for threads in the table. wid-3-->(3,100)(5,99)
+  // cuckoohash_map<std::string, std::unordered_map<int, int>> run_table_;
   std::unordered_map<std::string, std::unordered_map<int, int>> run_table_;
   std::unordered_map<int, std::unordered_map<int, int>> run_table_int_;
 
