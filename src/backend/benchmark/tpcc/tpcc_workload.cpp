@@ -163,7 +163,6 @@ void GenerateSimpleTxn() {
 
   NewOrder *txn = GenerateNewOrder();
   // Payment *txn = GeneratePayment();
-  // Test *txn = GenerateTest();
 
   concurrency::TransactionScheduler::GetInstance().CacheQuery(txn);
 }
