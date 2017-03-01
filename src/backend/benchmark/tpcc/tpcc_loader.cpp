@@ -413,8 +413,8 @@ void CreateWarehouseTable() {
 
   index::Index *pkey_index = nullptr;
   if (state.index == INDEX_TYPE_HASH) {
-    pkey_index =
-        index::IndexFactory::GetInstance(index_metadata, state.warehouse_count);
+    pkey_index = index::IndexFactory::GetInstance(
+        index_metadata, state.warehouse_count * preallocate_scale);
   } else {
     pkey_index = index::IndexFactory::GetInstance(index_metadata);
   }
@@ -504,7 +504,8 @@ void CreateDistrictTable() {
   index::Index *pkey_index = nullptr;
   if (state.index == INDEX_TYPE_HASH) {
     pkey_index = index::IndexFactory::GetInstance(
-        index_metadata, state.warehouse_count * state.districts_per_warehouse);
+        index_metadata, state.warehouse_count * state.districts_per_warehouse *
+                            preallocate_scale);
   } else {
     pkey_index = index::IndexFactory::GetInstance(index_metadata);
   }
@@ -568,8 +569,8 @@ void CreateItemTable() {
 
   index::Index *pkey_index = nullptr;
   if (state.index == INDEX_TYPE_HASH) {
-    pkey_index =
-        index::IndexFactory::GetInstance(index_metadata, state.item_count);
+    pkey_index = index::IndexFactory::GetInstance(
+        index_metadata, state.item_count * preallocate_scale);
   } else {
     pkey_index = index::IndexFactory::GetInstance(index_metadata);
   }
@@ -713,7 +714,7 @@ void CreateCustomerTable() {
   if (state.index == INDEX_TYPE_HASH) {
     pkey_index = index::IndexFactory::GetInstance(
         index_metadata, state.warehouse_count * state.districts_per_warehouse *
-                            state.customers_per_district);
+                            state.customers_per_district * preallocate_scale);
   } else {
     pkey_index = index::IndexFactory::GetInstance(index_metadata);
   }
@@ -916,7 +917,8 @@ void CreateStockTable() {
 
   if (state.index == INDEX_TYPE_HASH) {
     pkey_index = index::IndexFactory::GetInstance(
-        index_metadata, state.warehouse_count * state.item_count);
+        index_metadata,
+        state.warehouse_count * state.item_count * preallocate_scale);
   } else {
     pkey_index = index::IndexFactory::GetInstance(index_metadata);
   }

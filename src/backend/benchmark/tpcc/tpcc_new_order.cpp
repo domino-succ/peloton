@@ -381,6 +381,7 @@ void SetNewOrder(NewOrder *new_order) {
   // For each query,
   // 1. we first extract the reference as a tuple with four tuplets:
   // <table_name_id, column_name_id, type, value>
+  // 2. Lookup up the map to see whether there already exist
   /*
      "NEW_ORDER": {
      "getWarehouseTaxRate": "SELECT W_TAX FROM WAREHOUSE WHERE W_ID = ?", # w_id
