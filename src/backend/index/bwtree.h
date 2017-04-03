@@ -3445,7 +3445,6 @@ class BwTree {
 
     // We cannot reach here
     assert(false);
-    return false;
   }
 
   /*

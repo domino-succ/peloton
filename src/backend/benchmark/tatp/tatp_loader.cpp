@@ -19,6 +19,7 @@
 #include <ctime>
 #include <cassert>
 #include <cstring>
+#include <random>
 
 #include "backend/benchmark/tatp/tatp_loader.h"
 #include "backend/benchmark/tatp/tatp_configuration.h"

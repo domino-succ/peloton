@@ -12,6 +12,7 @@
 
 #include "backend/executor/seq_scan_executor.h"
 
+#include <numeric>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -128,18 +129,20 @@ bool SeqScanExecutor::DExecute() {
 
       oid_t active_tuple_count = tile_group->GetNextTupleSlot();
 
-
       // Construct position list by looping through tile group
       // and applying the predicate.
       std::vector<oid_t> position_list;
       for (oid_t tuple_id = 0; tuple_id < active_tuple_count; tuple_id++) {
 
         ItemPointer location(tile_group->GetTileGroupId(), tuple_id);
-        LOG_TRACE("Seq scanning tuple (%u, %u)", location.block, location.offset);
+        LOG_TRACE("Seq scanning tuple (%u, %u)", location.block,
+                  location.offset);
 
         // check transaction visibility
-        if (transaction_manager.IsVisible(tile_group_header, tuple_id) == VISIBILITY_OK) {
-          LOG_TRACE("Seq scan on visible tuple (%u, %u)", location.block, location.offset);
+        if (transaction_manager.IsVisible(tile_group_header, tuple_id) ==
+            VISIBILITY_OK) {
+          LOG_TRACE("Seq scan on visible tuple (%u, %u)", location.block,
+                    location.offset);
 
           // if the tuple is visible, then perform predicate evaluation.
           if (predicate_ == nullptr) {

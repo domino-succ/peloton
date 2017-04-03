@@ -9,6 +9,7 @@
 // Copyright (c) 2015-16, Carnegie Mellon University Database Group
 //
 //===----------------------------------------------------------------------===//
+#include <numeric>
 
 #include "backend/bridge/dml/mapper/mapper.h"
 #include "backend/planner/seq_scan_plan.h"
@@ -41,8 +42,8 @@ std::unique_ptr<planner::AbstractPlan> PlanTransformer::TransformSeqScan(
       catalog::Manager::GetInstance().GetTableWithOid(database_oid, table_oid));
 
   PL_ASSERT(target_table);
-  LOG_TRACE("SeqScan: database oid %u table oid %u: %s", database_oid, table_oid,
-           target_table->GetName().c_str());
+  LOG_TRACE("SeqScan: database oid %u table oid %u: %s", database_oid,
+            table_oid, target_table->GetName().c_str());
 
   /**
    * SeqScan only needs the "generic" settings, so grab it.

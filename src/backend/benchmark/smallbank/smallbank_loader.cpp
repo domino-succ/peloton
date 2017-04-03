@@ -19,6 +19,7 @@
 #include <ctime>
 #include <cassert>
 #include <cstring>
+#include <random>
 
 #include "backend/benchmark/smallbank/smallbank_loader.h"
 #include "backend/benchmark/smallbank/smallbank_configuration.h"
